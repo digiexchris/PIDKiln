@@ -1,3 +1,13 @@
+- Update to use latest Adafruit MAX31855 library
+- Provide support for Adafruit MAX31856
+- Provide support for SSD1307
+- Update data to allow default template character from EspAsyncWebServer
+- Renamed ThermocoupleA and ThermocoupleB to ChamberThermocouple and CaseThermocouple for usage clarity
+- Update timer to support newer ESPIDF versions (5.4.1 for platformio)
+- Resolve -fpermissive compile and link time errors on newer toolchain version
+- Resolve link time issues with non-const definitions in header files that .ino supports (non-standard c++).
+- Add text lookup for error codes for the logs
+
 1.5 (2024.12.18)
 - updated code to compile against ESP3+ API, Arduino 2+ and latest asynce libraries
 
