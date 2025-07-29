@@ -23,37 +23,37 @@ boolean Change_prefs_value(String item, String value)
           Prefs[a].value.str = NULL;
         }
         Prefs[a].value.str = strdup(value.c_str());
-        DBG dbgLog(LOG_DEBUG, "[PREFS]  -> For %s saved STRING item value:%s type:%d\n", PrefsName[a], Prefs[a].value.str, (int)Prefs[a].type);
+        DBG dbgLog(LOG_DEBUG, "[PREFS]  -> For %s saved STRING item value:%s type:%d\n\r", PrefsName[a], Prefs[a].value.str, (int)Prefs[a].type);
         return true;
       }
       else if (Prefs[a].type == UINT8)
       {
         Prefs[a].value.uint8 = (uint8_t)value.toInt();
-        DBG dbgLog(LOG_DEBUG, "[PREFS]  -> For %s saved UINT8 item value:%d type:%d\n", PrefsName[a], Prefs[a].value.uint8, (int)Prefs[a].type);
+        DBG dbgLog(LOG_DEBUG, "[PREFS]  -> For %s saved UINT8 item value:%d type:%d\n\r", PrefsName[a], Prefs[a].value.uint8, (int)Prefs[a].type);
         return true;
       }
       else if (Prefs[a].type == UINT16)
       {
         Prefs[a].value.uint16 = (uint16_t)value.toInt();
-        DBG dbgLog(LOG_DEBUG, "[PREFS]  -> For %s saved UINT16 item value:%d type:%d\n", PrefsName[a], Prefs[a].value.uint16, (int)Prefs[a].type);
+        DBG dbgLog(LOG_DEBUG, "[PREFS]  -> For %s saved UINT16 item value:%d type:%d\n\r", PrefsName[a], Prefs[a].value.uint16, (int)Prefs[a].type);
         return true;
       }
       else if (Prefs[a].type == INT16)
       {
         Prefs[a].value.int16 = (uint16_t)value.toInt();
-        DBG dbgLog(LOG_DEBUG, "[PREFS]  -> For %s saved INT16 item value:%d type:%d\n", PrefsName[a], Prefs[a].value.int16, (int)Prefs[a].type);
+        DBG dbgLog(LOG_DEBUG, "[PREFS]  -> For %s saved INT16 item value:%d type:%d\n\r", PrefsName[a], Prefs[a].value.int16, (int)Prefs[a].type);
         return true;
       }
       else if (Prefs[a].type == INT32)
       {
         Prefs[a].value.int32 = (uint32_t)value.toInt();
-        DBG dbgLog(LOG_DEBUG, "[PREFS]  -> For %s saved INT32 item value:%d type:%d\n", PrefsName[a], Prefs[a].value.int32, (int)Prefs[a].type);
+        DBG dbgLog(LOG_DEBUG, "[PREFS]  -> For %s saved INT32 item value:%d type:%d\n\r", PrefsName[a], Prefs[a].value.int32, (int)Prefs[a].type);
         return true;
       }
       else if (Prefs[a].type == VFLOAT)
       {
         Prefs[a].value.vfloat = (double)value.toDouble();
-        DBG dbgLog(LOG_DEBUG, "[PREFS]  -> For %s saved VFLOAT item value:%f type:%d\n", PrefsName[a], Prefs[a].value.vfloat, (int)Prefs[a].type);
+        DBG dbgLog(LOG_DEBUG, "[PREFS]  -> For %s saved VFLOAT item value:%f type:%d\n\r", PrefsName[a], Prefs[a].value.vfloat, (int)Prefs[a].type);
         return true;
       }
     }
@@ -132,7 +132,7 @@ void Load_prefs()
         item.trim();
         value = line.substring(pos + 1);
         value.trim();
-        // DBG Serial.printf("[PREFS] Preference (=@%d) item: '%s' = '%s'\n",pos,item.c_str(),value.c_str());
+        // DBG Serial.printf("[PREFS] Preference (=@%d) item: '%s' = '%s'\n\r",pos,item.c_str(),value.c_str());
 
         if (item.length() > 2 && value.length() > 0)
           Change_prefs_value(item, value);
@@ -144,15 +144,15 @@ void Load_prefs()
   for (uint16_t a = 0; a < PRF_end; a++)
   {
     if (Prefs[a].type == STRING)
-      DBG dbgLog(LOG_DEBUG, "[PREFS] %d) '%s' = '%s'\t%d\n", a, PrefsName[a], Prefs[a].value.str, (int)Prefs[a].type);
+      DBG dbgLog(LOG_DEBUG, "[PREFS] %d) '%s' = '%s'\t%d\n\r", a, PrefsName[a], Prefs[a].value.str, (int)Prefs[a].type);
     if (Prefs[a].type == UINT8)
-      DBG dbgLog(LOG_DEBUG, "[PREFS] %d) '%s' = '%d'\t%d\n", a, PrefsName[a], Prefs[a].value.uint8, (int)Prefs[a].type);
+      DBG dbgLog(LOG_DEBUG, "[PREFS] %d) '%s' = '%d'\t%d\n\r", a, PrefsName[a], Prefs[a].value.uint8, (int)Prefs[a].type);
     if (Prefs[a].type == UINT16)
-      DBG dbgLog(LOG_DEBUG, "[PREFS] %d) '%s' = '%d'\t%d\n", a, PrefsName[a], Prefs[a].value.uint16, (int)Prefs[a].type);
+      DBG dbgLog(LOG_DEBUG, "[PREFS] %d) '%s' = '%d'\t%d\n\r", a, PrefsName[a], Prefs[a].value.uint16, (int)Prefs[a].type);
     if (Prefs[a].type == INT16)
-      DBG dbgLog(LOG_DEBUG, "[PREFS] %d) '%s' = '%d'\t%d\n", a, PrefsName[a], Prefs[a].value.int16, (int)Prefs[a].type);
+      DBG dbgLog(LOG_DEBUG, "[PREFS] %d) '%s' = '%d'\t%d\n\r", a, PrefsName[a], Prefs[a].value.int16, (int)Prefs[a].type);
     if (Prefs[a].type == INT32)
-      DBG dbgLog(LOG_DEBUG, "[PREFS] %d) '%s' = '%d'\t%d\n", a, PrefsName[a], Prefs[a].value.int16, (int)Prefs[a].type);
+      DBG dbgLog(LOG_DEBUG, "[PREFS] %d) '%s' = '%d'\t%d\n\r", a, PrefsName[a], Prefs[a].value.int16, (int)Prefs[a].type);
   }
 }
 

@@ -63,7 +63,7 @@ void pressed_menu()
 //
 void button_Short_Press()
 {
-  DBG dbgLog(LOG_DEBUG, " Short press. Current view %d\n", (int)LCD_State);
+  DBG dbgLog(LOG_DEBUG, " Short press. Current view %d\n\r", (int)LCD_State);
   if (LCD_State == SCR_MENU)
     pressed_menu();
   else if (LCD_State == SCR_MAIN_VIEW && LCD_Main == MAIN_VIEW3)
@@ -137,7 +137,7 @@ void Rotate()
   }
   else if (LCD_State == SCR_MENU)
   {
-    DBG dbgLog(LOG_DEBUG, "[INPUT] Rotate, SCR_MENU: Encoder turn: %d, Sizeof menu %d, Menu nr %d, \n", encoderValue, M_END, LCD_Menu);
+    DBG dbgLog(LOG_DEBUG, "[INPUT] Rotate, SCR_MENU: Encoder turn: %d, Sizeof menu %d, Menu nr %d, \n\r", encoderValue, M_END, LCD_Menu);
     if (encoderValue < 0)
     {
       if (LCD_Menu > M_SCR_MAIN_VIEW)
@@ -153,7 +153,7 @@ void Rotate()
   }
   else if (LCD_State == SCR_PROGRAM_LIST)
   {
-    DBG dbgLog(LOG_DEBUG, "[INPUT] Rotate, PROGRAMS: Encoder turn: %d\n", encoderValue);
+    DBG dbgLog(LOG_DEBUG, "[INPUT] Rotate, PROGRAMS: Encoder turn: %d\n\r", encoderValue);
     rotate_selected_program(encoderValue);
     display->LCD_display_programs();
   }
@@ -183,12 +183,12 @@ void Input_Loop(void *parameter)
       { // Button is still pressed - skip, perhaps it's a long press
         if (encoderButton + Long_Press >= millis())
         { // quick press
-          DBG dbgLog(LOG_DEBUG, "[INPUT] Button pressed %f seconds\n", (float)(millis() - encoderButton) / 1000);
+          DBG dbgLog(LOG_DEBUG, "[INPUT] Button pressed %f seconds\n\r", (float)(millis() - encoderButton) / 1000);
           button_Short_Press();
         }
         else
         { // long press
-          DBG dbgLog(LOG_DEBUG, "[INPUT] Button long pressed %f seconds\n", (float)(millis() - encoderButton) / 1000);
+          DBG dbgLog(LOG_DEBUG, "[INPUT] Button long pressed %f seconds\n\r", (float)(millis() - encoderButton) / 1000);
           button_Long_Press();
         }
         encoderButton = 0;
@@ -198,7 +198,7 @@ void Input_Loop(void *parameter)
     {
       vTaskDelay(ENCODER_ROTATE_DELAY / portTICK_PERIOD_MS);
       Rotate(); // encoderValue is global..
-      DBG dbgLog(LOG_DEBUG, "[INPUT] Encoder rotated %d\n", encoderValue);
+      DBG dbgLog(LOG_DEBUG, "[INPUT] Encoder rotated %d\n\r", encoderValue);
       encoderValue = 0;
     }
     yield();

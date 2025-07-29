@@ -59,7 +59,7 @@ void Setup_start_date()
   mytm.tm_min = atoi(tmp); // 0-59
 
   tmp = strtok(NULL, ".-:");
-  DBG dbgLog(LOG_INFO, "[NET] s:%s\n", tmp);
+  DBG dbgLog(LOG_INFO, "[NET] s:%s\n\r", tmp);
   mytm.tm_sec = atoi(tmp); // 0-59
 
   time_t t = mktime(&mytm);
@@ -126,17 +126,17 @@ boolean Start_WiFi_CLIENT()
   WiFi.mode(WIFI_STA);
 
   WiFi.begin(Prefs[PRF_WIFI_SSID].value.str, Prefs[PRF_WIFI_PASS].value.str);
-  DBG dbgLog(LOG_INFO, "[NET] Connecting to WiFi as Client...\n");
+  DBG dbgLog(LOG_INFO, "[NET] Connecting to WiFi as Client...\n\r");
 
   for (byte a = 0; !Prefs[PRF_WIFI_RETRY_CNT].value.uint8 || a < Prefs[PRF_WIFI_RETRY_CNT].value.uint8; a++)
   { // if PRF_WIFI_RETRY_CNT - try indefinitely
     delay(1500);
     if (WiFi.status() == WL_CONNECTED)
       return 0;
-    DBG dbgLog(LOG_INFO, "[NET] Connecting to AP WiFi... %d/%d\n", a + 1, Prefs[PRF_WIFI_RETRY_CNT].value.uint8);
+    DBG dbgLog(LOG_INFO, "[NET] Connecting to AP WiFi... %d/%d\n\r", a + 1, Prefs[PRF_WIFI_RETRY_CNT].value.uint8);
   }
 
-  DBG dbgLog(LOG_INFO, "[NET] Connecting to AP WiFi failed!\n");
+  DBG dbgLog(LOG_INFO, "[NET] Connecting to AP WiFi failed!\n\r");
   Disable_WiFi();
   return 1;
 }

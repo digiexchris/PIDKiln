@@ -16,7 +16,7 @@ Pins:
 class MAX31855 : public Thermocouple
 {
 public:
-    MAX31855(int8_t csPin, std::string name);
+    MAX31855(int8_t csPin, std::string name, uint16_t errorLimit, int8_t miso = -1, int8_t sck = -1);
 
     virtual bool hasError() override;
     virtual std::string getErrorStr() override;
@@ -25,5 +25,5 @@ public:
     virtual double readInternal() override;
 
 private:
-    Adafruit_MAX31855 _thermocouple; // Defaults to using SPIClass::HSPI (ie. spi2) via the arduinoesp32 library
+    Adafruit_MAX31855 *_thermocouple;
 };

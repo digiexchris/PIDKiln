@@ -50,10 +50,10 @@ void Setup_LCD(void)
         display = new SSD1309Display(SSD1306_I2C_ADDRESS, SSD1306_SCL, SSD1306_SDA);
         break;
     case LCDType::NONE:
-        DBG dbgLog(LOG_ERR, "[LCD] No LCD type defined!\n");
+        DBG dbgLog(LOG_ERR, "[LCD] No LCD type defined!\n\r");
         return;
     default:
-        DBG dbgLog(LOG_ERR, "[LCD] Unsupported LCD type!\n");
+        DBG dbgLog(LOG_ERR, "[LCD] Unsupported LCD type!\n\r");
         return;
     }
 

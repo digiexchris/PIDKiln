@@ -67,9 +67,15 @@ If you use a MAX31855, This is ignored.
 constexpr MAX31856::ProbeType Chamber_Thermocouple_MAX31856_Type = MAX31856::ProbeType::TYPE_K;
 constexpr MAX31856::ProbeType Case_Thermocouple_MAX31856_Type = MAX31856::ProbeType::TYPE_K;
 
-// MAX31855 variables/defs
-#define MAXCS1 27 // for hardware SPI - HSPI (MOSI-13, MISO-12, CLK-14) - 1st device CS-27
-#define MAXCS2 15 // same SPI - 2nd device CS-15 (comment out if no second thermocouple)
+// Set it to MAX31856::FilterHz::FILTER_650HZ or MAX31856::FilterHz::FILTER_60HZ hz depending on your mains frequency
+constexpr MAX31856::FilterHz LineFrequencyFilter = MAX31856::FilterHz::FILTER_60HZ;
+
+// MAX31855/MAX31856 variables/defs
+#define HSPI_MISO 12 // MISO pin
+#define HSPI_MOSI 13 // MOSI pin
+#define HSPI_CLK 14  // CLK pin
+#define CHAMBER_CS 27
+#define CASE_CS 15
 
 // If you have power meter - uncoment this
 #define ENERGY_MON_PIN 33       // if you don't use - comment out

@@ -129,7 +129,7 @@ String Preferences_parser(const String &var)
   else if (var == "ERRORS" && Errors)
   {
     String out = "<div class=error> There where errors: " + String(Errors) + "</div>";
-    DBG dbgLog(LOG_ERR, "[HTTP] Errors pointer1:%p\n", Errors);
+    DBG dbgLog(LOG_ERR, "[HTTP] Errors pointer1:%p\n\r", Errors);
     free(Errors);
     Errors = NULL;
     return out;
@@ -152,7 +152,7 @@ String Debug_ESP32(const String &var)
     char tmp[14];
     chipid = ESP.getEfuseMac(); // The chip ID is essentially its MAC address(length: 6 bytes).
     sprintf(tmp, "%04X%08X", (uint16_t)(chipid >> 32), (uint32_t)chipid);
-    DBG dbgLog(LOG_INFO, "[HTTP] Chip id: %s\n", tmp);
+    DBG dbgLog(LOG_INFO, "[HTTP] Chip id: %s\n\r", tmp);
     return String(tmp);
   }
   else if (var == "SDK_VERSION")
@@ -174,25 +174,25 @@ String Debug_ESP32(const String &var)
   else if (var == "SFLASH_RAM")
   {
     float flashChipSize = (float)ESP.getFlashChipSize() / 1024.0 / 1024.0;
-    DBG dbgLog(LOG_INFO, "[HTTP] flashChipSize: %f\n", flashChipSize);
+    DBG dbgLog(LOG_INFO, "[HTTP] flashChipSize: %f\n\r", flashChipSize);
     return String(flashChipSize);
   }
   else if (var == "FLASH_FREQ")
   {
     float flashFreq = (float)ESP.getFlashChipSpeed() / 1000.0 / 1000.0;
-    DBG dbgLog(LOG_INFO, "[HTTP] flashFreq: %f\n", flashFreq);
+    DBG dbgLog(LOG_INFO, "[HTTP] flashFreq: %f\n\r", flashFreq);
     return String(flashFreq);
   }
   else if (var == "SKETCH_SIZE")
   {
     float sketchSize = (float)ESP.getSketchSize() / 1024;
-    DBG dbgLog(LOG_INFO, "[HTTP] sketchSize: %f\n", sketchSize);
+    DBG dbgLog(LOG_INFO, "[HTTP] sketchSize: %f\n\r", sketchSize);
     return String(sketchSize);
   }
   else if (var == "SKETCH_TOTAL")
   { // There is an error in ESP framework that shows Total space as freespace - wrong name for the function
     float freeSketchSpace = (float)ESP.getFreeSketchSpace() / 1024;
-    DBG dbgLog(LOG_INFO, "[HTTP] freeSketchSpace: %f\n", freeSketchSpace);
+    DBG dbgLog(LOG_INFO, "[HTTP] freeSketchSpace: %f\n\r", freeSketchSpace);
     return String(freeSketchSpace);
   }
   else if (var == "FLASH_MODE")
@@ -213,8 +213,8 @@ String Debug_ESP32(const String &var)
       mode = "SLOW_READ (5)";
     else
       mode = "Unknown";
-    DBG dbgLog(LOG_DEBUG, "flashChipMode: %s\n", mode.c_str());
-    DBG dbgLog(LOG_DEBUG, "flashChipMode: %d\n", (byte)fMode);
+    DBG dbgLog(LOG_DEBUG, "flashChipMode: %s\n\r", mode.c_str());
+    DBG dbgLog(LOG_DEBUG, "flashChipMode: %d\n\r", (byte)fMode);
     return String(mode);
   }
   // PSRAM parameters
@@ -222,25 +222,25 @@ String Debug_ESP32(const String &var)
   else if (var == "TOTAL_PSRAM")
   {
     float psramSize = (float)ESP.getPsramSize() / 1024;
-    DBG dbgLog(LOG_INFO, "[HTTP] psramSize: %f\n", psramSize);
+    DBG dbgLog(LOG_INFO, "[HTTP] psramSize: %f\n\r", psramSize);
     return String(psramSize);
   }
   else if (var == "FREE_PSRAM")
   {
     float freePsram = (float)ESP.getFreePsram() / 1024;
-    DBG dbgLog(LOG_DEBUG, "[HTTP] freePsram: %f\n", freePsram);
+    DBG dbgLog(LOG_DEBUG, "[HTTP] freePsram: %f\n\r", freePsram);
     return String(freePsram);
   }
   else if (var == "SMALEST_PSRAM")
   {
     float minFreePsram = (float)ESP.getMinFreePsram() / 1024;
-    DBG dbgLog(LOG_DEBUG, "[HTTP] minFreePsram: %f\n", minFreePsram);
+    DBG dbgLog(LOG_DEBUG, "[HTTP] minFreePsram: %f\n\r", minFreePsram);
     return String(minFreePsram);
   }
   else if (var == "LARGEST_PSRAM")
   {
     float maxAllocPsram = (float)ESP.getMaxAllocPsram() / 1024;
-    DBG dbgLog(LOG_DEBUG, "[HTTP] maxAllocPsram: %f\n", maxAllocPsram);
+    DBG dbgLog(LOG_DEBUG, "[HTTP] maxAllocPsram: %f\n\r", maxAllocPsram);
     return String(maxAllocPsram);
   }
   // RAM parameters
@@ -248,25 +248,25 @@ String Debug_ESP32(const String &var)
   else if (var == "TOTAL_HEAP")
   {
     float heapSize = (float)ESP.getHeapSize() / 1024;
-    DBG dbgLog(LOG_DEBUG, "[HTTP] heapSize: %f\n", heapSize);
+    DBG dbgLog(LOG_DEBUG, "[HTTP] heapSize: %f\n\r", heapSize);
     return String(heapSize);
   }
   else if (var == "FREE_HEAP")
   {
     float freeHeap = (float)ESP.getFreeHeap() / 1024;
-    DBG dbgLog(LOG_DEBUG, "[HTTP] freeHeap: %f\n", freeHeap);
+    DBG dbgLog(LOG_DEBUG, "[HTTP] freeHeap: %f\n\r", freeHeap);
     return String(freeHeap);
   }
   else if (var == "SMALEST_HEAP")
   {
     float minFreeHeap = (float)ESP.getMinFreeHeap() / 1024;
-    DBG dbgLog(LOG_DEBUG, "[HTTP] minFreeHeap: %f\n", minFreeHeap);
+    DBG dbgLog(LOG_DEBUG, "[HTTP] minFreeHeap: %f\n\r", minFreeHeap);
     return String(minFreeHeap);
   }
   else if (var == "LARGEST_HEAP")
   {
     float maxAllocHeap = (float)ESP.getMaxAllocHeap() / 1024;
-    DBG dbgLog(LOG_DEBUG, "[HTTP] maxAllocHeap: %f\n", maxAllocHeap);
+    DBG dbgLog(LOG_DEBUG, "[HTTP] maxAllocHeap: %f\n\r", maxAllocHeap);
     return String(maxAllocHeap);
   }
   // SPIFFS parameters
@@ -303,14 +303,14 @@ void Generate_INDEX()
   tmp = String(PRG_Directory) + String("/index.html");
   if (!(index = SPIFFS.open(tmp.c_str(), "w")))
   {
-    DBG dbgLog(LOG_DEBUG, "[HTTP] Failed to open for writing index.html\n");
+    DBG dbgLog(LOG_DEBUG, "[HTTP] Failed to open for writing index.html\n\r");
     return;
   }
 
   // Copy index head
   if (tmpf = SPIFFS.open("/prog_beg.txt", "r"))
   {
-    DBG dbgLog(LOG_DEBUG, "[HTTP] Head of index - copying...\n");
+    DBG dbgLog(LOG_DEBUG, "[HTTP] Head of index - copying...\n\r");
     tmp = tmpf.readString();
     // DBG Serial.println(tmp);
     index.print(tmp);
@@ -341,7 +341,7 @@ void Generate_INDEX()
   // Copy end of the index template
   if (tmpf = SPIFFS.open("/prog_end.txt", "r"))
   {
-    DBG dbgLog(LOG_DEBUG, "[HTTP] End of index - copying...\n");
+    DBG dbgLog(LOG_DEBUG, "[HTTP] End of index - copying...\n\r");
     tmp = tmpf.readString();
     // DBG Serial.println(tmp);
     index.print(tmp);
@@ -367,14 +367,14 @@ void Generate_LOGS_INDEX()
   tmp = String(LOG_Directory) + String("/index.html");
   if (!(index = SPIFFS.open(tmp.c_str(), "w")))
   {
-    DBG dbgLog(LOG_DEBUG, "[HTTP] Failed to open for writing log/index.html\n");
+    DBG dbgLog(LOG_DEBUG, "[HTTP] Failed to open for writing log/index.html\n\r");
     return;
   }
 
   // Copy index head
   if (tmpf = SPIFFS.open("/logs_beg.txt", "r"))
   {
-    DBG dbgLog(LOG_DEBUG, "[HTTP] Head of logs - copying...\n");
+    DBG dbgLog(LOG_DEBUG, "[HTTP] Head of logs - copying...\n\r");
     tmp = tmpf.readString();
     // DBG Serial.println(tmp);
     index.print(tmp);
@@ -404,7 +404,7 @@ void Generate_LOGS_INDEX()
   // Copy end of the index template
   if (tmpf = SPIFFS.open("/logs_end.txt", "r"))
   {
-    DBG dbgLog(LOG_DEBUG, "[HTTP] End of log index - copying...\n");
+    DBG dbgLog(LOG_DEBUG, "[HTTP] End of log index - copying...\n\r");
     tmp = tmpf.readString();
     // DBG Serial.println(tmp);
     index.print(tmp);
@@ -444,7 +444,7 @@ String Chart_parser(const String &var)
       current_time += Program_run[a].togo * 60;
       str = ctime(&current_time);
       str[strlen(str) - 1] = '\0'; // Dont know why - probably error, but ctime returns string with new line char and tab - so we cut the tab
-      // DBG Serial.printf("Seconds:%d \t Parsed:'%s'\n",current_time,str);
+      // DBG Serial.printf("Seconds:%d \t Parsed:'%s'\n\r",current_time,str);
       tmp += "{x:'" + String(str) + "'";
       tmp += ",y:" + String(Program_run[a].temp) + "},";
       current_time += Program_run[a].dwell * 60;
@@ -519,7 +519,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
   // Checking how much has been uploaded - if more then MAX_Prog_File_Size - abort
   if (len + index > MAX_Prog_File_Size)
   {
-    DBG dbgLog(LOG_DEBUG, "[HTTP] Uploaded file too large! Aborting\n");
+    DBG dbgLog(LOG_DEBUG, "[HTTP] Uploaded file too large! Aborting\n\r");
     request->send(406, "text/html", "<html><body><h1>File is too large!</h1> Current limit is " + String(MAX_Prog_File_Size) + "<br><br><a href=/>Return to main view</a></body></html");
     abort = true;
     return;
@@ -527,7 +527,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
 
   if (!index)
   {
-    DBG dbgLog(LOG_INFO, "UploadStart: %s\n", tmp.c_str());
+    DBG dbgLog(LOG_INFO, "UploadStart: %s\n\r", tmp.c_str());
 
     // Check if declared file size in header is not too large
     if (request->hasHeader("Content-Length"))
@@ -535,7 +535,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
       const AsyncWebHeader *h = request->getHeader("Content-Length");
       if (h->value().toInt() > MAX_Prog_File_Size)
       {
-        DBG dbgLog(LOG_DEBUG, "[HTTP] Uploaded file too large! Aborting\n");
+        DBG dbgLog(LOG_DEBUG, "[HTTP] Uploaded file too large! Aborting\n\r");
         request->send(406, "text/html", "<html><body><h1>File is too large!</h1> Current limit is " + String(MAX_Prog_File_Size) + "<br><br><a href=/programs/>Return to programs view</a></body></html");
         abort = true;
         return;
@@ -545,7 +545,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
     // Abort if filename is too long (otherwise esp will not write file to SPIFFS silently!)
     if (tmp.length() > MAX_FILENAME)
     {
-      DBG dbgLog(LOG_DEBUG, "[HTTP] Uploaded filename is too large! Aborting\n");
+      DBG dbgLog(LOG_DEBUG, "[HTTP] Uploaded filename is too large! Aborting\n\r");
       request->send(406, "text/html", "<html><body><h1>Filename is too long!</h1> Current limit is " + String(MAX_FILENAME) + "letters for directory and filename, so program name can be only " + String(MAX_PROGNAME) + " <br><br><a href=/programs/>Return to programs view</a></body></html");
       abort = true;
       return;
@@ -556,7 +556,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
     // Abort if filename contains not allowed characters or trys to overwrite index.html
     if (!valid_filename(tmp_filename) || filename.compareTo("index.html") == 0)
     {
-      DBG dbgLog(LOG_DEBUG, "[HTTP] Uploaded filename containg bad characters! Aborting\n");
+      DBG dbgLog(LOG_DEBUG, "[HTTP] Uploaded filename containg bad characters! Aborting\n\r");
       request->send(406, "text/html", "<html><body><h1>Filename is bad!</h1> Filename contains not allowed characters - use letters, numbers and . _ signs <br><br><a href=/programs/>Return to programs view</a></body></html");
       abort = true;
       return;
@@ -566,14 +566,14 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
       newFile.close();
     newFile = SPIFFS.open(tmp.c_str(), "w");
   }
-  DBG dbgLog(LOG_DEBUG, "[HTTP] Next iteration of file upload...\n");
+  DBG dbgLog(LOG_DEBUG, "[HTTP] Next iteration of file upload...\n\r");
   for (size_t i = 0; i < len; i++)
   {
     if (!check_valid_chars(data[i]))
     { // Basic sanitization - check for allowed characters
       request->send(200, "text/html", "<html><body><h1>File contains not allowed character(s)!</h1> You can use all letters, numbers and basic symbols in ASCII code.<br><br><a href=/>Return to main view</a></body></html");
       delete_file(newFile);
-      DBG dbgLog(LOG_ERR, "[HTTP] Basic program check failed!\n");
+      DBG dbgLog(LOG_ERR, "[HTTP] Basic program check failed!\n\r");
       abort = true;
       return;
     }
@@ -583,19 +583,19 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
   if (final)
   {
     newFile.flush();
-    DBG dbgLog(LOG_DEBUG, "[HTTP] UploadEnd: %s, %d B\n", newFile.name(), newFile.size());
+    DBG dbgLog(LOG_DEBUG, "[HTTP] UploadEnd: %s, %d B\n\r", newFile.name(), newFile.size());
     newFile.close();
 
     char fname[22];
     strcpy(fname, filename.c_str());
-    DBG dbgLog(LOG_INFO, "[HTTP] Checking uploaded program structure: '%s'\n", fname);
+    DBG dbgLog(LOG_INFO, "[HTTP] Checking uploaded program structure: '%s'\n\r", fname);
     uint8_t err = Load_program(fname);
 
     if (err)
     { // program did not validate correctly
       request->send(200, "text/html", "<html><body><h1>Program stucture is incorrect!</h1> Error code " + String(err) + ".<br><br><a href=/programs/>Return to programs</a></body></html");
       delete_file(newFile = SPIFFS.open(tmp.c_str(), "r")); // we need to open file again - to close it with already existing function
-      DBG dbgLog(LOG_ERR, "[HTTP] Detailed program check failed!\n");
+      DBG dbgLog(LOG_ERR, "[HTTP] Detailed program check failed!\n\r");
       abort = true; // this will never happend...
       request->redirect("/programs");
     }
@@ -624,7 +624,7 @@ void POST_Handle_Delete(AsyncWebServerRequest *request)
       const AsyncWebParameter *p = request->getParam("prog_name", true);
       char path[32];
       sprintf(path, "%s/%.*s", PRG_Directory, MAX_PROGNAME, p->value().c_str());
-      DBG dbgLog(LOG_DEBUG, "[HTTP] Removing program: %s with fpath:%s\n", p->value().c_str(), path);
+      DBG dbgLog(LOG_DEBUG, "[HTTP] Removing program: %s with fpath:%s\n\r", p->value().c_str(), path);
       if (SPIFFS.exists(path))
       {
         SPIFFS.remove(path);
@@ -642,8 +642,8 @@ void GET_Handle_Delete(AsyncWebServerRequest *request)
   File tmpf;
   String tmps;
 
-  DBG dbgLog(LOG_DEBUG, "[HTTP]  Request type: %d\n", request->method());
-  DBG dbgLog(LOG_DEBUG, "[HTTP]  Request url: %s\n", request->url().c_str());
+  DBG dbgLog(LOG_DEBUG, "[HTTP]  Request type: %d\n\r", request->method());
+  DBG dbgLog(LOG_DEBUG, "[HTTP]  Request url: %s\n\r", request->url().c_str());
 
   if (!request->hasParam("prog_name") || !(tmpf = SPIFFS.open("/delete.html", "r")))
   { // if no program to delete - skip
@@ -657,13 +657,13 @@ void GET_Handle_Delete(AsyncWebServerRequest *request)
   AsyncResponseStream *response = request->beginResponseStream("text/html");
   response->addHeader("Server", "ESP Async Web Server");
 
-  DBG dbgLog(LOG_DEBUG, "[HTTP] Opened file is %s, program name is:%s\n", tmpf.path(), p->value().c_str());
+  DBG dbgLog(LOG_DEBUG, "[HTTP] Opened file is %s, program name is:%s\n\r", tmpf.path(), p->value().c_str());
 
   while (tmpf.available())
   {
     tmps = tmpf.readStringUntil('\n');
     tmps.replace("~PROGRAM_NAME~", p->value());
-    // DBG Serial.printf("-:%s:\n",tmps.c_str());
+    // DBG Serial.printf("-:%s:\n\r",tmps.c_str());
     response->println(tmps.c_str());
   }
 
@@ -715,7 +715,7 @@ void handlePrefs(AsyncWebServerRequest *request)
     const AsyncWebParameter *p = request->getParam(i);
     if (p->isPost())
     {
-      DBG dbgLog(LOG_DEBUG, "[HTTP] Prefs parser POST[%s]: %s\n", p->name().c_str(), p->value().c_str());
+      DBG dbgLog(LOG_DEBUG, "[HTTP] Prefs parser POST[%s]: %s\n\r", p->name().c_str(), p->value().c_str());
       if (p->name().equalsIgnoreCase("save"))
       {
         save = true;
@@ -727,21 +727,21 @@ void handlePrefs(AsyncWebServerRequest *request)
       }
       else if (!Change_prefs_value(p->name(), p->value()))
       {
-        DBG dbgLog(LOG_DEBUG, "[HTTP]!!! We have post error for %s with '%s'\n", p->name().c_str(), p->value().c_str());
+        DBG dbgLog(LOG_DEBUG, "[HTTP]!!! We have post error for %s with '%s'\n\r", p->name().c_str(), p->value().c_str());
         // we have some errors add new field to error list
         if (Errors != NULL)
         {
-          DBG dbgLog(LOG_DEBUG, "[HTTP] Realloc call of size %d\n", (strlen(Errors) + p->name().length() + 3) * sizeof(char));
+          DBG dbgLog(LOG_DEBUG, "[HTTP] Realloc call of size %d\n\r", (strlen(Errors) + p->name().length() + 3) * sizeof(char));
           Errors = (char *)REALLOC(Errors, (strlen(Errors) + p->name().length() + 3) * sizeof(char));
           strcat(Errors, " ");
           strcat(Errors, p->name().c_str());
-          DBG dbgLog(LOG_DEBUG, "[HTTP] Errors now:%s\n", Errors);
+          DBG dbgLog(LOG_DEBUG, "[HTTP] Errors now:%s\n\r", Errors);
         }
         else
         {
-          DBG dbgLog(LOG_DEBUG, "[HTTP] Malloc call of size %d\n", (p->name().length() + 3) * sizeof(char));
+          DBG dbgLog(LOG_DEBUG, "[HTTP] Malloc call of size %d\n\r", (p->name().length() + 3) * sizeof(char));
           Errors = strdup(p->name().c_str());
-          DBG dbgLog(LOG_DEBUG, "[HTTP] Errors now:%s\n", Errors);
+          DBG dbgLog(LOG_DEBUG, "[HTTP] Errors now:%s\n\r", Errors);
         }
       }
     }
@@ -768,7 +768,7 @@ void handleIndexPost(AsyncWebServerRequest *request)
     const AsyncWebParameter *p = request->getParam(i);
     if (p->isPost())
     {
-      DBG dbgLog(LOG_DEBUG, "[HTTP] Index post parser: POST[%s]: %s\n", p->name().c_str(), p->value().c_str());
+      DBG dbgLog(LOG_DEBUG, "[HTTP] Index post parser: POST[%s]: %s\n\r", p->name().c_str(), p->value().c_str());
       if (p->name().equalsIgnoreCase("prog_start"))
       { // start program
         if (Program_run_state == PR_PAUSED)
@@ -895,7 +895,7 @@ void handleDoUpdate(AsyncWebServerRequest *request, const String &filename, size
 
   if (!index)
   {
-    DBG dbgLog(LOG_INFO, "[HTTP] Beginning firmware update\n");
+    DBG dbgLog(LOG_INFO, "[HTTP] Beginning firmware update\n\r");
     content_len = request->contentLength();
     // if filename includes spiffs, update the spiffs partition
     int cmd = (filename.indexOf("spiffs") > -1) ? U_SPIFFS : U_FLASH;

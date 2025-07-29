@@ -25,11 +25,11 @@ void Init_log_file()
     strftime(str, 32, "/logs/%y%m%d_%H%M%S.csv", &timeinfo); // YYMMDD_HHMMSS.log
   else
     sprintf(str, "/logs/%d.csv", millis()); // if we don't have a clock - use millis - this should NOT happend
-  DBG dbgLog(LOG_INFO, "[LOG] Trying to create log file:%s\n", str);
+  DBG dbgLog(LOG_INFO, "[LOG] Trying to create log file:%s\n\r", str);
 
   if (CSVFile = SPIFFS.open(str, "w"))
   {
-    DBG dbgLog(LOG_INFO, "[LOG] Created new log file %s\n", str);
+    DBG dbgLog(LOG_INFO, "[LOG] Created new log file %s\n\r", str);
 #ifdef ENERGY_MON_PIN
     CSVFile.print(String("Date,Temperature,Housing,Energy"));
 #else
@@ -45,27 +45,27 @@ void Init_log_file()
     strncpy(tmpstr, ".log", 4);
     if (LOGFile = SPIFFS.open(str, "w"))
     {
-      LOGFile.printf("Program name: %s\n", Program_run_name);
-      LOGFile.printf("Program desc: %s\n", Program_run_desc);
+      LOGFile.printf("Program name: %s\n\r", Program_run_name);
+      LOGFile.printf("Program desc: %s\n\r", Program_run_desc);
       if (tmm = localtime(&Program_run_start))
       {
         strftime(str, 29, "%F %T", tmm);
-        LOGFile.printf("Started at: %s\n", str);
+        LOGFile.printf("Started at: %s\n\r", str);
       }
       if (tmm = localtime(&Program_run_end))
       {
         strftime(str, 29, "%F %T", tmm);
-        LOGFile.printf("Possible end at: %s\n", str);
+        LOGFile.printf("Possible end at: %s\n\r", str);
       }
-      LOGFile.printf("PID values. Kp:%.2f Ki:%.2f Kd:%.2f\n", Prefs[PRF_PID_KP].value.vfloat, Prefs[PRF_PID_KI].value.vfloat, Prefs[PRF_PID_KD].value.vfloat);
-      LOGFile.printf("Start temperature: %.1fC\n", kiln_temp);
-      LOGFile.printf("CSV filename: %s\n-=-=-= Starting program =-=-=-=-\n", str);
+      LOGFile.printf("PID values. Kp:%.2f Ki:%.2f Kd:%.2f\n\r", Prefs[PRF_PID_KP].value.vfloat, Prefs[PRF_PID_KI].value.vfloat, Prefs[PRF_PID_KD].value.vfloat);
+      LOGFile.printf("Start temperature: %.1fC\n\r", kiln_temp);
+      LOGFile.printf("CSV filename: %s\n-=-=-= Starting program =-=-=-=-\n\r", str);
       LOGFile.flush();
       //      LOGFile.close();
     }
     else
     {
-      DBG dbgLog(LOG_ERR, "[LOG] Failed to create .log file: %s\n", str);
+      DBG dbgLog(LOG_ERR, "[LOG] Failed to create .log file: %s\n\r", str);
     }
   }
 
@@ -97,7 +97,7 @@ void Add_log_line()
   tmp = String(str) + "," + String(kiln_temp, 0) + "," + String(case_temp, 0);
 #endif
 
-  DBG dbgLog(LOG_INFO, "[LOG] Writing to log file:%s\n", tmp.c_str());
+  DBG dbgLog(LOG_INFO, "[LOG] Writing to log file:%s\n\r", tmp.c_str());
   CSVFile.println();
   CSVFile.print(tmp);
   CSVFile.flush();
@@ -120,21 +120,21 @@ void Close_log_file()
     if (tmm = localtime(&Program_run_end))
     {
       strftime(str, 29, "%F %T", tmm);
-      LOGFile.printf("Program ended at: %s\n", str);
+      LOGFile.printf("Program ended at: %s\n\r", str);
     }
-    LOGFile.printf("End temperature: %.1fC\n", kiln_temp);
+    LOGFile.printf("End temperature: %.1fC\n\r", kiln_temp);
     if (Energy_Wattage)
-      LOGFile.printf("Used power: %.1f W/h\n", Energy_Wattage);
+      LOGFile.printf("Used power: %.1f W/h\n\r", Energy_Wattage);
     if (Program_error)
     {
       auto it = Program_Error_Names.find(static_cast<PROGRAM_ERROR_STATE>(Program_error));
       if (it != Program_Error_Names.end())
       {
-        LOGFile.printf("Program aborted with error: %s\n", it->second);
+        LOGFile.printf("Program aborted with error: %s\n\r", it->second);
       }
       else
       {
-        LOGFile.printf("Program aborted with unknown error code: %d\n", Program_error);
+        LOGFile.printf("Program aborted with unknown error code: %d\n\r", Program_error);
       }
     }
     LOGFile.flush();
@@ -152,11 +152,11 @@ void Clean_LOGS()
 
   if (Logs_DIR_size <= Prefs[PRF_LOG_LIMIT].value.uint16)
     return;
-  DBG dbgLog(LOG_INFO, "[LOG] Cleaning logs...\n");
+  DBG dbgLog(LOG_INFO, "[LOG] Cleaning logs...\n\r");
   for (uint16_t a = Prefs[PRF_LOG_LIMIT].value.uint16; a < Logs_DIR_size; a++)
   {
     sprintf(fname, "%s/%s", LOG_Directory, Logs_DIR[a].filename);
-    DBG dbgLog(LOG_INFO, "[LOG] Deleting file:%s\n", fname);
+    DBG dbgLog(LOG_INFO, "[LOG] Deleting file:%s\n\r", fname);
     SPIFFS.remove(fname);
   }
 }
@@ -171,11 +171,11 @@ uint8_t Load_LOGS_Dir()
   dir = SPIFFS.open(LOG_Directory);
   if (!dir)
     return 1; // directory open failed
-  DBG dbgLog(LOG_INFO, "[LOG] Loading dir: Loading logs directory...\n");
+  DBG dbgLog(LOG_INFO, "[LOG] Loading dir: Loading logs directory...\n\r");
   while (dir.openNextFile())
     count++; // not the prettiest - but we count files first to do proper malloc without fragmenting memory
 
-  DBG dbgLog(LOG_INFO, "[LOG] Loading dir:\tcounted %d files\n", count);
+  DBG dbgLog(LOG_INFO, "[LOG] Loading dir:\tcounted %d files\n\r", count);
   if (Logs_DIR)
   {
     free(Logs_DIR);
@@ -202,7 +202,7 @@ uint8_t Load_LOGS_Dir()
     Logs_DIR[Logs_DIR_size].filesize = file.size();
     Logs_DIR[Logs_DIR_size].sel = 0;
 
-    DBG dbgLog(LOG_DEBUG, "[LOG] FName: %s\t FSize:%d\tSel:%d\n", Logs_DIR[Logs_DIR_size].filename, Logs_DIR[Logs_DIR_size].filesize, Logs_DIR[Logs_DIR_size].sel);
+    DBG dbgLog(LOG_DEBUG, "[LOG] FName: %s\t FSize:%d\tSel:%d\n\r", Logs_DIR[Logs_DIR_size].filename, Logs_DIR[Logs_DIR_size].filesize, Logs_DIR[Logs_DIR_size].sel);
 
     Logs_DIR_size++;
   }
@@ -275,12 +275,12 @@ void initSysLog()
 
   if (Prefs[PRF_DBG_SYSLOG].value.uint8)
   {
-    DBG dbgLog(LOG_DEBUG, "[LOG] Trying to enable Syslog\n");
+    DBG dbgLog(LOG_DEBUG, "[LOG] Trying to enable Syslog\n\r");
     // check wheter we have all syslog params defined, if not - nullyfi prefs
     if (!strlen(Prefs[PRF_SYSLOG_SRV].value.str) || !Prefs[PRF_SYSLOG_PORT].value.uint16)
     {
       Prefs[PRF_DBG_SYSLOG].value.uint8 = 0;
-      DBG dbgLog(LOG_ERR, "[LOG] Syslog enabled but not configured - disabling syslog\n");
+      DBG dbgLog(LOG_ERR, "[LOG] Syslog enabled but not configured - disabling syslog\n\r");
       return;
     }
     syslog.server(Prefs[PRF_SYSLOG_SRV].value.str, Prefs[PRF_SYSLOG_PORT].value.uint16);
@@ -288,10 +288,10 @@ void initSysLog()
     syslog.appName("PIDKiln");
     syslog.defaultPriority(LOG_KERN);
     syslog.log(LOG_INFO, "Begin syslog");
-    DBG dbgLog(LOG_DEBUG, "[LOG] Syslog enabled\n");
+    DBG dbgLog(LOG_DEBUG, "[LOG] Syslog enabled\n\r");
   }
   else
-    DBG dbgLog(LOG_DEBUG, "[LOG] Syslog disabled\n");
+    DBG dbgLog(LOG_DEBUG, "[LOG] Syslog disabled\n\r");
 }
 
 void initSerial()

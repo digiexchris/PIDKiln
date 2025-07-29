@@ -49,7 +49,7 @@ byte add_program_line(String &linia)
   // Looking for line dddd:dddd:dddd (temperature:time in minutes:time in minutes) - assume max 1350:9999:9999
   char p_line[15];
   strcpy(p_line, linia.c_str());
-  DBG dbgLog(LOG_DEBUG, "[PRG] Sanitizing line: '%s'\n", p_line);
+  DBG dbgLog(LOG_DEBUG, "[PRG] Sanitizing line: '%s'\n\r", p_line);
   a = linia.length(); // going back to front
   prg[2] = 0;
   prg[1] = prg[0] = 0;
@@ -57,7 +57,7 @@ byte add_program_line(String &linia)
   {
     if (p_line[a] == '\0')
       continue;
-    // DBG Serial.printf(" %d(%d)\n",(byte)p_line[a],a);
+    // DBG Serial.printf(" %d(%d)\n\r",(byte)p_line[a],a);
     if (p_line[a] < 48 || p_line[a] > 58)
       return 3; // if this are not numbers or : - exit
     if (p_line[a] == 58)
@@ -67,7 +67,7 @@ byte add_program_line(String &linia)
     }
     else
     {
-      // DBG Serial.printf("pos: %d, multi: %d, prg[%d] is %d, current value:%d\n",pos,multi,pos,prg[pos],p_line[a]-48);
+      // DBG Serial.printf("pos: %d, multi: %d, prg[%d] is %d, current value:%d\n\r",pos,multi,pos,prg[pos],p_line[a]-48);
       prg[pos] += multi * (p_line[a] - 48);
       multi *= 10;
     }
@@ -77,7 +77,7 @@ byte add_program_line(String &linia)
   Program[Program_size].temp = prg[0];
   Program[Program_size].togo = prg[1];
   Program[Program_size].dwell = prg[2];
-  DBG dbgLog(LOG_DEBUG, "[PRG] Program_pos: %d, Temp: %dC Time to: %ds Dwell: %ds\n", Program_size, Program[Program_size].temp, Program[Program_size].togo, Program[Program_size].dwell);
+  DBG dbgLog(LOG_DEBUG, "[PRG] Program_pos: %d, Temp: %dC Time to: %ds Dwell: %ds\n\r", Program_size, Program[Program_size].temp, Program[Program_size].togo, Program[Program_size].dwell);
   Program_size++;
   return 0;
 }
@@ -96,7 +96,7 @@ uint8_t Load_program(char *file)
   if (file)
   { // if function got an argument - this can happen if you want to validate new program uploaded by http
     sprintf(file_path, "%s/%s", PRG_Directory, file);
-    DBG dbgLog(LOG_DEBUG, "[PRG] Got pointer to load:'%s'\n", file);
+    DBG dbgLog(LOG_DEBUG, "[PRG] Got pointer to load:'%s'\n\r", file);
     Program_name = String(file);
   }
   else
@@ -106,7 +106,7 @@ uint8_t Load_program(char *file)
     sprintf(file_path, "%s/%s", PRG_Directory, Programs_DIR[sel].filename);
     Program_name = String(Programs_DIR[sel].filename);
   }
-  DBG dbgLog(LOG_INFO, "[PRG] Load program name: '%s'\n", file_path);
+  DBG dbgLog(LOG_INFO, "[PRG] Load program name: '%s'\n\r", file_path);
 
   if (prg = SPIFFS.open(file_path, "r"))
   {
@@ -119,7 +119,7 @@ uint8_t Load_program(char *file)
       if (!line.length())
         continue; // empty line - skip it
 
-      DBG dbgLog(LOG_DEBUG, "[PRG] Raw line: '%s'\n", line.c_str());
+      DBG dbgLog(LOG_DEBUG, "[PRG] Raw line: '%s'\n\r", line.c_str());
       if (line.startsWith("#"))
       { // skip every comment line
         DBG dbgLog(LOG_DEBUG, "[PRG]  comment");
@@ -144,10 +144,10 @@ uint8_t Load_program(char *file)
         else if (err = add_program_line(line))
           return Cleanup_program(err); // line adding failed!!
 
-        DBG dbgLog(LOG_DEBUG, "[PRG] San line: '%s'\n", line.c_str());
+        DBG dbgLog(LOG_DEBUG, "[PRG] San line: '%s'\n\r", line.c_str());
       }
     }
-    DBG dbgLog(LOG_DEBUG, "[PRG] Found description: %s\n", Program_desc.c_str());
+    DBG dbgLog(LOG_DEBUG, "[PRG] Found description: %s\n\r", Program_desc.c_str());
     if (!Program_desc.length())
       Program_desc = "No description"; // if after reading file program still has no description - add it
 
@@ -166,10 +166,10 @@ uint8_t Load_programs_dir()
   dir = SPIFFS.open(PRG_Directory);
   if (!dir)
     return 1; // directory open failed
-  DBG dbgLog(LOG_INFO, "[PRG] Loading directory...\n");
+  DBG dbgLog(LOG_INFO, "[PRG] Loading directory...\n\r");
   while (dir.openNextFile())
     count++; // not the prettiest - but we count files first to do proper malloc without fragmenting memory
-  DBG dbgLog(LOG_DEBUG, "[PRG]\tcounted %d files\n", count);
+  DBG dbgLog(LOG_DEBUG, "[PRG]\tcounted %d files\n\r", count);
   if (Programs_DIR)
   {
     free(Programs_DIR);
@@ -187,7 +187,7 @@ uint8_t Load_programs_dir()
     len2 = strlen(tmp);
     if (len2 > 31 || len2 < 2)
       return 2; // file name with dir too long or just /
-    DBG dbgLog(LOG_DEBUG, "[PRG] Processing filename: %s\n", tmp);
+    DBG dbgLog(LOG_DEBUG, "[PRG] Processing filename: %s\n\r", tmp);
     /* Outdated with ESP32 IC 2.0+
         fname=strchr(tmp+1,'/');        // seek for the NEXT directory separator...
         fname++;                        //  ..and skip it
@@ -198,7 +198,7 @@ uint8_t Load_programs_dir()
     Programs_DIR[Programs_DIR_size].filesize = file.size();
     Programs_DIR[Programs_DIR_size].sel = 0;
 
-    DBG dbgLog(LOG_DEBUG, "[PRG] FName: %s\t FSize:%d\tSel:%d\n", Programs_DIR[Programs_DIR_size].filename, Programs_DIR[Programs_DIR_size].filesize, Programs_DIR[Programs_DIR_size].sel);
+    DBG dbgLog(LOG_DEBUG, "[PRG] FName: %s\t FSize:%d\tSel:%d\n\r", Programs_DIR[Programs_DIR_size].filename, Programs_DIR[Programs_DIR_size].filesize, Programs_DIR[Programs_DIR_size].sel);
 
     Programs_DIR_size++;
   }
@@ -268,7 +268,7 @@ void Initialize_program_to_run()
     Program_run_name = NULL;
   }
   Program_run_size = 0;
-  DBG dbgLog(LOG_INFO, "[PRG] Initialized new in-memory program\n");
+  DBG dbgLog(LOG_INFO, "[PRG] Initialized new in-memory program\n\r");
 }
 
 // Copy selected/loaded program to RUN program memory
@@ -310,7 +310,7 @@ void rotate_selected_program(int dir)
 {
   int a = Find_selected_program();
 
-  DBG dbgLog(LOG_INFO, "[PRG] Rotating programs. For a:%d, dir: %d, selected?:%d, dir_size:%d\n", a, dir, Programs_DIR[a].sel, Programs_DIR_size);
+  DBG dbgLog(LOG_INFO, "[PRG] Rotating programs. For a:%d, dir: %d, selected?:%d, dir_size:%d\n\r", a, dir, Programs_DIR[a].sel, Programs_DIR_size);
   if (dir < 0 && a > 0)
   {                          // if we are DOWN down and we can a>0 - do it, if we can't - do nothing
     Programs_DIR[a].sel = 0; // delete old selection
@@ -332,7 +332,7 @@ byte Cleanup_program(byte err)
   Program_name = "";
   for (byte a = 0; a < MAX_PRG_LENGTH; a++)
     Program[a].temp = Program[a].togo = Program[a].dwell = 0;
-  DBG dbgLog(LOG_INFO, "[PRG] Cleaning up program with error %d\n", err);
+  DBG dbgLog(LOG_INFO, "[PRG] Cleaning up program with error %d\n\r", err);
   return err;
 }
 
@@ -352,7 +352,7 @@ boolean Erase_program_file()
 void END_Program()
 {
 
-  DBG dbgLog(LOG_INFO, "[PRG] Ending program cleanly\n");
+  DBG dbgLog(LOG_INFO, "[PRG] Ending program cleanly\n\r");
   Program_run_state = PR_ENDED;
   KilnPID.SetMode(MANUAL);
   Disable_SSR();
@@ -375,7 +375,7 @@ void ABORT_Program(uint8_t error)
 
     if (Program_error == PR_ERR_USER_ABORT)
     {
-      DBG dbgLog(LOG_INFO, "[PRG] User aborted program\n");
+      DBG dbgLog(LOG_INFO, "[PRG] User aborted program\n\r");
     }
     else
     {
@@ -383,11 +383,11 @@ void ABORT_Program(uint8_t error)
 
       if (it != Program_Error_Names.end())
       {
-        DBG dbgLog(LOG_ERR, "[PRG] Aborting program with error: %s\n", it->second);
+        DBG dbgLog(LOG_ERR, "[PRG] Aborting program with error: %s\n\r", it->second);
       }
       else
       {
-        DBG dbgLog(LOG_ERR, "[PRG] Aborting program with unknown error code: %d\n", Program_error);
+        DBG dbgLog(LOG_ERR, "[PRG] Aborting program with unknown error code: %d\n\r", Program_error);
       }
     }
 
@@ -470,10 +470,10 @@ void Program_calculate_steps(bool prg_start)
 
     if (Prefs[PRF_PID_TEMP_THRESHOLD].value.int16 > -1 && set_temp)
     { // check if we are in threshold window and there is temperature set already - if not, pause
-      // DBG Serial.printf("[PRG] Temperature in TEMP_THRESHOLD. Kiln_temp:%.1f Set_temp:%.1f Window:%d\n",kiln_temp,set_temp,Prefs[PRF_PID_TEMP_THRESHOLD].value.int16);
+      // DBG Serial.printf("[PRG] Temperature in TEMP_THRESHOLD. Kiln_temp:%.1f Set_temp:%.1f Window:%d\n\r",kiln_temp,set_temp,Prefs[PRF_PID_TEMP_THRESHOLD].value.int16);
       if (kiln_temp + Prefs[PRF_PID_TEMP_THRESHOLD].value.int16 < set_temp || kiln_temp - Prefs[PRF_PID_TEMP_THRESHOLD].value.int16 > set_temp)
       { // set_temp must be between kiln_temp +/- temp_threshold
-        DBG dbgLog(LOG_INFO, "[PRG] Temperature in TEMP_THRESHOLD. Kiln_temp:%.1f Set_temp:%.1f Window:%d\n", kiln_temp, set_temp, (int)Prefs[PRF_PID_TEMP_THRESHOLD].value.int16);
+        DBG dbgLog(LOG_INFO, "[PRG] Temperature in TEMP_THRESHOLD. Kiln_temp:%.1f Set_temp:%.1f Window:%d\n\r", kiln_temp, set_temp, (int)Prefs[PRF_PID_TEMP_THRESHOLD].value.int16);
         // PAUSE_Program();
         Program_run_state = PR_THRESHOLD;
         Program_recalculate_ETA(false);
@@ -487,7 +487,7 @@ void Program_calculate_steps(bool prg_start)
     // calculate next step
     if (time(NULL) > next_step_end)
     {
-      DBG dbgLog(LOG_DEBUG, "[DBG] Calculating new step!\n");
+      DBG dbgLog(LOG_DEBUG, "[DBG] Calculating new step!\n\r");
       if (!is_it_dwell)
       {                     // we have finished full step togo+dwell (or this is first step)
         Program_run_step++; // lets icrement step
@@ -497,20 +497,20 @@ void Program_calculate_steps(bool prg_start)
           END_Program();
           return;
         }
-        DBG dbgLog(LOG_DEBUG, "[PRG] Calculating new NORMAL step!\n");
+        DBG dbgLog(LOG_DEBUG, "[PRG] Calculating new NORMAL step!\n\r");
         is_it_dwell = true; // next step will be dwell
         step_start = time(NULL);
         next_step_end = step_start + Program_run[Program_run_step].togo * 60;
-        DBG dbgLog(LOG_DEBUG, "[PRG] Next step:%d Start step:%d Togo:%d Run_step:%d/%d Set_temp:%.3f\n", next_step_end, step_start, Program_run[Program_run_step].togo, Program_run_step, Program_run_size, set_temp);
+        DBG dbgLog(LOG_DEBUG, "[PRG] Next step:%d Start step:%d Togo:%d Run_step:%d/%d Set_temp:%.3f\n\r", next_step_end, step_start, Program_run[Program_run_step].togo, Program_run_step, Program_run_size, set_temp);
 
         if (Program_run_step > 0)
         { // is this a next step?
           temp_incr = (float)(Program_run[Program_run_step].temp - Program_run[Program_run_step - 1].temp) / (Program_run[Program_run_step].togo * 60);
-          DBG dbgLog(LOG_DEBUG, "[PRG] temp_inc:%f Step_temp:%d Step-1_temp:%d\n", temp_incr, Program_run[Program_run_step].temp, Program_run[Program_run_step - 1].temp);
+          DBG dbgLog(LOG_DEBUG, "[PRG] temp_inc:%f Step_temp:%d Step-1_temp:%d\n\r", temp_incr, Program_run[Program_run_step].temp, Program_run[Program_run_step - 1].temp);
         }
         else
         { // or this is teh first one?
-          DBG dbgLog(LOG_DEBUG, "[DBG] First step.\n");
+          DBG dbgLog(LOG_DEBUG, "[DBG] First step.\n\r");
           set_temp = kiln_temp;
           temp_incr = (float)(Program_run[Program_run_step].temp - kiln_temp) / (Program_run[Program_run_step].togo * 60);
         }
@@ -524,11 +524,11 @@ void Program_calculate_steps(bool prg_start)
         step_start = time(NULL);
         next_step_end = step_start + Program_run[Program_run_step].dwell * 60;
         set_temp = Program_run[Program_run_step].temp;
-        DBG dbgLog(LOG_DEBUG, "[PRG] Next step:%d Start step:%d Togo:%d Run_step:%d/%d Set_temp:%f\n", next_step_end, step_start, Program_run[Program_run_step].dwell, Program_run_step, Program_run_size, set_temp);
+        DBG dbgLog(LOG_DEBUG, "[PRG] Next step:%d Start step:%d Togo:%d Run_step:%d/%d Set_temp:%f\n\r", next_step_end, step_start, Program_run[Program_run_step].dwell, Program_run_step, Program_run_size, set_temp);
         Program_recalculate_ETA(true); // recalculate ETA for dwell
       }
     }
-    DBG dbgLog(LOG_INFO, "[PRG] Curr temp: %.0f, Set_temp: %.0f, Incr: %.2f Pid_out:%.2f Step: %d\n", kiln_temp, set_temp, temp_incr, pid_out * PID_WINDOW_DIVIDER, Program_run_step);
+    DBG dbgLog(LOG_INFO, "[PRG] Curr temp: %.0f, Set_temp: %.0f, Incr: %.2f Pid_out:%.2f Step: %d\n\r", kiln_temp, set_temp, temp_incr, pid_out * PID_WINDOW_DIVIDER, Program_run_step);
   }
 
   if (Program_run_state != PR_PAUSED && Program_run_state != PR_THRESHOLD)
@@ -561,7 +561,7 @@ void START_Program()
   KilnPID.SetOutputLimits(0, Prefs[PRF_PID_WINDOW].value.uint16 / PID_WINDOW_DIVIDER);
   KilnPID.SetMode(AUTOMATIC);
 
-  DBG dbgLog(LOG_INFO, "[PRG] Trying to start log - window size:%d\n", Prefs[PRF_LOG_WINDOW].value.uint16);
+  DBG dbgLog(LOG_INFO, "[PRG] Trying to start log - window size:%d\n\r", Prefs[PRF_LOG_WINDOW].value.uint16);
   if (Prefs[PRF_LOG_WINDOW].value.uint16)
   { // if we should create log file
     DBG dbgLog(LOG_INFO, "[PRG] Trying to create logs");
@@ -576,17 +576,17 @@ void SAFETY_Check()
 {
   if (kiln_temp < Prefs[PRF_MIN_TEMP].value.uint8)
   {
-    DBG dbgLog(LOG_ERR, "[PRG] Safety check failed - MIN temperature < %d\n", Prefs[PRF_MIN_TEMP].value.uint8);
+    DBG dbgLog(LOG_ERR, "[PRG] Safety check failed - MIN temperature < %d\n\r", Prefs[PRF_MIN_TEMP].value.uint8);
     ABORT_Program(PR_ERR_TOO_COLD);
   }
   else if (kiln_temp > Prefs[PRF_MAX_TEMP].value.uint16)
   {
-    DBG dbgLog(LOG_ERR, "[PRG] Safety check failed - MAX temperature > %d\n", Prefs[PRF_MAX_TEMP].value.uint16);
+    DBG dbgLog(LOG_ERR, "[PRG] Safety check failed - MAX temperature > %d\n\r", Prefs[PRF_MAX_TEMP].value.uint16);
     ABORT_Program(PR_ERR_TOO_HOT);
   }
   if (case_temp > Prefs[PRF_MAX_HOUSING_TEMP].value.uint16)
   {
-    DBG dbgLog(LOG_ERR, "[PRG] Safety check failed - MAX housing temperature > %d\n", Prefs[PRF_MAX_HOUSING_TEMP].value.uint16);
+    DBG dbgLog(LOG_ERR, "[PRG] Safety check failed - MAX housing temperature > %d\n\r", Prefs[PRF_MAX_HOUSING_TEMP].value.uint16);
     ABORT_Program(PR_ERR_TOO_HOT_HOUSING);
   }
 }
@@ -609,7 +609,7 @@ void Program_Loop(void *parameter)
     {
 
       // Update temperature readout
-      Update_Temperature(ChamberThermocouple, kiln_temp);
+      Update_Temperature(ChamberThermocouple, kiln_temp, int_temp);
 
       // Check if there is Alarm ON - if so, lower time and call STOP
       if (ALARM_countdown > 0)
@@ -629,7 +629,8 @@ void Program_Loop(void *parameter)
       { // just to make it in other time then next if cnt1
         if (CaseThermocoupleType != ThermocoupleType::NONE)
         {
-          Update_Temperature(CaseThermocouple, case_temp); // this does not have to be updated so often as kiln temp
+          double case_int_temp;
+          Update_Temperature(CaseThermocouple, case_temp, case_int_temp); // this does not have to be updated so often as kiln temp
         }
         else
         {
@@ -660,7 +661,7 @@ void Program_Loop(void *parameter)
           cnt1 = 0;
           if (LCD_Main == MAIN_VIEW2 && (Program_run_state == PR_RUNNING || Program_run_state == PR_PAUSED))
             display->LCD_display_mainv2();
-          DBG dbgLog(LOG_INFO, "[PRG] Pid_out RAW:%.2f Pid_out:%.2f Now-window:%d WindowSize:%d Prg_state:%d\n", pid_out, pid_out * PID_WINDOW_DIVIDER, (now - windowStartTime), Prefs[PRF_PID_WINDOW].value.uint16, (byte)Program_run_state);
+          DBG dbgLog(LOG_INFO, "[PRG] Pid_out RAW:%.2f Pid_out:%.2f Now-window:%d WindowSize:%d Prg_state:%d\n\r", pid_out, pid_out * PID_WINDOW_DIVIDER, (now - windowStartTime), Prefs[PRF_PID_WINDOW].value.uint16, (byte)Program_run_state);
         }
       }
     }

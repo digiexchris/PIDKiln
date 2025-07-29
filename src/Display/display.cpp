@@ -44,18 +44,18 @@ boolean Display::return_LCD_string(char *msg, char *rest, int mod, uint16_t scre
     char out[MAX_CHARS_PL];
 
     chh = u8g2->getMaxCharHeight();
-    // DBG Serial.printf("[LCD] Line cut: Got:%s\n",msg);
+    // DBG Serial.printf("[LCD] Line cut: Got:%s\n\r",msg);
     lnw = floor((SCREEN_W + mod) / u8g2->getMaxCharWidth()) - 1; // max chars in line
     if (strlen(msg) <= lnw)
     {
         rest[0] = '\0';
-        // DBG Serial.printf("[LCD] Line cut: line shorter then %d - skipping\n",lnw);
+        // DBG Serial.printf("[LCD] Line cut: line shorter then %d - skipping\n\r",lnw);
         return false;
     }
     strncpy(rest, msg + lnw + 1, strlen(msg) - lnw);
     rest[strlen(msg) - lnw] = '\0';
     msg[lnw + 1] = '\0';
-    // DBG Serial.printf("[LCD] Line cut. Returning msg:'%s' and rest:'%s'\n",msg,rest);
+    // DBG Serial.printf("[LCD] Line cut. Returning msg:'%s' and rest:'%s'\n\r",msg,rest);
     return true;
 }
 
@@ -84,7 +84,7 @@ void Display::DrawVline(uint16_t x, uint16_t y, uint16_t h)
         return; // Ensure u8g2 is initialized
     }
 
-    // DBG Serial.printf("[LCD] -> Draw V dots: x:%d\t y:%d\t h:%d\n",x,y,h);
+    // DBG Serial.printf("[LCD] -> Draw V dots: x:%d\t y:%d\t h:%d\n\r",x,y,h);
     h += y;
     for (uint16_t yy = y; yy < h; yy += 3)
         u8g2->drawPixel(x, yy);
@@ -145,7 +145,7 @@ void Display::DrawMenuEl(char *msg, uint16_t y, uint8_t cnt, uint8_t el, boolean
     x_txt = x + (x_w - 2 - width) / 2; // find out how to put a text in the middle of the button
 
     u8g2->drawFrame(x, y - chh, x_w, chh); // draw frame around text w+1 because start point is also counted to witdh
-    DBG dbgLog(LOG_DEBUG, "[LCD] Width:%d cnt:%d el:%d x:%d x_txt:%d x_w:%d\n", SCREEN_W, cnt, el, x, x_txt, x_w);
+    DBG dbgLog(LOG_DEBUG, "[LCD] Width:%d cnt:%d el:%d x:%d x_txt:%d x_w:%d\n\r", SCREEN_W, cnt, el, x, x_txt, x_w);
 
     if (sel)
     {
@@ -286,7 +286,7 @@ void Display::LCD_display_mainv2()
     if (mxtemp)
         scy = (int)((mxy * 100) / mxtemp); // 1 celsius is scy pixel * 100
 
-    DBG dbgLog(LOG_DEBUG, "[LCD] Graph. mxx:%d mxy:%d ttime:%d mxtemp:%d scx:%d scy:%d\n", mxx, mxy, ttime, mxtemp, scx, scy);
+    DBG dbgLog(LOG_DEBUG, "[LCD] Graph. mxx:%d mxy:%d ttime:%d mxtemp:%d scx:%d scy:%d\n\r", mxx, mxy, ttime, mxtemp, scx, scy);
 
     // Draw axies
     u8g2->drawHLine(1, SCREEN_H - 1, mxx);
@@ -308,7 +308,7 @@ void Display::LCD_display_mainv2()
         y = starty - (int)(Program_run[a].temp * scy) / 100;
         x = (int)(Program_run[a].togo * scx) / 100 + oldx;
         u8g2->drawLine(oldx, oldy, x, y);
-        // DBG Serial.printf("[LCD].Drawing line: x0:%d \t y0:%d \tto\t x1:%d (%d) \t y1:%d (%d) \n",oldx,oldy,x,Program_run[a].togo,y,Program_run[a].temp);
+        // DBG Serial.printf("[LCD].Drawing line: x0:%d \t y0:%d \tto\t x1:%d (%d) \t y1:%d (%d) \n\r",oldx,oldy,x,Program_run[a].togo,y,Program_run[a].temp);
         DrawVline(x, y, starty - y);
         oldx = x;
         oldy = y;
@@ -316,7 +316,7 @@ void Display::LCD_display_mainv2()
         {
             x = (int)(Program_run[a].dwell * scx) / 100 + oldx;
             u8g2->drawLine(oldx, oldy, x, y);
-            // DBG Serial.printf("[LCD] ..Drawing line: x0:%d \t y0:%d \tto\t x1:%d (%d) \t y1:%d (%d)\n",oldx,oldy,x,Program_run[a].dwell,y,Program_run[a].temp);
+            // DBG Serial.printf("[LCD] ..Drawing line: x0:%d \t y0:%d \tto\t x1:%d (%d) \t y1:%d (%d)\n\r",oldx,oldy,x,Program_run[a].dwell,y,Program_run[a].temp);
             oldx = x;
         }
     }
@@ -332,7 +332,7 @@ void Display::LCD_display_mainv2()
         currt = time(NULL) - Program_run_start;             // where are we now?
         prop = (float)currt / (float)fullt;                 // current progress status
         u8g2->setDrawColor(2);
-        DBG dbgLog(LOG_DEBUG, "[LCD] Redrawing box on graph width:%.2f fullt:%d currt:%d prop:%f\n", (float)((SCREEN_W - 2) * prop), fullt, currt, prop);
+        DBG dbgLog(LOG_DEBUG, "[LCD] Redrawing box on graph width:%.2f fullt:%d currt:%d prop:%f\n\r", (float)((SCREEN_W - 2) * prop), fullt, currt, prop);
         u8g2->drawBox(2, 1, (int)((SCREEN_W - 2) * prop), SCREEN_H - 2);
         u8g2->setDrawColor(1);
         u8g2->sendBuffer();
@@ -508,26 +508,26 @@ void Display::LCD_display_menu()
     uint8_t chh, center = 5;
 
     LCD_State = SCR_MENU;
-    DBG dbgLog(LOG_DEBUG, "[LCD] Entering menu (%d) display: %s\n", LCD_Menu, Menu_Names[LCD_Menu]);
+    DBG dbgLog(LOG_DEBUG, "[LCD] Entering menu (%d) display: %s\n\r", LCD_Menu, Menu_Names[LCD_Menu]);
     u8g2->clearBuffer(); // clear the internal memory
     u8g2->setFont(FONT7);
     u8g2->setFontPosBaseline();
     chh = u8g2->getMaxCharHeight();
     center = floor((SCREEN_H - (chh + SCR_MENU_SPACE) * SCR_MENU_LINES) / 2); // how much we have to move Y to be on the middle with all menu
-    DBG dbgLog(LOG_DEBUG, "[LCD] In menu we can print %d lines, with %dpx space, and char height %d\n", SCR_MENU_LINES, SCR_MENU_SPACE, chh);
+    DBG dbgLog(LOG_DEBUG, "[LCD] In menu we can print %d lines, with %dpx space, and char height %d\n\r", SCR_MENU_LINES, SCR_MENU_SPACE, chh);
 
     if (LCD_Menu > SCR_MENU_MIDDLE)
         m_startpos = LCD_Menu - (SCR_MENU_MIDDLE - 1); // if current menu pos > middle part of menu - start from LCD_Menu - SCR_MENU_MIDDLE-1
     else if (LCD_Menu <= SCR_MENU_MIDDLE)
         m_startpos = LCD_Menu - SCR_MENU_MIDDLE + 1; // if current menu pos < middle part - start
-    DBG dbgLog(LOG_DEBUG, "[LCD] Start pos is %d, chosen position is %d, screen center is %d\n", m_startpos, LCD_Menu, center);
+    DBG dbgLog(LOG_DEBUG, "[LCD] Start pos is %d, chosen position is %d, screen center is %d\n\r", m_startpos, LCD_Menu, center);
 
     for (int a = 1; a <= SCR_MENU_LINES; a++)
     {
         if (a == SCR_MENU_MIDDLE)
         {                          // reverse colors if we print middle part o menu
             u8g2->setDrawColor(1); /* color 1 for the box */
-            DBG dbgLog(LOG_DEBUG, "[LCD] x0: %d, y0: %d, w: %d, h: %d\n", 0, (a - 1) * chh + SCR_MENU_SPACE + center, SCREEN_W, chh + SCR_MENU_SPACE);
+            DBG dbgLog(LOG_DEBUG, "[LCD] x0: %d, y0: %d, w: %d, h: %d\n\r", 0, (a - 1) * chh + SCR_MENU_SPACE + center, SCREEN_W, chh + SCR_MENU_SPACE);
             u8g2->drawBox(0, (a - 1) * chh + SCR_MENU_SPACE + center + 1, SCREEN_W, chh + SCR_MENU_SPACE);
             u8g2->setDrawColor(0);
         }
@@ -577,7 +577,7 @@ void Display::LCD_display_programs()
         if (max_lines > Programs_DIR_size)
             max_lines = Programs_DIR_size;
     }
-    DBG dbgLog(LOG_DEBUG, "[LCD] Start pos:%d, sel_prg:%d, max_lines:%d\n", start_pos, sel, max_lines);
+    DBG dbgLog(LOG_DEBUG, "[LCD] Start pos:%d, sel_prg:%d, max_lines:%d\n\r", start_pos, sel, max_lines);
 
     for (start_pos; start_pos < max_lines && start_pos < Programs_DIR_size; start_pos++)
     {
@@ -585,7 +585,7 @@ void Display::LCD_display_programs()
             sprintf(msg, "%-15.15s %3db", Programs_DIR[start_pos].filename, Programs_DIR[start_pos].filesize);
         else
             sprintf(msg, "%-15.15s %2dkb", Programs_DIR[start_pos].filename, (int)(Programs_DIR[start_pos].filesize / 1024));
-        DBG dbgLog(LOG_INFO, "[LCD] Program list:%s: sel:%d\n", msg, Programs_DIR[start_pos].sel);
+        DBG dbgLog(LOG_INFO, "[LCD] Program list:%s: sel:%d\n\r", msg, Programs_DIR[start_pos].sel);
         if (Programs_DIR[start_pos].sel)
         {
             u8g2->setDrawColor(1);
@@ -773,10 +773,10 @@ void Display::LCD_Display_program_summary(int dir, byte load_prg)
     chh = u8g2->getMaxCharHeight();
 
     sel = Find_selected_program(); // get selected program
-    DBG dbgLog(LOG_DEBUG, "[LCD] Show single program (dir %d, load_prg %d): %s\n", dir, load_prg, Programs_DIR[sel].filename);
+    DBG dbgLog(LOG_DEBUG, "[LCD] Show single program (dir %d, load_prg %d): %s\n\r", dir, load_prg, Programs_DIR[sel].filename);
 
     sprintf(file_path, "%s/%s", PRG_Directory, Programs_DIR[sel].filename);
-    DBG dbgLog(LOG_DEBUG, "[LCD]\tprogram path: %s\n", file_path);
+    DBG dbgLog(LOG_DEBUG, "[LCD]\tprogram path: %s\n\r", file_path);
     if (SPIFFS.exists(file_path))
     {
         u8g2->clearBuffer();
@@ -822,7 +822,7 @@ void Display::LCD_Display_program_summary(int dir, byte load_prg)
             if (Program[a].temp > max_t)
                 max_t = Program[a].temp;
             total_t += Program[a].togo + Program[a].dwell;
-            DBG dbgLog(LOG_DEBUG, "[LCD] PRG: %d/%d Temp: %dC Time:%dm Dwell:%dm\n", a, Program_size, Program[a].temp, Program[a].togo, Program[a].dwell);
+            DBG dbgLog(LOG_DEBUG, "[LCD] PRG: %d/%d Temp: %dC Time:%dm Dwell:%dm\n\r", a, Program_size, Program[a].temp, Program[a].togo, Program[a].dwell);
         }
 
         y = SCREEN_H - chh - 1;
@@ -831,7 +831,7 @@ void Display::LCD_Display_program_summary(int dir, byte load_prg)
         sprintf(msg, "Time:%uh %dm", total_t / 60, total_t % 60);
         DrawMenuEl(msg, y, 2, 2, 0);
 
-        DBG dbgLog(LOG_DEBUG, "[LCD] Creating program menu prog_menu:%d dir:%d\n", prog_menu, dir);
+        DBG dbgLog(LOG_DEBUG, "[LCD] Creating program menu prog_menu:%d dir:%d\n\r", prog_menu, dir);
         prog_menu += dir;
         if (prog_menu >= Prog_Menu_Size)
             prog_menu = Prog_Menu_Size - 1;
@@ -899,11 +899,11 @@ void Display::LCD_Display_quick_program(int dir, byte pos)
             // We need to define program here
             Initialize_program_to_run(); // clear current program
             sprintf(msg, "Manually created quick program.");
-            DBG dbgLog(LOG_DEBUG, "[LCD] Replacing current program in memory:%d \n", strlen(msg));
+            DBG dbgLog(LOG_DEBUG, "[LCD] Replacing current program in memory:%d \n\r", strlen(msg));
             Program_run_desc = (char *)MALLOC((strlen(msg) + 1) * sizeof(char));
             strcpy(Program_run_desc, msg);
             sprintf(msg, "QuickProgram");
-            DBG dbgLog(LOG_DEBUG, "[LCD] Replacing current program in memory:%d \n", strlen(msg));
+            DBG dbgLog(LOG_DEBUG, "[LCD] Replacing current program in memory:%d \n\r", strlen(msg));
             Program_run_name = (char *)MALLOC((strlen(msg) + 1) * sizeof(char));
             strcpy(Program_run_name, msg);
             Update_program_step(0, qp[0], qp[1], qp[2]);
@@ -948,7 +948,7 @@ void Display::LCD_Display_quick_program(int dir, byte pos)
     else
         what += dir; // rotate menu
 
-    DBG dbgLog(LOG_DEBUG, "[LCD] Dir: %d What:%d Pos:%d\n", dir, what, pos);
+    DBG dbgLog(LOG_DEBUG, "[LCD] Dir: %d What:%d Pos:%d\n\r", dir, what, pos);
 
     // If button pressed - cycle
     // 0-3 - temperature, 4-6 - time, 7-9 - dwell, 10 - cancel, 11 - load, 12 - back to edit
@@ -1091,7 +1091,7 @@ void Display::LCD_Display_info()
     }
 
     sprintf(msg, "MAC: %s", WiFi.macAddress().c_str());
-    DBG dbgLog(LOG_DEBUG, "[LCD] Printing MAC address: %s\n", msg);
+    DBG dbgLog(LOG_DEBUG, "[LCD] Printing MAC address: %s\n\r", msg);
     u8g2->drawStr(x, y += chh, msg);
 
     sprintf(msg, "Max prg. size: %d", MAX_Prog_File_Size);
@@ -1231,7 +1231,7 @@ void Display::LCD_Reconect_WiFi()
     load_msg(msg);
     if (Setup_WiFi())
     { // !!! Wifi connection FAILED
-        DBG dbgLog(LOG_INFO, "[LCD] WiFi connection failed\n");
+        DBG dbgLog(LOG_INFO, "[LCD] WiFi connection failed\n\r");
         strcpy(msg, " WiFi con. failed ");
         load_msg(msg);
     }

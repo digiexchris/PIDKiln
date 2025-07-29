@@ -62,7 +62,7 @@ boolean delete_file(File &newFile)
   if (newFile)
   {
     strcpy(filename, newFile.name());
-    DBG dbgLog(LOG_DEBUG, "[MAIN] Deleting uploaded file: \"%s\"\n", filename);
+    DBG dbgLog(LOG_DEBUG, "[MAIN] Deleting uploaded file: \"%s\"\n\r", filename);
     newFile.flush();
     newFile.close();
     if (SPIFFS.remove(filename))
@@ -140,7 +140,7 @@ void setup()
   // Initialize SPIFFS
   if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED))
   {
-    DBG dbgLog(LOG_DEBUG, "[MAIN] An Error has occurred while mounting SPIFFS\n");
+    DBG dbgLog(LOG_DEBUG, "[MAIN] An Error has occurred while mounting SPIFFS\n\r");
     return;
   }
 
@@ -153,7 +153,7 @@ void setup()
   // Setup input devices
   Setup_Input();
 
-  DBG dbgLog(LOG_DEBUG, "WiFi mode: %d, Retry count: %d, is wifi enabled: %d\n", Prefs[PRF_WIFI_MODE].value.uint8, Prefs[PRF_WIFI_RETRY_CNT].value.uint8, Prefs[PRF_WIFI_SSID].type);
+  DBG dbgLog(LOG_DEBUG, "WiFi mode: %d, Retry count: %d, is wifi enabled: %d\n\r", Prefs[PRF_WIFI_MODE].value.uint8, Prefs[PRF_WIFI_RETRY_CNT].value.uint8, Prefs[PRF_WIFI_SSID].type);
 
   // Connect to WiFi if enabled
   if (Prefs[PRF_WIFI_MODE].value.uint8)
@@ -162,7 +162,7 @@ void setup()
     display->load_msg(msg);
     if (Setup_WiFi())
     { // !!! Wifi connection FAILED
-      DBG dbgLog(LOG_ERR, "[MAIN] WiFi connection failed\n");
+      DBG dbgLog(LOG_ERR, "[MAIN] WiFi connection failed\n\r");
       strcpy(msg, " WiFi con. failed");
       display->load_msg(msg);
     }

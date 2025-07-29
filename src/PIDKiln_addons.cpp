@@ -75,16 +75,14 @@ void print_bits(uint32_t raw)
   Serial.println();
 }
 
-// ThermocoupleA temperature readout
+// Thermocouple temperature readout
 //
-void Update_Temperature(Thermocouple *thermocouple, double &anOutTemp)
+void Update_Temperature(Thermocouple *thermocouple, double &anOutTemp, double &anOutIntTemp)
 {
-  uint32_t raw;
-  double kiln_tmp1;
 
   if (thermocouple == nullptr)
   {
-    DBG dbgLog(LOG_ERR, "[ADDONS] Thermocouple is null pointer\n");
+    DBG dbgLog(LOG_ERR, "[ADDONS] Thermocouple is null pointer\n\r");
     return;
   }
 
@@ -92,20 +90,22 @@ void Update_Temperature(Thermocouple *thermocouple, double &anOutTemp)
 
   if (thermocouple->getType() != ThermocoupleType::NONE)
   {
-    if (thermocouple->hasError())
+    std::string err;
+    if (!thermocouple->updateTemperature(anOutTemp, anOutIntTemp, err))
     {
-      DBG dbgLog(LOG_ERR, "[ADDONS] %s error: %s\n", name.c_str(), thermocouple->getErrorStr().c_str());
 
-      if (TempA_errors >= Prefs[PRF_ERROR_GRACE_COUNT].value.uint8)
+      DBG dbgLog(LOG_ERR, "[ADDONS] %s error: %s\n\r", name.c_str(), err.c_str());
+
+      if (thermocouple->isAtErrorLimit())
       {
-        DBG dbgLog(LOG_ERR, "[ADDONS] %s has too many errors (%d), aborting program\n", name.c_str(), TempA_errors);
+        DBG dbgLog(LOG_ERR, "[ADDONS] %s has too many errors (%d), aborting program\n\r", name.c_str(), TempA_errors);
         ABORT_Program(PR_ERR_MAX31A_INT_ERR);
         return;
       }
       else
       {
         TempA_errors++;
-        DBG dbgLog(LOG_ERR, "[ADDONS] %s had an error but we are still below grace threshold - continue. Error %d of %d\n", name.c_str(), TempA_errors, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
+        DBG dbgLog(LOG_ERR, "[ADDONS] %s had an error but we are still below grace threshold - continue. Error %d of %d\n\r", name.c_str(), TempA_errors, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
       }
 
       return;
@@ -113,18 +113,11 @@ void Update_Temperature(Thermocouple *thermocouple, double &anOutTemp)
   }
   else
   {
-    DBG dbgLog(LOG_ERR, "[ADDONS] %s not configured\n", ChamberThermocouple->getName().c_str());
+    DBG dbgLog(LOG_ERR, "[ADDONS] %s not configured\n\r", thermocouple->getName().c_str());
     return;
   }
 
-  anOutTemp = thermocouple->readCelsius();
-
-  if (TempA_errors > 0)
-  {
-    TempA_errors--; // Lower errors count after proper readout
-  }
-
-  DBG dbgLog(LOG_DEBUG, "[ADDONS] %s readout: Internal temp = %.1f \t Last temp = %.1f \t Average kiln temp = %.1f\n", name.c_str(), int_temp, kiln_tmp1, kiln_temp);
+  DBG dbgLog(LOG_DEBUG, "[ADDONS] %s readout: Internal temp = %.1f \t Last temp = %.1f\n\r", name.c_str(), anOutIntTemp, anOutTemp);
 }
 
 // Measure current power usage - to be expanded
@@ -153,7 +146,7 @@ void Read_Energy_INPUT()
 
   if (cnt++ > 20)
   {
-    DBG dbgLog(LOG_DEBUG, "[ADDONS] VCC is set:%d ; RAW Power: %.1fW, Raw current: %.2fA, Power global:%d W/h:%.6f\n", emon1.readVcc(), Irms * EMERGY_MON_VOLTAGE, Irms, Energy_Wattage, Energy_Usage);
+    DBG dbgLog(LOG_DEBUG, "[ADDONS] VCC is set:%d ; RAW Power: %.1fW, Raw current: %.2fA, Power global:%d W/h:%.6f\n\r", emon1.readVcc(), Irms * EMERGY_MON_VOLTAGE, Irms, Energy_Wattage, Energy_Usage);
     cnt = 0;
   }
 
@@ -206,11 +199,11 @@ void Setup_Addons()
   {
     if (ChamberThermocoupleType == ThermocoupleType::MAX31855)
     {
-      ChamberThermocouple = new MAX31855(MAXCS1, "Chamber Thermocouple");
+      ChamberThermocouple = new MAX31855(CHAMBER_CS, "Chamber Thermocouple", Prefs[PRF_ERROR_GRACE_COUNT].value.uint8, HSPI_MISO, HSPI_CLK);
     }
     else if (ChamberThermocoupleType == ThermocoupleType::MAX31856)
     {
-      ChamberThermocouple = new MAX31856(MAXCS1, "Chamber Thermocouple", Chamber_Thermocouple_MAX31856_Type);
+      ChamberThermocouple = new MAX31856(CHAMBER_CS, "Chamber Thermocouple", Chamber_Thermocouple_MAX31856_Type, LineFrequencyFilter, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8, HSPI_MISO, HSPI_MOSI, HSPI_CLK);
     }
   }
 
@@ -218,11 +211,11 @@ void Setup_Addons()
   {
     if (CaseThermocoupleType == ThermocoupleType::MAX31855)
     {
-      CaseThermocouple = new MAX31855(MAXCS2, "Case Thermocouple");
+      CaseThermocouple = new MAX31855(CASE_CS, "Case Thermocouple", Prefs[PRF_ERROR_GRACE_COUNT].value.uint8, HSPI_MISO, HSPI_CLK);
     }
     else if (CaseThermocoupleType == ThermocoupleType::MAX31856)
     {
-      CaseThermocouple = new MAX31856(MAXCS2, "Case Thermocouple", Case_Thermocouple_MAX31856_Type);
+      CaseThermocouple = new MAX31856(CASE_CS, "Case Thermocouple", Case_Thermocouple_MAX31856_Type, LineFrequencyFilter, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8, HSPI_MISO, HSPI_MOSI, HSPI_CLK);
     }
   }
 
