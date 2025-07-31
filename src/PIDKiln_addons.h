@@ -4,11 +4,14 @@
 #include "Device/Thermocouple/Thermocouple.h"
 #include <memory>
 #include "esp-max318-thermocouple/max318.h"
-#include "Device/Thermocouple/MAX31855.h"
-#include "Device/Thermocouple/MAX31856.h"
+#include "esp-max318-thermocouple/MAX31855.h"
+#include "esp-max318-thermocouple/MAX31856.h"
 
-extern std::unique_ptr<MAX318> ChamberThermocouple;
-extern std::unique_ptr<Thermocouple> CaseThermocouple;
+using namespace ESP_MAX318_THERMOCOUPLE;
+
+extern SPIManager* spiManager;
+extern std::shared_ptr<MAX318> ChamberThermocouple;
+extern std::shared_ptr<MAX318> CaseThermocouple;
 
 // SSR control functions
 void Enable_SSR();

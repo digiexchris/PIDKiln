@@ -1,6 +1,6 @@
 #pragma once
 #include "Device/Thermocouple/Thermocouple.h"
-#include "Device/Thermocouple/MAX31856.h"
+#include <esp-max318-thermocouple/max31856.hxx>
 #include "Display/display.h"
 
 /*
@@ -64,8 +64,8 @@ Valud values are:
 - MAX31856::ProbeType::TYPE_VOLTAGE_GAIN_X32
 If you use a MAX31855, This is ignored.
 */
-constexpr MAX31856::ProbeType Chamber_Thermocouple_MAX31856_Type = MAX31856::ProbeType::TYPE_K;
-constexpr MAX31856::ProbeType Case_Thermocouple_MAX31856_Type = MAX31856::ProbeType::TYPE_K;
+constexpr MAX31856::ThermocoupleType Chamber_Thermocouple_MAX31856_Type = MAX31856::ThermocoupleType::TYPE_K;
+constexpr MAX31856::ThermocoupleType Case_Thermocouple_MAX31856_Type = MAX31856::ThermocoupleType::TYPE_K;
 
 // Set it to MAX31856::FilterHz::FILTER_650HZ or MAX31856::FilterHz::FILTER_60HZ hz depending on your mains frequency
 constexpr MAX31856::FilterHz LineFrequencyFilter = MAX31856::FilterHz::FILTER_60HZ;

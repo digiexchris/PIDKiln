@@ -2,6 +2,11 @@
 #include <string>
 #include <Arduino.h>
 
+#include <esp-max318-thermocouple/max318.hxx>
+#include <esp-max318-thermocouple/spimanager.hxx>
+
+using namespace ESP_MAX318_THERMOCOUPLE;
+
 enum class ThermocoupleType
 {
     MAX31855,
@@ -9,10 +14,17 @@ enum class ThermocoupleType
     NONE
 };
 
+class DummyThermocouple : public MAX318_Base
+{
+public:
+    DummyThermocouple() : MAX318_Base("Dummy Thermocouple", 0, {}) {}
+};
+
+template <typename T>
 class Thermocouple
 {
 public:
-    Thermocouple(std::string name, uint16_t errorLimit = 5, uint8_t avgSamples = 10) : name(name), _avgSamples(avgSamples) {}
+    Thermocouple(std::string name, gpio_num_t csPin, uint16_t errorLimit = 5, uint8_t avgSamples = 10);
     virtual bool hasError() = 0;
     virtual std::string getErrorStr() = 0;
     virtual double readCelsius() = 0;
@@ -64,9 +76,15 @@ public:
     }
 
 protected:
-    ThermocoupleType type = ThermocoupleType::NONE;
+    std::shared_ptr<T> device; // MAX31855 or 31856 device
     std::string name;
     uint8_t _avgSamples;
     uint16_t _errorLimit; // Number of errors before we stop icrementing errors
     uint16_t _errors = 0;
+
+    static SPIManager *spiManager; // SPI manager for shared SPI bus for max31855/max31856
+
+    static spi_bus_config_t spiConfig;
+
+    static SPIManager *getSPIManager();
 };

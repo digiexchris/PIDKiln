@@ -5,9 +5,6 @@
 #include <Arduino.h>
 #include "PIDKiln.h"
 #include "Device/Thermocouple/Thermocouple.h"
-#include <Adafruit_MAX31855.h>
-#include "Device/Thermocouple/MAX31855.h"
-#include "Device/Thermocouple/MAX31856.h"
 #include "PIDKiln.h"
 #include "PIDKiln_addons.h"
 #include "PIDKiln_logs.h"
@@ -195,28 +192,30 @@ void Setup_Addons()
 
   SSR_On = false;
 
-  if (ChamberThermocoupleType != ThermocoupleType::NONE)
+  if (ChamberThermocoupleType == ThermocoupleType::MAX31855)
   {
-    if (ChamberThermocoupleType == ThermocoupleType::MAX31855)
-    {
-      ChamberThermocouple = new MAX31855(CHAMBER_CS, "Chamber Thermocouple", Prefs[PRF_ERROR_GRACE_COUNT].value.uint8, HSPI_MISO, HSPI_CLK);
-    }
-    else if (ChamberThermocoupleType == ThermocoupleType::MAX31856)
-    {
-      ChamberThermocouple = new MAX31856(CHAMBER_CS, "Chamber Thermocouple", Chamber_Thermocouple_MAX31856_Type, LineFrequencyFilter, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8, HSPI_MISO, HSPI_MOSI, HSPI_CLK);
-    }
+    ChamberThermocouple = new Thermocouple<MAX31855>(CHAMBER_CS, "Chamber Thermocouple", Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
+  }
+  else if (ChamberThermocoupleType == ThermocoupleType::MAX31856)
+  {
+    ChamberThermocouple = new Thermocouple<MAX31856>(CHAMBER_CS, "Chamber Thermocouple", Chamber_Thermocouple_MAX31856_Type, LineFrequencyFilter, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
+  }
+  else
+  {
+    ChamberThermocouple = new Thermocouple<DummyThermocouple>("Chamber Thermocouple", CHAMBER_CS, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
   }
 
-  if (CaseThermocoupleType != ThermocoupleType::NONE)
+  if (CaseThermocoupleType == ThermocoupleType::MAX31855)
   {
-    if (CaseThermocoupleType == ThermocoupleType::MAX31855)
-    {
-      CaseThermocouple = new MAX31855(CASE_CS, "Case Thermocouple", Prefs[PRF_ERROR_GRACE_COUNT].value.uint8, HSPI_MISO, HSPI_CLK);
-    }
-    else if (CaseThermocoupleType == ThermocoupleType::MAX31856)
-    {
-      CaseThermocouple = new MAX31856(CASE_CS, "Case Thermocouple", Case_Thermocouple_MAX31856_Type, LineFrequencyFilter, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8, HSPI_MISO, HSPI_MOSI, HSPI_CLK);
-    }
+    CaseThermocouple = new Thermocouple<MAX31855>(CASE_CS, "Case Thermocouple", Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
+  }
+  else if (CaseThermocoupleType == ThermocoupleType::MAX31856)
+  {
+    CaseThermocouple = new Thermocouple<MAX31856>(CASE_CS, "Case Thermocouple", Case_Thermocouple_MAX31856_Type, LineFrequencyFilter, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
+  }
+  else
+  {
+    CaseThermocouple = new Thermocouple<DummyThermocouple>("Case Thermocouple", CASE_CS, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
   }
 
 #ifdef ENERGY_MON_PIN

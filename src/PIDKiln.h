@@ -6,8 +6,6 @@
 #include <WiFiUdp.h>
 #include <FS.h>
 #include "Device/Thermocouple/Thermocouple.h"
-#include "Device/Thermocouple/MAX31855.h"
-#include "Device/Thermocouple/MAX31856.h"
 #include "config.h"
 #include "unordered_map"
 
