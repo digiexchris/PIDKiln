@@ -67,19 +67,19 @@ If you use a MAX31855, This is ignored.
 constexpr MAX31856::ThermocoupleType Chamber_Thermocouple_MAX31856_Type = MAX31856::ThermocoupleType::TYPE_K;
 constexpr MAX31856::ThermocoupleType Case_Thermocouple_MAX31856_Type = MAX31856::ThermocoupleType::TYPE_K;
 
-// Set it to MAX31856::FilterHz::FILTER_650HZ or MAX31856::FilterHz::FILTER_60HZ hz depending on your mains frequency
-constexpr MAX31856::FilterHz LineFrequencyFilter = MAX31856::FilterHz::FILTER_60HZ;
+// Set it to FILTER_50HZ or FILTER_60HZ hz depending on your mains frequency
+constexpr bool LineFrequencyFilter = FILTER_60HZ;
 
 // MAX31855/MAX31856 variables/defs
-#define HSPI_MISO 12 // MISO pin
-#define HSPI_MOSI 13 // MOSI pin
-#define HSPI_CLK 14  // CLK pin
+#define SPI2_MISO 12 // MISO pin
+#define SPI2_MOSI 13 // MOSI pin
+#define SPI2_CLK 14  // CLK pin
 #define CHAMBER_CS 27
 #define CASE_CS 15
 
 // If you have power meter - uncoment this
 #define ENERGY_MON_PIN 33       // if you don't use - comment out
-#define ENERGY_MON_AMPS 30      // how many amps produces 1V on your meter (usualy with voltage output meters it's their max value).
+#define ENERGY_MON_AMPS 30     // how many amps produces 1V on your meter (usualy with voltage output meters it's their max value).
 #define EMERGY_MON_VOLTAGE 230  // what is your mains voltage
 #define ENERGY_IGNORE_VALUE 0.4 // if measured current is below this - ignore it (it's just noise)
 

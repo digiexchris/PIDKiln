@@ -10,8 +10,7 @@
 #include "PIDKiln_logs.h"
 #include "PIDKiln_program.h"
 
-// Initialize SPI and MAX31855
-SPIClass *ESP32_SPI = new SPIClass(HSPI);
+// Initialize MAX31855
 Thermocouple *ChamberThermocouple = nullptr;
 Thermocouple *CaseThermocouple = nullptr;
 // If we have defines power meter pins
@@ -85,32 +84,24 @@ void Update_Temperature(Thermocouple *thermocouple, double &anOutTemp, double &a
 
   std::string name = thermocouple->getName();
 
-  if (thermocouple->getType() != ThermocoupleType::NONE)
+  std::string err;
+  if (!thermocouple->updateTemperature(anOutTemp, anOutIntTemp, err))
   {
-    std::string err;
-    if (!thermocouple->updateTemperature(anOutTemp, anOutIntTemp, err))
+
+    DBG dbgLog(LOG_ERR, "[ADDONS] %s error: %s\n\r", name.c_str(), err.c_str());
+
+    if (thermocouple->isAtErrorLimit())
     {
-
-      DBG dbgLog(LOG_ERR, "[ADDONS] %s error: %s\n\r", name.c_str(), err.c_str());
-
-      if (thermocouple->isAtErrorLimit())
-      {
-        DBG dbgLog(LOG_ERR, "[ADDONS] %s has too many errors (%d), aborting program\n\r", name.c_str(), TempA_errors);
-        ABORT_Program(PR_ERR_MAX31A_INT_ERR);
-        return;
-      }
-      else
-      {
-        TempA_errors++;
-        DBG dbgLog(LOG_ERR, "[ADDONS] %s had an error but we are still below grace threshold - continue. Error %d of %d\n\r", name.c_str(), TempA_errors, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
-      }
-
+      DBG dbgLog(LOG_ERR, "[ADDONS] %s has too many errors (%d), aborting program\n\r", name.c_str(), TempA_errors);
+      ABORT_Program(PR_ERR_MAX31A_INT_ERR);
       return;
     }
-  }
-  else
-  {
-    DBG dbgLog(LOG_ERR, "[ADDONS] %s not configured\n\r", thermocouple->getName().c_str());
+    else
+    {
+      TempA_errors++;
+      DBG dbgLog(LOG_ERR, "[ADDONS] %s had an error but we are still below grace threshold - continue. Error %d of %d\n\r", name.c_str(), TempA_errors, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
+    }
+
     return;
   }
 
@@ -194,28 +185,64 @@ void Setup_Addons()
 
   if (ChamberThermocoupleType == ThermocoupleType::MAX31855)
   {
-    ChamberThermocouple = new Thermocouple<MAX31855>(CHAMBER_CS, "Chamber Thermocouple", Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
+    ChamberThermocouple = new Thermocouple(
+        ThermocoupleType::MAX31855,
+        "Chamber Thermocouple",
+        static_cast<gpio_num_t>(CHAMBER_CS),
+        Prefs[PRF_MAX_TEMP].value.uint16,
+        Prefs[PRF_MIN_TEMP].value.uint8,
+        Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
   }
   else if (ChamberThermocoupleType == ThermocoupleType::MAX31856)
   {
-    ChamberThermocouple = new Thermocouple<MAX31856>(CHAMBER_CS, "Chamber Thermocouple", Chamber_Thermocouple_MAX31856_Type, LineFrequencyFilter, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
+    ChamberThermocouple = new Thermocouple(
+        ThermocoupleType::MAX31856,
+        "Chamber Thermocouple",
+        static_cast<gpio_num_t>(CHAMBER_CS),
+        Prefs[PRF_MAX_TEMP].value.uint16,
+        Prefs[PRF_MIN_TEMP].value.uint8,
+        Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
   }
   else
   {
-    ChamberThermocouple = new Thermocouple<DummyThermocouple>("Chamber Thermocouple", CHAMBER_CS, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
+    ChamberThermocouple = new Thermocouple(
+        ThermocoupleType::NONE,
+        "Chamber Thermocouple",
+        static_cast<gpio_num_t>(CHAMBER_CS),
+        0,
+        0,
+        Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
   }
 
   if (CaseThermocoupleType == ThermocoupleType::MAX31855)
   {
-    CaseThermocouple = new Thermocouple<MAX31855>(CASE_CS, "Case Thermocouple", Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
+    CaseThermocouple = new Thermocouple(
+        ThermocoupleType::MAX31855,
+        "Case Thermocouple",
+        static_cast<gpio_num_t>(CASE_CS),
+        Prefs[PRF_MAX_HOUSING_TEMP].value.uint16,
+        Prefs[PRF_MIN_TEMP].value.uint8,
+        Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
   }
   else if (CaseThermocoupleType == ThermocoupleType::MAX31856)
   {
-    CaseThermocouple = new Thermocouple<MAX31856>(CASE_CS, "Case Thermocouple", Case_Thermocouple_MAX31856_Type, LineFrequencyFilter, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
+    CaseThermocouple = new Thermocouple(
+        ThermocoupleType::MAX31856,
+        "Case Thermocouple",
+        static_cast<gpio_num_t>(CASE_CS),
+        Prefs[PRF_MAX_HOUSING_TEMP].value.uint16,
+        Prefs[PRF_MIN_TEMP].value.uint8,
+        Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
   }
   else
   {
-    CaseThermocouple = new Thermocouple<DummyThermocouple>("Case Thermocouple", CASE_CS, Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
+    CaseThermocouple = new Thermocouple(
+        ThermocoupleType::NONE,
+        "Case Thermocouple",
+        static_cast<gpio_num_t>(CASE_CS),
+        0,
+        0,
+        Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
   }
 
 #ifdef ENERGY_MON_PIN

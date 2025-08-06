@@ -7,6 +7,7 @@
 - Resolve -fpermissive compile and link time errors on newer toolchain version
 - Resolve link time issues with non-const definitions in header files that .ino supports (non-standard c++).
 - Add text lookup for error codes for the logs
+- Added thermal runaway to live prefs
 
 1.5 (2024.12.18)
 - updated code to compile against ESP3+ API, Arduino 2+ and latest asynce libraries

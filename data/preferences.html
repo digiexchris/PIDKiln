@@ -266,6 +266,14 @@
      </div>
      <div class="row">
       <div class="col-25">
+	<label for="Thermal_Runaway"> Thermal Runaway </label>
+      </div>
+      <div class="col-75">
+	<input type="number" name="Thermal_Runaway" min="0" max="3600" value="%Thermal_Runaway%" size="4" title="How long (in minutes) controller will try to heat up kiln without detecting an increase in temperature before aborting">m
+      </div>
+     </div>
+     <div class="row">
+      <div class="col-25">
 	<label for="MAX31855_Error_Grace_Count"> MAX31855 error grace count </label>
       </div>
       <div class="col-75">

@@ -3,15 +3,15 @@
 #include <Arduino.h>
 #include "Device/Thermocouple/Thermocouple.h"
 #include <memory>
-#include "esp-max318-thermocouple/max318.h"
-#include "esp-max318-thermocouple/MAX31855.h"
-#include "esp-max318-thermocouple/MAX31856.h"
+#include <esp-max318-thermocouple/max318.hxx>
+#include <esp-max318-thermocouple/max31855.hxx>
+#include <esp-max318-thermocouple/max31856.hxx>
 
 using namespace ESP_MAX318_THERMOCOUPLE;
 
-extern SPIManager* spiManager;
-extern std::shared_ptr<MAX318> ChamberThermocouple;
-extern std::shared_ptr<MAX318> CaseThermocouple;
+extern SPIManager *spiManager;
+extern Thermocouple *ChamberThermocouple;
+extern Thermocouple *CaseThermocouple;
 
 // SSR control functions
 void Enable_SSR();

@@ -90,6 +90,8 @@ String Preferences_parser(const String &var)
     return String(Prefs[PRF_MAX_HOUSING_TEMP].value.uint16);
   else if (var == "Alarm_Timeout")
     return String(Prefs[PRF_ALARM_TIMEOUT].value.uint16);
+  else if (var == "Thermal_Runaway")
+    return String(Prefs[PRF_THERMAL_RUN].value.uint16);
   else if (var == "MAX31855_Error_Grace_Count")
     return String(Prefs[PRF_ERROR_GRACE_COUNT].value.uint8);
 

@@ -173,8 +173,9 @@ This is short version - for detailed one, please see [Wiki documentation](https:
 - Install also (this has changed in PIDKiln v1.1) [my clone of MAX31855](https://github.com/Saur0o0n/MAX31855) - this implements second HW SPI for ESP32.
 - For production use, disable serial debug in PIDKiln.ino - set it on false (''#define DEBUG false'')
 - Compile and upload.
+-- In the Platformio extension, expand the ESP32 target, click  Build, then click Upload
 - Open data/etc/pidkiln.conf and edit your WiFi credentials (if you want to use) and, if you want, some additional parameters.
-- Upload sketch data (from data directory) to ESP32 SPIFFS with help of ESP32FS plugin (in Arduino IDE go to Menu->Tools->ESP32 Sketch Data Upload).
+- In the Platformio extension, expand the ESP32 target, expand Advanced, and click Build Filesystem followed by Upload Filesystem
 
 ## Documentation
 
