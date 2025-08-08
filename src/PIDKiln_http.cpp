@@ -5,7 +5,7 @@
 #include <Arduino.h>
 #include <soc/efuse_reg.h>
 #include <Esp.h>
-#include <ESPAsyncWebServer.h>
+#include "http/mongoose.h"
 #include <U8g2lib.h>
 #include <Update.h>
 #include <WiFi.h>
@@ -19,7 +19,7 @@
 
 #include "Display/display.h"
 
-extern bool _webAuth(AsyncWebServerRequest *request);
+extern bool _webAuth(void *request);
 
 // Other variables
 //
@@ -36,6 +36,8 @@ AsyncWebServer server(80);
 ** Core/main HTTP functions
 **
 */
+
+
 
 // Template preprocessor for preferences - preferences.html
 //
@@ -499,7 +501,7 @@ String About_parser(const String &var)
 
 // Manages new program upload
 // Abort if file too big or contains not allowed characters
-void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
+void handleUpload(void *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
 {
   static File newFile;
   static boolean abort = false;
@@ -611,7 +613,7 @@ void handleUpload(AsyncWebServerRequest *request, String filename, size_t index,
 
 // Handle delete - second run, post - actual deletion
 //
-void POST_Handle_Delete(AsyncWebServerRequest *request)
+void POST_Handle_Delete(void *request)
 {
 
   if (!_webAuth(request))
@@ -639,7 +641,7 @@ void POST_Handle_Delete(AsyncWebServerRequest *request)
 
 // Handle delete - first run, get - are you sure question
 //
-void GET_Handle_Delete(AsyncWebServerRequest *request)
+void GET_Handle_Delete(void *request)
 {
   File tmpf;
   String tmps;
@@ -675,7 +677,7 @@ void GET_Handle_Delete(AsyncWebServerRequest *request)
 
 // Load program from file to memory
 //
-void GET_Handle_Load(AsyncWebServerRequest *request)
+void GET_Handle_Load(void *request)
 {
   char prname[MAX_FILENAME];
 
@@ -704,7 +706,7 @@ void GET_Handle_Load(AsyncWebServerRequest *request)
 
 // Handle prefs upload
 //
-void handlePrefs(AsyncWebServerRequest *request)
+void handlePrefs(void *request)
 {
   boolean save = false;
 
@@ -758,7 +760,7 @@ void handlePrefs(AsyncWebServerRequest *request)
 
 // Handler for index.html with POST - program control
 //
-void handleIndexPost(AsyncWebServerRequest *request)
+void handleIndexPost(void *request)
 {
   int params = request->params();
 
@@ -864,7 +866,7 @@ String handleVars(const String &var)
 //
 char *screenshot;
 void out(const char *s) { strcat(screenshot, s); }
-void do_screenshot(AsyncWebServerRequest *request)
+void do_screenshot(void *request)
 {
 
   screenshot = (char *)MALLOC(SCREEN_W * SCREEN_H * 2 * sizeof(char) + 1);
@@ -891,7 +893,7 @@ void do_screenshot(AsyncWebServerRequest *request)
 
 // Funnctin handling firmware upload/update (from https://github.com/lbernstone/asyncUpdate/blob/master/AsyncUpdate.ino)
 //
-void handleDoUpdate(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
+void handleDoUpdate(void *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
 {
   size_t content_len;
 
@@ -914,7 +916,7 @@ void handleDoUpdate(AsyncWebServerRequest *request, const String &filename, size
 
   if (final)
   {
-    AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "Please wait while the device reboots...");
+    void *response = request->beginResponse(200, "text/plain", "Please wait while the device reboots...");
     response->addHeader("Refresh", "20; url=/about.html");
     response->addHeader("Connection", "close");
     request->send(response);
@@ -934,7 +936,7 @@ void handleDoUpdate(AsyncWebServerRequest *request, const String &filename, size
 
 // Basic WEB authentication
 //
-bool _webAuth(AsyncWebServerRequest *request)
+bool _webAuth(void *request)
 {
   if (!request->authenticate(Prefs[PRF_AUTH_USER].value.str, Prefs[PRF_AUTH_PASS].value.str, NULL, false))
   {
@@ -951,7 +953,7 @@ bool _webAuth(AsyncWebServerRequest *request)
 void SETUP_WebServer(void)
 {
   // Route for root / web page
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/", HTTP_GET, [](void *request)
             { request->redirect("/index.html"); });
 
   server.serveStatic("/index.html", SPIFFS, "/index.html").setAuthentication(Prefs[PRF_AUTH_USER].value.str, Prefs[PRF_AUTH_PASS].value.str);
@@ -960,40 +962,40 @@ void SETUP_WebServer(void)
   server.on("/index.html", HTTP_POST, handleIndexPost);
   server.on("/index_local.html", HTTP_POST, handleIndexPost);
 
-  server.on("/js/chart.js", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/js/chart.js", HTTP_GET, [](void *request)
             {
     if(!_webAuth(request)) return;
     request->send(SPIFFS, "/js/chart.js", String(), false, Chart_parser); });
 
   if (Prefs[PRF_HTTP_JS_LOCAL].value.str)
   {
-    server.on("/js/jquery-3.4.1.js", HTTP_GET, [](AsyncWebServerRequest *request)
+    server.on("/js/jquery-3.4.1.js", HTTP_GET, [](void *request)
               {
-      AsyncWebServerResponse* response = request->beginResponse(SPIFFS, "/js/jquery-3.4.1.js", "text/javascript");
+      void* response = request->beginResponse(SPIFFS, "/js/jquery-3.4.1.js", "text/javascript");
       response->addHeader("Content-Encoding", "gzip");
       request->send(response); });
-    server.on("/js/Chart.2.9.3.bundle.min.js", HTTP_GET, [](AsyncWebServerRequest *request)
+    server.on("/js/Chart.2.9.3.bundle.min.js", HTTP_GET, [](void *request)
               {
-      AsyncWebServerResponse* response = request->beginResponse(SPIFFS, "/js/Chart.2.9.3.bundle.min.js", "text/javascript");
+      void* response = request->beginResponse(SPIFFS, "/js/Chart.2.9.3.bundle.min.js", "text/javascript");
       response->addHeader("Content-Encoding", "gzip");
       request->send(response); });
-    server.on("/js/chartjs-datasource.min.js", HTTP_GET, [](AsyncWebServerRequest *request)
+    server.on("/js/chartjs-datasource.min.js", HTTP_GET, [](void *request)
               {
-      AsyncWebServerResponse* response = request->beginResponse(SPIFFS, "/js/chartjs-datasource.min.js", "text/javascript");
+      void* response = request->beginResponse(SPIFFS, "/js/chartjs-datasource.min.js", "text/javascript");
       response->addHeader("Content-Encoding", "gzip");
       request->send(response); });
   }
   else
   {
-    server.on("/js/jquery-3.4.1.js", HTTP_GET, [](AsyncWebServerRequest *request)
+    server.on("/js/jquery-3.4.1.js", HTTP_GET, [](void *request)
               { request->redirect(JS_JQUERY); });
-    server.on("/js/Chart.2.9.3.bundle.min.js", HTTP_GET, [](AsyncWebServerRequest *request)
+    server.on("/js/Chart.2.9.3.bundle.min.js", HTTP_GET, [](void *request)
               { request->redirect(JS_CHART); });
-    server.on("/js/chartjs-datasource.min.js", HTTP_GET, [](AsyncWebServerRequest *request)
+    server.on("/js/chartjs-datasource.min.js", HTTP_GET, [](void *request)
               { request->redirect(JS_CHART_DS); });
   }
 
-  server.on("/PIDKiln_vars.json", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/PIDKiln_vars.json", HTTP_GET, [](void *request)
             {
     if(!_webAuth(request)) return;
     request->send(SPIFFS, "/PIDKiln_vars.json", "application/json", false, handleVars); });
@@ -1003,17 +1005,17 @@ void SETUP_WebServer(void)
   server.serveStatic("/logs/", SPIFFS, "/logs/").setDefaultFile("index.html").setAuthentication(Prefs[PRF_AUTH_USER].value.str, Prefs[PRF_AUTH_PASS].value.str);
 
   // Upload new programs
-  server.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request)
+  server.on("/upload", HTTP_POST, [](void *request)
             {
     if(!_webAuth(request)) return;
     request->send(200); }, handleUpload);
 
-  server.on("/debug_board.html", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/debug_board.html", HTTP_GET, [](void *request)
             {
     if(!_webAuth(request)) return;
     request->send(SPIFFS, "/debug_board.html", String(), false, Debug_ESP32); });
 
-  server.on("/preferences.html", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/preferences.html", HTTP_GET, [](void *request)
             {
     if(!_webAuth(request)) return;
     request->send(SPIFFS, "/preferences.html", String(), false, Preferences_parser); });
@@ -1028,18 +1030,18 @@ void SETUP_WebServer(void)
 
   server.on("/screenshot.html", HTTP_GET, do_screenshot);
 
-  server.on("/about.html", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/about.html", HTTP_GET, [](void *request)
             {
     if(!_webAuth(request)) return;
     request->send(SPIFFS, "/about.html", String(), false, About_parser); });
 
-  server.on("/flash_firmware.html", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/flash_firmware.html", HTTP_GET, [](void *request)
             {
     if(!_webAuth(request)) return;
     request->send(SPIFFS, "/flash_firmware.html", String(), false, Preferences_parser); });
 
-  server.on("/flash_firmware.html", HTTP_POST, [](AsyncWebServerRequest *request)
-            { if(!_webAuth(request)) return; }, [](AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
+  server.on("/flash_firmware.html", HTTP_POST, [](void *request)
+            { if(!_webAuth(request)) return; }, [](void *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
             { handleDoUpdate(request, filename, index, data, len, final); });
 
   // Serve some static data
@@ -1049,7 +1051,7 @@ void SETUP_WebServer(void)
   server.serveStatic(PREFS_FILE, SPIFFS, PREFS_FILE).setAuthentication(Prefs[PRF_AUTH_USER].value.str, Prefs[PRF_AUTH_PASS].value.str);
   server.serveStatic("/favicon.ico", SPIFFS, "/icons/heat.png");
 
-  server.onNotFound([](AsyncWebServerRequest *request)
+  server.onNotFound([](void *request)
                     {
     //request->send(404);
     request->send(404, "text/plain", "File not found"); });

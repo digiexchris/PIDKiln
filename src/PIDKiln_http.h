@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Arduino.h>
-#include <ESPAsyncWebServer.h>
 
 // Parser functions
 String Preferences_parser(const String &var);
@@ -14,18 +13,21 @@ String handleVars(const String &var);
 void Generate_INDEX();
 void Generate_LOGS_INDEX();
 
+// Connection event handler function
+static void ev_handler(struct mg_connection *c, int ev, void *ev_data);
+
 // Request handlers
-void handleUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
-void POST_Handle_Delete(AsyncWebServerRequest *request);
-void GET_Handle_Delete(AsyncWebServerRequest *request);
-void GET_Handle_Load(AsyncWebServerRequest *request);
-void handlePrefs(AsyncWebServerRequest *request);
-void handleIndexPost(AsyncWebServerRequest *request);
-void do_screenshot(AsyncWebServerRequest *request);
-void handleDoUpdate(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final);
+void handleUpload(void *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
+void POST_Handle_Delete(void *request);
+void GET_Handle_Delete(void *request);
+void GET_Handle_Load(void *request);
+void handlePrefs(void *request);
+void handleIndexPost(void *request);
+void do_screenshot(void *request);
+void handleDoUpdate(void *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final);
 
 // Authentication
-bool _webAuth(AsyncWebServerRequest *request);
+bool _webAuth(void *request);
 
 // Output function
 void out(const char *s);

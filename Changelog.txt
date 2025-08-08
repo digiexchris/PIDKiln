@@ -1,7 +1,7 @@
 - Update to use latest Adafruit MAX31855 library
 - Provide support for Adafruit MAX31856
 - Provide support for SSD1307
-- Update data to allow default template character from EspAsyncWebServer
+- Switch from asynwebserver to arduinomongoose due to heap corruption issues in AsyncWebServer causing reboots (particularly with multiple connected clients) and allowing future mqtt integrations easily
 - Renamed ThermocoupleA and ThermocoupleB to ChamberThermocouple and CaseThermocouple for usage clarity
 - Update timer to support newer ESPIDF versions (5.4.1 for platformio)
 - Resolve -fpermissive compile and link time errors on newer toolchain version
