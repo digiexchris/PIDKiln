@@ -1,5 +1,20 @@
-   <tr><th colspan="6"><hr></th></tr>
+<tr><th colspan="6"><hr></th></tr>
  </table>
+
+ <!-- In-page program editor panel -->
+ <div id="editor_panel" style="display:none; margin-top:20px;">
+  <form onsubmit="return false;">
+   <fieldset>
+    <legend>Edit program: <span id="editor_filename"></span></legend>
+    <p>Max size 10 KiB. Saving will overwrite the selected file.</p>
+    <textarea id="editor_text" rows="20" style="width:100%; font-family: monospace;"></textarea>
+    <div class="for_submit">
+      <button id="editor_save">Save</button>
+      <button id="editor_cancel" class="floatr">Cancel</button>
+    </div>
+   </fieldset>
+  </form>
+ </div>
 
  <br>
 
