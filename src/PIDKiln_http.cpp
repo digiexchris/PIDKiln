@@ -812,8 +812,8 @@ String handleVars(const String &var)
     return String(case_temp);
   else if (var == "HEAT_TIME")
     return String((pid_out / Prefs[PRF_PID_WINDOW].value.uint16) * 100 * PID_WINDOW_DIVIDER);
-  else if (var == "TEMP_CHANGE")
-    return String(temp_incr);
+  else if (var == "TEMP_CHANGE") // temp per hour, many investment casting recipes are using temp per hour
+    return String(temp_incr * 3600 / Prefs[PRF_PID_WINDOW].value.uint16);
   else if (var == "STEP")
   {
     if (Program_run_state == PR_RUNNING)

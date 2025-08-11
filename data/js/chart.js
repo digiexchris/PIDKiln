@@ -36,6 +36,7 @@ var config_with = {
 			yAxisID: 'temperature',
 			backgroundColor: 'transparent',
 			borderColor: chartColors.blue,
+			bezierCurve: false,
 			fill: false,
 			tension: 0.1,
 			data: [%CHART_DATA%]

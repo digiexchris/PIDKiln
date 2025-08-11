@@ -1,0 +1,4 @@
+# Heat to 500c over 10 min
+# heat to 500c over 10 mins, soak for 2 hours
+# Program parameters target temperature in Celcius:minutes to achieve this temperature:dwelling time in minutes
+500:10:120

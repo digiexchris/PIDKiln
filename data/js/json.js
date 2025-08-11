@@ -25,14 +25,14 @@ function change_program_status(ns){
 	ena_bttn("#pause_bttn");
 	ena_bttn("#end_bttn");
 	ena_bttn("#abort_bttn");
-	if(!chart_update_id) chart_update_id=setTimeout(chart_update, 30000);
+	if(!chart_update_id) chart_update_id=setTimeout(chart_update, 10000);
   }else if(ns==3){	// program paused - enable start, abort, stop
 	dis_all_bttn();
 	ena_bttn("#start_bttn");
 	$("#start_bttn").val("Resume program");
 	ena_bttn("#end_bttn");
 	ena_bttn("#abort_bttn");
-	if(!chart_update_id) chart_update_id=setTimeout(chart_update, 30000);
+	if(!chart_update_id) chart_update_id=setTimeout(chart_update, 10000);
   }else{		// program ready, stopped, aborted, failed - but loaded, enable start
 	dis_all_bttn();
 	$("#start_bttn").val("Start program");

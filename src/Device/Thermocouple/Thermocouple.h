@@ -50,17 +50,25 @@ public:
 
         Result result = {};
         bool success = device->read(result);
-        if (!success || !result.spi_success)
+        if (!success)
         {
-            anOutError = "SPI communication error";
-            if (isAtErrorLimit())
+            if (!result.spi_success)
             {
-                anOutError = "Error limit reached";
+                anOutError = "SPI communication error";
+                if (isAtErrorLimit())
+                {
+                    anOutError = "Error limit reached";
+                }
+                else
+                {
+                    _errors++;
+                }
             }
-            else
+            for (std::string fault : result.fault)
             {
-                _errors++;
+                anOutError += fault + "; ";
             }
+
             return false;
         }
 
@@ -91,7 +99,8 @@ public:
         return true;
     }
 
-    bool isAtErrorLimit()
+    bool
+    isAtErrorLimit()
     {
         if (_errors >= _errorLimit)
         {

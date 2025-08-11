@@ -619,6 +619,13 @@ void Program_Loop(void *parameter)
         ALARM_countdown--;
       }
 
+#ifdef ENERGY_MON_PIN
+      if (true || cnt1 == 4) //temporarily make it always read since it depends on heater on value
+      {
+        Read_Energy_INPUT();
+      }
+#endif
+
       // Do slow stuff every 10th second - cnt1=[0..9]
       //
       if (cnt1 > 9)
@@ -637,12 +644,7 @@ void Program_Loop(void *parameter)
           case_temp = 0; // if we do not have case thermocouple - set it to 0
         }
       }
-#ifdef ENERGY_MON_PIN
-      if (cnt1 == 4)
-      {
-        Read_Energy_INPUT();
-      }
-#endif
+
       // Do Main view screen refreshing if there is a program and if it's running
       if (LCD_State == SCR_MAIN_VIEW && Program_run_size && LCD_Main == MAIN_VIEW1)
         display->LCD_display_mainv1();
