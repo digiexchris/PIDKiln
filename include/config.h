@@ -46,8 +46,8 @@ constexpr LCDType LCD_Type = LCDType::SSD1309;
 // Thermocouple IC type
 // Can be ThermocoupleType::MAX31855, ThermocoupleType::MAX31856 or NONE
 // More can be implemented, see MAX31855.h and Thermocouple.h for the api.
-constexpr ThermocoupleType ChamberThermocoupleType = ThermocoupleType::MAX31855;
-constexpr ThermocoupleType CaseThermocoupleType = ThermocoupleType::NONE;
+constexpr ThermocoupleType ChamberThermocoupleType = ThermocoupleType::MAX31856;
+constexpr ThermocoupleType CaseThermocoupleType = ThermocoupleType::MAX31855;
 
 /*
 If you use a MAX31865 for any of the above thermocouples, se the appropriate type below.
@@ -79,9 +79,9 @@ constexpr bool LineFrequencyFilter = FILTER_60HZ;
 
 // If you have power meter - uncoment this
 #define ENERGY_MON_PIN 33       // if you don't use - comment out
-#define ENERGY_MON_AMPS 30     // how many amps produces 1V on your meter (usualy with voltage output meters it's their max value).
+#define ENERGY_MON_AMPS 33      // how many amps produces 1V on your meter (usualy with voltage output meters it's their max value).
 #define EMERGY_MON_VOLTAGE 230  // what is your mains voltage
-#define ENERGY_IGNORE_VALUE 0.4 // if measured current is below this - ignore it (it's just noise)
+#define ENERGY_IGNORE_VALUE 1.4 // if measured current is below this - ignore it (it's just noise)
 
 #define ALARM_PIN 26 // Pin goes high on abort
 

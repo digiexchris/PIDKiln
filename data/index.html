@@ -1,128 +1,1514 @@
 <!DOCTYPE html>
-<html lang="en"> 
+<html lang="en">
 <head>
- <title>Pidkiln main view</title>
- <link rel="stylesheet" href="css/main.css">
- <link rel="stylesheet" href="css/nav.css">
- <script type="text/javascript" src="js/nav.js"></script>
- <script type="text/javascript" src="js/jquery-3.4.1.js"></script>
- <script type="text/javascript" src="js/Chart.2.9.3.bundle.min.js"></script>
- <script type="text/javascript" src="js/chartjs-datasource.min.js"></script>
- <meta name="viewport" content="width=device-width, initial-scale=1">
- <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PIDKiln</title>
+  <style>
+    :root {
+      --bg: #0f0f14;
+      --surface: #1a1a24;
+      --surface-2: #252532;
+      --primary: #2d2d3a;
+      --accent: #ff6b4a;
+      --accent-dim: #cc5540;
+      --text: #eaeaea;
+      --text-muted: #888;
+      --success: #4ade80;
+      --warning: #fbbf24;
+      --error: #f87171;
+      --info: #60a5fa;
+      --nav-width: 200px;
+      --status-height: 48px;
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Status Bar */
+    .status-bar {
+      height: var(--status-height);
+      background: var(--surface);
+      border-bottom: 1px solid var(--primary);
+      display: flex;
+      align-items: center;
+      padding: 0 1rem;
+      gap: 1.5rem;
+      flex-shrink: 0;
+    }
+    
+    .status-bar .logo {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .status-bar .connection {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    
+    .status-bar .connection .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--error);
+    }
+    
+    .status-bar .connection.connected .dot {
+      background: var(--success);
+    }
+    
+    .status-bar .temps {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.85rem;
+    }
+    
+    .status-bar .temp-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    
+    .status-bar .temp-label {
+      color: var(--text-muted);
+    }
+    
+    .status-bar .temp-value {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    
+    .status-bar .temp-value.highlight {
+      color: var(--accent);
+      font-size: 1rem;
+    }
+    
+    .status-bar .program-status {
+      margin-left: auto;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: var(--primary);
+    }
+    
+    .status-bar .program-status.running { background: var(--success); color: #000; }
+    .status-bar .program-status.paused { background: var(--warning); color: #000; }
+    .status-bar .program-status.error { background: var(--error); }
+    
+    /* Main Layout */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    /* Navigation Sidebar */
+    .nav-sidebar {
+      width: var(--nav-width);
+      background: var(--surface);
+      border-right: 1px solid var(--primary);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    
+    .nav-section {
+      padding: 0.75rem;
+    }
+    
+    .nav-section-title {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      padding: 0.5rem 0.75rem;
+    }
+    
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+    
+    .nav-item:hover {
+      background: var(--primary);
+      color: var(--text);
+    }
+    
+    .nav-item.active {
+      background: var(--accent-dim);
+      color: white;
+    }
+    
+    .nav-item .icon {
+      width: 18px;
+      text-align: center;
+    }
+    
+    .nav-divider {
+      height: 1px;
+      background: var(--primary);
+      margin: 0.5rem 0.75rem;
+    }
+    
+    /* Controls Section in Sidebar */
+    .controls-section {
+      margin-top: auto;
+      padding: 0.75rem;
+      border-top: 1px solid var(--primary);
+    }
+    
+    .control-btn {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 0.4rem;
+      border: none;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--primary);
+      color: var(--text);
+      transition: background 0.15s;
+    }
+    
+    .control-btn:hover { background: var(--surface-2); }
+    .control-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .control-btn.primary { background: var(--success); color: #000; }
+    .control-btn.primary:hover { background: #22c55e; }
+    .control-btn.danger { background: var(--error); }
+    .control-btn.danger:hover { background: #dc2626; }
+    
+    .control-row {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 0.4rem;
+    }
+    
+    .control-row .control-btn { margin-bottom: 0; }
+    
+    .control-input-group {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 0.4rem;
+    }
+    
+    .control-input-group input,
+    .control-input-group select {
+      flex: 1;
+      padding: 0.4rem 0.5rem;
+      border: 1px solid var(--primary);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.8rem;
+    }
+    
+    .control-input-group button {
+      padding: 0.4rem 0.6rem;
+      flex-shrink: 0;
+    }
+    
+    /* Content Area */
+    .content {
+      flex: 1;
+      overflow: auto;
+      padding: 1.5rem;
+    }
+    
+    .view {
+      display: none;
+      height: 100%;
+    }
+    
+    .view.active {
+      display: block;
+    }
+    
+    .view-header {
+      margin-bottom: 1.5rem;
+    }
+    
+    .view-header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    
+    .view-header p {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+    
+    /* Dashboard View */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .card {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    
+    .card-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+    
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    
+    .stat-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    
+    .stat-value.accent { color: var(--accent); }
+    
+    /* Message Log */
+    .log-container {
+      background: var(--surface);
+      border-radius: 8px;
+      height: 400px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .log-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--primary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .log-header h3 {
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    
+    .log-content {
+      flex: 1;
+      overflow-y: auto;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.75rem;
+      line-height: 1.5;
+    }
+    
+    .log-entry {
+      padding: 0.25rem 1rem;
+      border-bottom: 1px solid var(--primary);
+      display: flex;
+      gap: 0.75rem;
+    }
+    
+    .log-entry:hover { background: var(--primary); }
+    
+    .log-time { color: var(--text-muted); flex-shrink: 0; }
+    .log-type { font-weight: 600; width: 45px; flex-shrink: 0; }
+    .log-type.state { color: var(--info); }
+    .log-type.log { color: var(--success); }
+    .log-type.ack { color: var(--text-muted); }
+    .log-type.error { color: var(--error); }
+    .log-type.sent { color: var(--warning); }
+    .log-message { flex: 1; word-break: break-all; white-space: pre-wrap; }
+    
+    /* Programs View */
+    .programs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    
+    .programs-table th,
+    .programs-table td {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--primary);
+    }
+    
+    .programs-table th {
+      background: var(--surface);
+      font-weight: 500;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+    
+    .programs-table tr:hover td {
+      background: var(--surface);
+    }
+    
+    .programs-table .actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .programs-table .actions button {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+    }
+    
+    .btn-small {
+      padding: 0.25rem 0.5rem;
+      border: none;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.75rem;
+      cursor: pointer;
+      background: var(--primary);
+      color: var(--text);
+    }
+    
+    .btn-small:hover { background: var(--surface-2); }
+    .btn-small.primary { background: var(--accent); }
+    .btn-small.danger { background: var(--error); }
+    
+    /* Preferences View */
+    .prefs-section {
+      background: var(--surface);
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    
+    .prefs-section-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--primary);
+      font-weight: 500;
+    }
+    
+    .prefs-section-content {
+      padding: 1rem;
+    }
+    
+    .pref-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    
+    .pref-row:last-child { margin-bottom: 0; }
+    
+    .pref-label {
+      width: 200px;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    
+    .pref-input {
+      flex: 1;
+      max-width: 300px;
+    }
+    
+    .pref-input input,
+    .pref-input select {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--primary);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.875rem;
+    }
+    
+    /* Debug View */
+    .debug-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    
+    .debug-table th,
+    .debug-table td {
+      text-align: left;
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--primary);
+    }
+    
+    .debug-table th {
+      background: var(--surface-2);
+      font-weight: 500;
+    }
+    
+    .debug-table td:first-child {
+      color: var(--text-muted);
+      width: 250px;
+    }
+    
+    /* About View */
+    .about-content {
+      max-width: 600px;
+    }
+    
+    .about-content h2 {
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    
+    .about-content p {
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+    
+    .about-content a {
+      color: var(--accent);
+    }
+    
+    /* Editor View */
+    .editor-container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - var(--status-height) - 3rem);
+      max-height: 100%;
+    }
+    
+    .editor-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--surface);
+      border-radius: 8px 8px 0 0;
+      border-bottom: 1px solid var(--primary);
+    }
+    
+    .editor-toolbar .filename {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    
+    .editor-toolbar .actions {
+      margin-left: auto;
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .editor-hint {
+      padding: 0.5rem 1rem;
+      background: var(--surface-2);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    
+    .editor-hint code {
+      background: var(--primary);
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+    
+    .editor-wrapper {
+      flex: 1;
+      display: flex;
+      background: var(--surface);
+      border-radius: 0 0 8px 8px;
+      overflow: hidden;
+    }
+    
+    .editor-lines {
+      padding: 1rem 0.75rem;
+      background: var(--surface-2);
+      color: var(--text-muted);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      text-align: right;
+      user-select: none;
+      min-width: 40px;
+    }
+    
+    .editor-textarea {
+      flex: 1;
+      padding: 1rem;
+      border: none;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      resize: none;
+      outline: none;
+    }
+    
+    .editor-textarea::placeholder {
+      color: var(--text-muted);
+    }
+    
+    .editor-status {
+      padding: 0.5rem 1rem;
+      background: var(--surface);
+      border-top: 1px solid var(--primary);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 1.5rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .status-bar .temps { display: none; }
+      .nav-sidebar { width: 60px; }
+      .nav-item span { display: none; }
+      .nav-section-title { display: none; }
+      .controls-section { padding: 0.5rem; }
+      .control-btn { font-size: 0.7rem; padding: 0.4rem; }
+    }
+  </style>
 </head>
 <body>
+  <!-- Status Bar -->
+  <header class="status-bar">
+    <div class="logo">🔥 PIDKiln</div>
+    <div class="connection" id="connection">
+      <div class="dot"></div>
+      <span>Disconnected</span>
+    </div>
+    <div class="temps">
+      <div class="temp-item">
+        <span class="temp-label">Kiln</span>
+        <span class="temp-value highlight" id="statusKiln">--</span>
+      </div>
+      <div class="temp-item">
+        <span class="temp-label">→</span>
+        <span class="temp-value" id="statusTarget">--</span>
+      </div>
+      <div class="temp-item">
+        <span class="temp-label">Env</span>
+        <span class="temp-value" id="statusEnv">--</span>
+      </div>
+      <div class="temp-item">
+        <span class="temp-label">Heat</span>
+        <span class="temp-value" id="statusHeat">--%</span>
+      </div>
+    </div>
+    <div class="program-status" id="statusBadge">READY</div>
+  </header>
 
- <div class="topnav" id="myTopnav">
-  <a href="/index.html" class="active">Main view</a>
-  <a href="/programs/index.html">Manage programs</a>
-  <a href="/logs/index.html">Logs</a>
-  <a href="/preferences.html">Preferences</a>
-  <a href="/about.html">About</a>
-  <a href="/debug_board.html">Debug ESP</a>
-  <a href="/flash_firmware.html">Flash firmware</a>
-  <a href="javascript:void(0);" class="icon" onclick="switch_nav()">
-    <img src="icons/menu.png" alt="...">
-  </a>
- </div>
+  <div class="main-layout">
+    <!-- Navigation Sidebar -->
+    <nav class="nav-sidebar">
+      <div class="nav-section">
+        <div class="nav-section-title">Navigation</div>
+        <a class="nav-item active" href="#/" data-view="dashboard">
+          <span class="icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-item" href="#/programs" data-view="programs">
+          <span class="icon">📄</span>
+          <span>Programs</span>
+        </a>
+        <a class="nav-item" href="#/logs" data-view="logs">
+          <span class="icon">📋</span>
+          <span>Logs</span>
+        </a>
+        <a class="nav-item" href="#/preferences" data-view="preferences">
+          <span class="icon">⚙️</span>
+          <span>Preferences</span>
+        </a>
+        <div class="nav-divider"></div>
+        <a class="nav-item" href="#/debug" data-view="debug">
+          <span class="icon">🔧</span>
+          <span>Debug</span>
+        </a>
+        <a class="nav-item" href="#/about" data-view="about">
+          <span class="icon">ℹ️</span>
+          <span>About</span>
+        </a>
+      </div>
+      
+      <!-- Controls Section -->
+      <div class="controls-section">
+        <div class="nav-section-title">Controls</div>
+        <div class="control-row">
+          <button class="control-btn primary" onclick="sendCommand('start')">▶ Start</button>
+          <button class="control-btn" onclick="sendCommand('pause')">⏸ Pause</button>
+        </div>
+        <div class="control-row">
+          <button class="control-btn" onclick="sendCommand('stop')">⏹ Stop</button>
+          <button class="control-btn danger" onclick="sendCommand('abort')">⛔ Abort</button>
+        </div>
+        <div class="nav-divider"></div>
+        <div class="control-input-group">
+          <select id="programSelect">
+            <option value="">Load program...</option>
+          </select>
+          <button class="control-btn" onclick="loadProgram()">Load</button>
+        </div>
+        <div class="control-input-group">
+          <input type="number" id="tempInput" placeholder="Temp °C" min="0" max="1350">
+          <button class="control-btn" onclick="setTemperature()">Set</button>
+        </div>
+        <div class="nav-divider"></div>
+        <button class="control-btn danger" onclick="reboot()">🔄 Reboot</button>
+      </div>
+    </nav>
 
- <div class="container">
-  <form>
-  <div class="column">
-   <fieldset>
-    <legend><h2> Temperatures </h2></legend>
-     <div class="row">
-      <div class="RowX">
-	<p> <label for="kiln_temp"> Kiln </label> </p>
-	<p> <label for="env_temp"> Environment  </label> </p>
+    <!-- Content Area -->
+    <main class="content">
+      <!-- Dashboard View -->
+      <div class="view active" id="view-dashboard">
+        <div class="view-header">
+          <h1>Dashboard</h1>
+          <p>Real-time kiln status</p>
+        </div>
+        
+        <div class="dashboard-grid">
+          <div class="card">
+            <div class="card-title">Temperatures</div>
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-label">Kiln</span>
+                <span class="stat-value accent" id="dashKiln">--°C</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Target</span>
+                <span class="stat-value" id="dashTarget">--°C</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Environment</span>
+                <span class="stat-value" id="dashEnv">--°C</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Housing</span>
+                <span class="stat-value" id="dashCase">--°C</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card">
+            <div class="card-title">Program Status</div>
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-label">Status</span>
+                <span class="stat-value" id="dashStatus">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Program</span>
+                <span class="stat-value" id="dashProgram">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Step</span>
+                <span class="stat-value" id="dashStep">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Heat</span>
+                <span class="stat-value" id="dashHeat">--%</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card">
+            <div class="card-title">Timing</div>
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-label">Started</span>
+                <span class="stat-value" id="dashStart">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">ETA</span>
+                <span class="stat-value" id="dashEnd">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Current Time</span>
+                <span class="stat-value" id="dashTime">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Temp Change</span>
+                <span class="stat-value" id="dashChange">--°C/h</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="RowX">
-	<p> <input class="index" type="text" id="kiln_temp" name="kiln_temp" value="" readonly size="4">&#176;C </p>
-	<p> <input class="index" type="text" id="env_temp" name="env_temp" value="" readonly size="4">&#176;C </p>
+
+      <!-- Programs View -->
+      <div class="view" id="view-programs">
+        <div class="view-header">
+          <h1>Programs</h1>
+          <p>Manage firing programs</p>
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+          <button class="btn-small primary" onclick="createProgram()">+ New Program</button>
+          <button class="btn-small" onclick="loadProgramList()">↻ Refresh</button>
+        </div>
+        
+        <table class="programs-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Size</th>
+              <th>Description</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="programsTableBody">
+            <tr><td colspan="4" style="color: var(--text-muted)">Loading...</td></tr>
+          </tbody>
+        </table>
       </div>
-      <div class="RowX" style="width: 2em;">&nbsp;</div>
-      <div class="RowX">
-	<p> <label for="set_temp"> Set </label> </p>
-	<p> <label for="case_temp"> Kiln housing </label> </p>
+
+      <!-- Logs View -->
+      <div class="view" id="view-logs">
+        <div class="view-header">
+          <h1>Logs</h1>
+          <p>Program execution logs</p>
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+          <button class="btn-small" onclick="loadLogsList()">↻ Refresh</button>
+        </div>
+        
+        <table class="programs-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Size</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="logsTableBody">
+            <tr><td colspan="3" style="color: var(--text-muted)">Loading...</td></tr>
+          </tbody>
+        </table>
       </div>
-      <div class="RowX">
-	<p> <input class="index" type="text" id="set_temp" name="set_temp" value="" readonly size="4">&#176;C </p>
-	<p> <input class="index" type="text" id="case_temp" name="case_temp" value="" readonly size="4">&#176;C </p>
+
+      <!-- Preferences View -->
+      <div class="view" id="view-preferences">
+        <div class="view-header">
+          <h1>Preferences</h1>
+          <p>System configuration</p>
+        </div>
+        
+        <div id="prefsContent">
+          <p style="color: var(--text-muted)">Loading preferences...</p>
+        </div>
+        
+        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="btn-small primary" onclick="savePreferences()">Save Preferences</button>
+          <button class="btn-small" onclick="loadPreferences()">↻ Reload</button>
+          <a class="btn-small" href="/etc/pidkiln.conf" download="pidkiln.conf" style="text-decoration: none;">📥 Download Config</a>
+        </div>
       </div>
-     </div>
-   </fieldset>
+
+      <!-- Debug View -->
+      <div class="view" id="view-debug">
+        <div class="view-header">
+          <h1>Debug</h1>
+          <p>System information and diagnostics</p>
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+          <button class="btn-small" onclick="loadDebugInfo()">↻ Refresh</button>
+        </div>
+        
+        <table class="debug-table" id="debugTable">
+          <tbody>
+            <tr><td colspan="2" style="color: var(--text-muted)">Loading...</td></tr>
+          </tbody>
+        </table>
+        
+        <div class="card" style="margin-top: 2rem;">
+          <div class="card-title">Firmware Update</div>
+          <p style="font-size: 0.8rem; color: var(--warning); margin-bottom: 0.75rem;">
+            ⚠️ Device will restart after upload. Do not interrupt.
+          </p>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <input type="file" id="firmwareFile" accept=".bin" style="font-size: 0.8rem;">
+            <button class="btn-small primary" onclick="uploadFirmware()">Upload Firmware</button>
+          </div>
+          <div id="firmwareStatus" style="margin-top: 0.5rem; font-size: 0.8rem;"></div>
+        </div>
+        
+        <div style="margin-top: 2rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem;">
+            <input type="checkbox" id="wsLogEnabled" onchange="toggleWsLog()">
+            <span>Show WebSocket Messages</span>
+          </label>
+        </div>
+        
+        <div class="log-container" id="wsLogContainer" style="display: none; margin-top: 1rem;">
+          <div class="log-header">
+            <h3>WebSocket Messages</h3>
+            <button class="btn-small" onclick="clearLog()">Clear</button>
+          </div>
+          <div class="log-content" id="logContent"></div>
+        </div>
+      </div>
+
+      <!-- About View -->
+      <div class="view" id="view-about">
+        <div class="view-header">
+          <h1>About</h1>
+        </div>
+        
+        <div class="about-content">
+          <h2>PIDKiln</h2>
+          <p><em>aka PID controller for Mordor Hearth :)</em></p>
+          <p>PIDKiln is an ESP32-based kiln controller. It can be used to manage ceramic, glass or softer metals melting. Everything to temperature 1350°C.</p>
+          <p><strong>Author:</strong> Adrian Siemieniak</p>
+          <p><strong>Version:</strong> <span id="aboutVersion">--</span></p>
+          <p>
+            <strong>Webpage:</strong> 
+            <a href="https://adrian.siemieniak.net/portal/tag/PIDKiln/" target="_blank">adrian.siemieniak.net</a>
+          </p>
+          <p>
+            <strong>Source:</strong> 
+            <a href="https://github.com/Saur0o0n/pidkiln" target="_blank">github.com/Saur0o0n/pidkiln</a>
+          </p>
+        </div>
+      </div>
+
+      <!-- Editor View -->
+      <div class="view" id="view-editor">
+        <div class="editor-container">
+          <div class="editor-toolbar">
+            <span class="filename" id="editorFilename">program.txt</span>
+            <div class="actions">
+              <button class="btn-small primary" onclick="saveProgram()">💾 Save</button>
+              <button class="btn-small" onclick="cancelEdit()">✕ Cancel</button>
+            </div>
+          </div>
+          <div class="editor-hint">
+            Format: <code>target_temp:ramp_minutes:dwell_minutes</code> &nbsp;|&nbsp; 
+            Lines starting with <code>#</code> are comments &nbsp;|&nbsp;
+            Max file size: 10KB
+          </div>
+          <div class="editor-wrapper">
+            <div class="editor-lines" id="editorLines">1</div>
+            <textarea class="editor-textarea" id="editorContent" placeholder="# My firing program
+# Bisque cone 06
+93:60:60
+260:120:0
+537:120:30
+1000:180:15" spellcheck="false"></textarea>
+          </div>
+          <div class="editor-status">
+            <span id="editorLineCount">0 lines</span>
+            <span id="editorByteCount">0 bytes</span>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 
-  <div class="column">
-   <fieldset>
-    <legend><h2> Timing </h2></legend>
-     <div class="row">
-      <div class="RowX">
-	<p> <label for="prog_start"> Start </label> </p>
-	<p> <label for="prog_end"> ETA  </label> </p>
-      </div>
-      <div class="RowX">
-	<p> <input class="index" type="text" id="prog_start" name="prog_start" value="" readonly size="15"> </p>
-	<p> <input class="index" type="text" id="prog_end" name="prog_end" value="" readonly size="15"> </p>
-      </div>
-      <div class="RowX" style="width: 2em;">&nbsp;</div>
-      <div class="RowX">
-	<p> <label for="curr_time"> Current time </label> </p>
-	<p> <label for="curr_time"> Step </label> </p>
-      </div>
-      <div class="RowX">
-	<p> <input class="index" type="text" id="curr_time" name="curr_time" value="" readonly size="15"> </p>
-	<p> <input class="index" type="text" id="step" name="step" value="0 of 0" readonly size="15"> </p>
-      </div>
-     </div>
-   </fieldset>
-  </div>
+  <script>
+    // =========================================================================
+    // State
+    // =========================================================================
+    let ws = null;
+    let state = {};
+    let preferences = {};
+    let editorState = { filename: '', isNew: false };
+    
+    const STATUS_NAMES = {
+      0: 'NONE', 1: 'READY', 2: 'RUNNING', 3: 'PAUSED',
+      4: 'STOPPED', 5: 'ABORTED', 6: 'WAITING', 7: 'FINISHED', 8: 'FAILED'
+    };
+    
+    const STATUS_CLASSES = {
+      2: 'running', 3: 'paused', 5: 'error', 8: 'error'
+    };
 
-  <div class="column">
-   <fieldset>
-    <legend><h2> PID </h2></legend>
-     <div class="row">
-      <div class="RowX">
-	<p> <label for="heat_time"> Heat time </label> </p>
-	<p> <label for="temp_change"> Temp. change </label> </p>
-      </div>
-      <div class="RowX">
-	<p align="left"> <input class="index" type="text" id="heat_time" name="heat_time" value="0" readonly size="4">% </p>
-	<p align="left"> <input class="index" type="text" id="temp_change" name="temp_change" value="0.0" readonly size="4">&#176;C/h </p>
-      </div>
-     </div>
-   </fieldset>
-  </div>
+    // =========================================================================
+    // Router
+    // =========================================================================
+    function navigate() {
+      const hash = location.hash.slice(2) || '';
+      const viewId = hash.split('/')[0] || 'dashboard';
+      
+      // Update views
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      const view = document.getElementById(`view-${viewId}`);
+      if (view) view.classList.add('active');
+      
+      // Update nav (don't highlight for editor)
+      document.querySelectorAll('.nav-item').forEach(n => {
+        const href = n.getAttribute('href');
+        n.classList.toggle('active', 
+          href === `#/${hash}` || 
+          (hash === '' && href === '#/') ||
+          (viewId === 'editor' && href === '#/programs')
+        );
+      });
+      
+      // Load data for view
+      if (viewId === 'programs') loadProgramList();
+      if (viewId === 'logs') loadLogsList();
+      if (viewId === 'preferences') loadPreferences();
+      if (viewId === 'debug') loadDebugInfo();
+      if (viewId === 'about') loadAboutInfo();
+    }
+    
+    window.addEventListener('hashchange', navigate);
 
-  </form>
- </div>
+    // =========================================================================
+    // WebSocket
+    // =========================================================================
+    function connect() {
+      const wsUrl = `ws://${location.host}/ws`;
+      log('sent', `Connecting to ${wsUrl}...`);
+      
+      ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        setConnected(true);
+        log('ack', 'Connected');
+        loadProgramSelect();
+      };
+      
+      ws.onclose = () => {
+        setConnected(false);
+        log('error', 'Disconnected - reconnecting in 3s...');
+        setTimeout(connect, 3000);
+      };
+      
+      ws.onerror = () => log('error', 'WebSocket error');
+      
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          handleMessage(msg);
+        } catch (err) {
+          log('error', `Parse error: ${e.data}`);
+        }
+      };
+    }
+    
+    function setConnected(connected) {
+      const el = document.getElementById('connection');
+      el.classList.toggle('connected', connected);
+      el.querySelector('span').textContent = connected ? 'Connected' : 'Disconnected';
+    }
+    
+    function handleMessage(msg) {
+      // Only log non-state messages or log state occasionally
+      if (msg.type !== 'state') {
+        log(msg.type, JSON.stringify(msg.data || msg));
+      }
+      
+      if (msg.type === 'state') {
+        state = msg.data;
+        updateUI();
+      }
+    }
+    
+    function sendCommand(action, params = {}) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        log('error', 'Not connected');
+        return;
+      }
+      const msg = { type: 'command', action, ...params };
+      log('sent', JSON.stringify(msg));
+      ws.send(JSON.stringify(msg));
+    }
 
-  <div class="PIDChart" style="width:75%;">
-   <canvas id="ProgramChart"></canvas>
-  </div>
+    // =========================================================================
+    // UI Updates
+    // =========================================================================
+    function updateUI() {
+      const s = state;
+      
+      // Status bar
+      document.getElementById('statusKiln').textContent = formatTemp(s.kiln_temp);
+      document.getElementById('statusTarget').textContent = formatTemp(s.set_temp);
+      document.getElementById('statusEnv').textContent = formatTemp(s.env_temp);
+      document.getElementById('statusHeat').textContent = `${s.heat_percent || 0}%`;
+      
+      const badge = document.getElementById('statusBadge');
+      badge.textContent = STATUS_NAMES[s.program_status] || 'UNKNOWN';
+      badge.className = 'program-status ' + (STATUS_CLASSES[s.program_status] || '');
+      
+      // Dashboard
+      document.getElementById('dashKiln').textContent = formatTemp(s.kiln_temp);
+      document.getElementById('dashTarget').textContent = formatTemp(s.set_temp);
+      document.getElementById('dashEnv').textContent = formatTemp(s.env_temp);
+      document.getElementById('dashCase').textContent = formatTemp(s.case_temp);
+      document.getElementById('dashStatus').textContent = STATUS_NAMES[s.program_status] || '--';
+      document.getElementById('dashProgram').textContent = s.program_name || '--';
+      document.getElementById('dashStep').textContent = s.step || '--';
+      document.getElementById('dashHeat').textContent = `${s.heat_percent || 0}%`;
+      document.getElementById('dashStart').textContent = s.prog_start || '--';
+      document.getElementById('dashEnd').textContent = s.prog_end || '--';
+      document.getElementById('dashTime').textContent = s.curr_time || '--';
+      document.getElementById('dashChange').textContent = `${s.temp_change || 0}°C/h`;
+    }
+    
+    function formatTemp(val) {
+      return val !== undefined ? `${val.toFixed(1)}°C` : '--';
+    }
 
- <div class="container">
-  <form method="post" action="index.html">
-   <fieldset>
-    <legend> Program control </legend>
-     <div class="for_submit">
-	<input type="submit" id="start_bttn" name="prog_start" value="Start program">
-     </div>
-     <div class="for_submit">
-	<input type="submit" id="pause_bttn" name="prog_pause" value="Pause program">
-     </div>
-     <div class="for_submit">
-	<input type="submit" id="end_bttn" name="prog_end" value="End program">
-     </div>
-     <div class="for_submit">
-	<input type="submit" id="abort_bttn" name="prog_abort" value="Abort program">
-     </div>
-   </fieldset>
-  </form>
- </div>
+    // =========================================================================
+    // Controls
+    // =========================================================================
+    function loadProgram() {
+      const program = document.getElementById('programSelect').value;
+      if (!program) return log('error', 'Select a program first');
+      sendCommand('load', { program });
+    }
+    
+    function setTemperature() {
+      const temp = parseFloat(document.getElementById('tempInput').value);
+      if (isNaN(temp)) return log('error', 'Invalid temperature');
+      sendCommand('set_temp', { temperature: temp });
+    }
+    
+    async function reboot() {
+      if (!confirm('Reboot the device?')) return;
+      log('sent', 'POST /api/reboot');
+      try {
+        const res = await fetch('/api/reboot', { method: 'POST' });
+        const data = await res.json();
+        log('ack', JSON.stringify(data));
+      } catch (e) {
+        log('error', e.message);
+      }
+    }
+    
+    async function loadProgramSelect() {
+      try {
+        const res = await fetch('/programs/');
+        const data = await res.json();
+        const select = document.getElementById('programSelect');
+        select.innerHTML = '<option value="">Load program...</option>';
+        data.files.forEach(f => {
+          const opt = document.createElement('option');
+          opt.value = f.name;
+          opt.textContent = f.name;
+          select.appendChild(opt);
+        });
+      } catch (e) {
+        log('error', `Failed to load programs: ${e.message}`);
+      }
+    }
 
- <script type="text/javascript" src="js/chart.js"></script>
- <script type="text/javascript" src="js/json.js"></script>
+    // =========================================================================
+    // Programs View
+    // =========================================================================
+    async function loadProgramList() {
+      const tbody = document.getElementById('programsTableBody');
+      try {
+        const res = await fetch('/programs/');
+        const data = await res.json();
+        tbody.innerHTML = data.files.map(f => `
+          <tr>
+            <td>${escapeHtml(f.name)}</td>
+            <td>${f.size} B</td>
+            <td>${escapeHtml(f.description || '')}</td>
+            <td class="actions">
+              <button class="btn-small primary" onclick="sendCommand('load', {program:'${f.name}'})">Load</button>
+              <button class="btn-small" onclick="editProgram('${f.name}')">Edit</button>
+              <button class="btn-small danger" onclick="deleteProgram('${f.name}')">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4" style="color:var(--error)">${e.message}</td></tr>`;
+      }
+    }
+    
+    function createProgram() {
+      const name = prompt('Program name (e.g., my_program.txt):');
+      if (!name) return;
+      editProgram(name, true);
+    }
+    
+    async function editProgram(name, isNew = false) {
+      editorState.filename = name;
+      editorState.isNew = isNew;
+      
+      const textarea = document.getElementById('editorContent');
+      document.getElementById('editorFilename').textContent = isNew ? `New: ${name}` : name;
+      
+      if (isNew) {
+        textarea.value = '# Program description\n# Format: target_temp:ramp_minutes:dwell_minutes\n\n';
+      } else {
+        try {
+          const res = await fetch(`/programs/${encodeURIComponent(name)}`);
+          if (!res.ok) throw new Error('Failed to load');
+          textarea.value = await res.text();
+        } catch (e) {
+          alert('Error loading program: ' + e.message);
+          return;
+        }
+      }
+      
+      updateEditorStatus();
+      location.hash = '#/editor';
+      textarea.focus();
+    }
+    
+    async function saveProgram() {
+      const content = document.getElementById('editorContent').value;
+      const name = editorState.filename;
+      
+      if (!name) {
+        alert('No filename set');
+        return;
+      }
+      
+      if (content.length > 10240) {
+        alert('File too large (max 10KB)');
+        return;
+      }
+      
+      try {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const fd = new FormData();
+        fd.append('upload', blob, name);
+        const res = await fetch('/upload', { method: 'POST', body: fd });
+        if (!res.ok) throw new Error('Upload failed');
+        loadProgramSelect();
+        location.hash = '#/programs';
+      } catch (e) {
+        alert('Error saving: ' + e.message);
+      }
+    }
+    
+    function cancelEdit() {
+      const content = document.getElementById('editorContent').value;
+      if (content && !confirm('Discard changes?')) return;
+      location.hash = '#/programs';
+    }
+    
+    function updateEditorStatus() {
+      const textarea = document.getElementById('editorContent');
+      const content = textarea.value;
+      const lines = content.split('\n');
+      
+      document.getElementById('editorLineCount').textContent = `${lines.length} lines`;
+      document.getElementById('editorByteCount').textContent = `${new Blob([content]).size} bytes`;
+      
+      // Update line numbers
+      const lineNumbers = document.getElementById('editorLines');
+      lineNumbers.textContent = lines.map((_, i) => i + 1).join('\n');
+    }
+    
+    // Set up editor event listener after DOM loads
+    document.addEventListener('DOMContentLoaded', () => {
+      const textarea = document.getElementById('editorContent');
+      if (textarea) {
+        textarea.addEventListener('input', updateEditorStatus);
+        textarea.addEventListener('scroll', () => {
+          document.getElementById('editorLines').scrollTop = textarea.scrollTop;
+        });
+      }
+    });
+    
+    async function deleteProgram(name) {
+      if (!confirm(`Delete program "${name}"?`)) return;
+      try {
+        const res = await fetch('/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file: name })
+        });
+        if (!res.ok) throw new Error('Delete failed');
+        loadProgramList();
+        loadProgramSelect();
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
 
+    // =========================================================================
+    // Logs View
+    // =========================================================================
+    async function loadLogsList() {
+      const tbody = document.getElementById('logsTableBody');
+      try {
+        const res = await fetch('/logs/');
+        const data = await res.json();
+        if (!data.files.length) {
+          tbody.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted)">No logs yet</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.files.map(f => `
+          <tr>
+            <td>${escapeHtml(f.name)}</td>
+            <td>${f.size} B</td>
+            <td class="actions">
+              <button class="btn-small" onclick="viewLog('${f.name}')">View</button>
+              <button class="btn-small" onclick="downloadLog('${f.name}')">Download</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="3" style="color:var(--error)">${e.message}</td></tr>`;
+      }
+    }
+    
+    async function viewLog(name) {
+      try {
+        const res = await fetch(`/logs/${encodeURIComponent(name)}`);
+        const content = await res.text();
+        alert(content.slice(0, 2000) + (content.length > 2000 ? '\n...(truncated)' : ''));
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+    
+    function downloadLog(name) {
+      window.open(`/logs/${encodeURIComponent(name)}`, '_blank');
+    }
+
+    // =========================================================================
+    // Preferences View
+    // =========================================================================
+    async function loadPreferences() {
+      const container = document.getElementById('prefsContent');
+      try {
+        const res = await fetch('/api/preferences');
+        preferences = await res.json();
+        
+        const sections = {
+          'WiFi': ['WiFi_SSID', 'WiFi_Password', 'WiFi_Mode', 'WiFi_Retry_cnt'],
+          'HTTP Server': ['Auth_Username', 'Auth_Password', 'HTTP_Local_JS'],
+          'Time': ['NTP_Server1', 'NTP_Server2', 'NTP_Server3', 'GMT_Offset_sec', 'Daylight_Offset_sec'],
+          'PID': ['PID_Window', 'PID_Kp', 'PID_Ki', 'PID_Kd', 'PID_POE', 'PID_Temp_Threshold'],
+          'Logging': ['LOG_Window', 'LOG_Files_Limit'],
+          'Safety': ['MIN_Temperature', 'MAX_Temperature', 'MAX_Housing_Temperature', 'Thermal_Runaway', 'Alarm_Timeout', 'MAX31855_Error_Grace_Count'],
+          'Debug': ['DBG_Serial', 'DBG_Syslog', 'DBG_Syslog_Srv', 'DBG_Syslog_Port']
+        };
+        
+        let html = '';
+        for (const [section, keys] of Object.entries(sections)) {
+          html += `<div class="prefs-section"><div class="prefs-section-header">${section}</div><div class="prefs-section-content">`;
+          for (const key of keys) {
+            if (preferences[key] !== undefined) {
+              const type = key.includes('Password') ? 'password' : 'text';
+              html += `<div class="pref-row">
+                <label class="pref-label">${key}</label>
+                <div class="pref-input"><input type="${type}" id="pref_${key}" value="${escapeHtml(String(preferences[key]))}"></div>
+              </div>`;
+            }
+          }
+          html += '</div></div>';
+        }
+        container.innerHTML = html;
+      } catch (e) {
+        container.innerHTML = `<p style="color:var(--error)">${e.message}</p>`;
+      }
+    }
+    
+    async function savePreferences() {
+      const data = {};
+      document.querySelectorAll('[id^="pref_"]').forEach(el => {
+        const key = el.id.replace('pref_', '');
+        data[key] = el.value;
+      });
+      
+      try {
+        const res = await fetch('/api/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Save failed');
+        alert('Preferences saved!');
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    // =========================================================================
+    // Debug View
+    // =========================================================================
+    async function loadDebugInfo() {
+      const table = document.getElementById('debugTable');
+      try {
+        const res = await fetch('/api/debug');
+        const data = await res.json();
+        
+        const sections = {
+          'Chip Information': ['CHIP_ID', 'CHIP_REV', 'CHIP_MODEL', 'CHIP_CORES', 'CPU_FREQ', 'SDK_VERSION', 'MAC_ADDRESS'],
+          'Flash': ['SFLASH_RAM', 'FLASH_FREQ', 'FLASH_MODE', 'SKETCH_SIZE', 'SKETCH_TOTAL'],
+          'PSRAM': ['TOTAL_PSRAM', 'FREE_PSRAM', 'SMALEST_PSRAM', 'LARGEST_PSRAM'],
+          'Heap': ['TOTAL_HEAP', 'FREE_HEAP', 'SMALEST_HEAP', 'LARGEST_HEAP'],
+          'Filesystem': ['TOTAL_KB', 'USED_KB']
+        };
+        
+        let html = '';
+        for (const [section, keys] of Object.entries(sections)) {
+          html += `<tr><th colspan="2">${section}</th></tr>`;
+          for (const key of keys) {
+            if (data[key] !== undefined) {
+              html += `<tr><td>${key}</td><td>${escapeHtml(String(data[key]))}</td></tr>`;
+            }
+          }
+        }
+        table.innerHTML = html;
+      } catch (e) {
+        table.innerHTML = `<tr><td colspan="2" style="color:var(--error)">${e.message}</td></tr>`;
+      }
+    }
+
+    // =========================================================================
+    // About View
+    // =========================================================================
+    async function loadAboutInfo() {
+      try {
+        const res = await fetch('/api/debug');
+        const data = await res.json();
+        document.getElementById('aboutVersion').textContent = data.VERSION || 'Unknown';
+      } catch (e) {
+        document.getElementById('aboutVersion').textContent = 'Error loading';
+      }
+    }
+
+    // =========================================================================
+    // Firmware Upload
+    // =========================================================================
+    async function uploadFirmware() {
+      const fileInput = document.getElementById('firmwareFile');
+      const status = document.getElementById('firmwareStatus');
+      
+      if (!fileInput.files.length) {
+        status.innerHTML = '<span style="color: var(--error)">Please select a .bin file</span>';
+        return;
+      }
+      
+      const file = fileInput.files[0];
+      if (!file.name.endsWith('.bin')) {
+        status.innerHTML = '<span style="color: var(--error)">File must be a .bin file</span>';
+        return;
+      }
+      
+      if (!confirm(`Upload firmware "${file.name}" (${(file.size / 1024).toFixed(1)} KB)?\n\nThe device will restart after upload.`)) {
+        return;
+      }
+      
+      status.innerHTML = '<span style="color: var(--info)">Uploading...</span>';
+      
+      try {
+        const fd = new FormData();
+        fd.append('update', file);
+        
+        const res = await fetch('/update-firmware', { method: 'POST', body: fd });
+        
+        if (res.ok) {
+          status.innerHTML = '<span style="color: var(--success)">Upload complete! Device restarting...</span>';
+          setTimeout(() => {
+            status.innerHTML += '<br><span style="color: var(--text-muted)">Refresh page in a few seconds.</span>';
+          }, 2000);
+        } else {
+          throw new Error(`Upload failed: ${res.status}`);
+        }
+      } catch (e) {
+        status.innerHTML = `<span style="color: var(--error)">Error: ${e.message}</span>`;
+      }
+    }
+
+    // =========================================================================
+    // WebSocket Log
+    // =========================================================================
+    let wsLogEnabled = false;
+    
+    function toggleWsLog() {
+      wsLogEnabled = document.getElementById('wsLogEnabled').checked;
+      document.getElementById('wsLogContainer').style.display = wsLogEnabled ? 'flex' : 'none';
+      localStorage.setItem('wsLogEnabled', wsLogEnabled);
+    }
+    
+    function initWsLogState() {
+      wsLogEnabled = localStorage.getItem('wsLogEnabled') === 'true';
+      const checkbox = document.getElementById('wsLogEnabled');
+      if (checkbox) {
+        checkbox.checked = wsLogEnabled;
+        document.getElementById('wsLogContainer').style.display = wsLogEnabled ? 'flex' : 'none';
+      }
+    }
+    
+    function log(type, message) {
+      if (!wsLogEnabled) return;
+      
+      const container = document.getElementById('logContent');
+      if (!container) return;
+      
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `
+        <span class="log-time">${time}</span>
+        <span class="log-type ${type}">${type.toUpperCase()}</span>
+        <span class="log-message">${escapeHtml(message)}</span>
+      `;
+      
+      container.insertBefore(entry, container.firstChild);
+      while (container.children.length > 200) container.removeChild(container.lastChild);
+    }
+    
+    function clearLog() {
+      document.getElementById('logContent').innerHTML = '';
+    }
+    
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // =========================================================================
+    // Init
+    // =========================================================================
+    window.addEventListener('load', () => {
+      initWsLogState();
+      navigate();
+      connect();
+    });
+  </script>
 </body>
 </html>
+

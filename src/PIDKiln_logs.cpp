@@ -31,9 +31,9 @@ void Init_log_file()
   {
     DBG dbgLog(LOG_INFO, "[LOG] Created new log file %s\n\r", str);
 #ifdef ENERGY_MON_PIN
-    CSVFile.print(String("Date,Temperature,Housing,Energy"));
+    CSVFile.print(String("Date,Temperature,ousing,Energy,SetPoint,heat"));
 #else
-    CSVFile.print(String("Date,Temperature,Housing"));
+    CSVFile.print(String("Date,Temperature,Housing,SetPoint,heat"));
 #endif
   }
 
@@ -91,10 +91,10 @@ void Add_log_line()
     sprintf(str, "%d", millis());
 
 #ifdef ENERGY_MON_PIN
-  tmp = String(str) + "," + String(kiln_temp, 0) + "," + String(case_temp, 0) + "," + String((int)(Energy_Usage - EnW_last));
+  tmp = String(str) + "," + String(kiln_temp, 0) + "," + String(case_temp, 0) + "," + String((int)(Energy_Usage - EnW_last)) + "," + String(set_temp) + "," + String(pid_out);
   EnW_last = Energy_Usage;
 #else
-  tmp = String(str) + "," + String(kiln_temp, 0) + "," + String(case_temp, 0);
+  tmp = String(str) + "," + String(kiln_temp, 0) + "," + String(case_temp, 0) + "," + String(set_temp) + "," + String(pid_out);
 #endif
 
   DBG dbgLog(LOG_INFO, "[LOG] Writing to log file:%s\n\r", tmp.c_str());

@@ -1,0 +1,10 @@
+# Don't copy these into the Docker build context
+node_modules/
+npm-debug.log
+.git
+.gitignore
+README.md
+docker-compose.yml
+Dockerfile
+PLAN_SIMULATOR.md
+
