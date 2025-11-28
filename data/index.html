@@ -409,10 +409,50 @@
       display: flex;
       gap: 0.5rem;
     }
-    
+
     .programs-table .actions button {
       padding: 0.25rem 0.5rem;
       font-size: 0.75rem;
+    }
+
+    .program-description-row,
+    .program-preview-row {
+      display: none;
+    }
+
+    .program-description {
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+
+    .program-preview {
+      padding: 0.75rem;
+      background: var(--surface-2);
+      border-radius: 6px;
+      border: 1px solid var(--primary);
+      margin-top: 0.5rem;
+    }
+
+    .program-preview-header {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .program-preview-chart {
+      height: 160px;
+      min-height: 160px;
+      width: 100%;
+    }
+    .preview-loading,
+    .preview-error {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 160px;
     }
     
     .btn-small {
@@ -812,12 +852,11 @@
             <tr>
               <th>Name</th>
               <th>Size</th>
-              <th>Description</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="programsTableBody">
-            <tr><td colspan="4" style="color: var(--text-muted)">Loading...</td></tr>
+            <tr><td colspan="3" style="color: var(--text-muted)">Loading...</td></tr>
           </tbody>
         </table>
       </div>
@@ -995,6 +1034,27 @@
     const STATUS_CLASSES = {
       2: 'running', 3: 'paused', 5: 'error', 8: 'error'
     };
+
+    const previewCharts = new Map();
+    const previewCache = new Map();
+
+    function formatMinutesLabel(value) {
+      const totalSeconds = Math.round(value * 60);
+      const hh = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+      const mm = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+      return `${hh}:${mm}`;
+    }
+
+    function formatTimeLabel(value) {
+      const date = new Date(value * 1000);
+      return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatPreviewTimeLabel(baseMs, offsetMinutes) {
+      const ms = baseMs + Math.round(offsetMinutes * 60 * 1000);
+      const date = new Date(ms);
+      return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
 
     // =========================================================================
     // Router
@@ -1219,24 +1279,195 @@
         const res = await fetch('/programs/');
         const data = await res.json();
         const disableAttr = isProgramRunning ? ' disabled' : '';
-        tbody.innerHTML = data.files.map(f => `
-          <tr>
-            <td>${escapeHtml(f.name)}</td>
-            <td>${f.size} B</td>
-            <td>${escapeHtml(f.description || '')}</td>
-            <td class="actions">
-              <button class="btn-small primary program-load-btn"${disableAttr} onclick="sendCommand('load', {program:'${f.name}'})">Load</button>
-              <button class="btn-small" onclick="editProgram('${f.name}')">Edit</button>
-              <button class="btn-small danger" onclick="deleteProgram('${f.name}')">Delete</button>
-            </td>
-          </tr>
-        `).join('');
+        tbody.innerHTML = data.files.map(f => {
+          const attrName = escapeAttr(f.name);
+          const jsName = escapeJs(f.name);
+          const description = escapeHtml(f.description || 'No description provided.');
+          return `
+            <tr>
+              <td>${escapeHtml(f.name)}</td>
+              <td>${f.size} B</td>
+              <td class="actions">
+                <button class="btn-small primary program-load-btn"${disableAttr} onclick="sendCommand('load', {program:'${jsName}'})">Load</button>
+                <button class="btn-small" onclick="editProgram('${jsName}')">Edit</button>
+                <button class="btn-small danger" onclick="deleteProgram('${jsName}')">Delete</button>
+                <button class="btn-small" data-program="${attrName}" data-preview-action="toggle" onclick="togglePreview(this)">Preview</button>
+              </td>
+            </tr>
+            <tr class="program-description-row" data-description="${attrName}">
+              <td colspan="3">
+                <div class="program-description">${description}</div>
+              </td>
+            </tr>
+            <tr class="program-preview-row" data-preview="${attrName}">
+              <td colspan="3">
+                <div class="program-preview">
+                  <div class="program-preview-header">
+                    <span>Program Preview</span>
+                    <button class="btn-small" data-program="${attrName}" data-preview-action="close" onclick="togglePreview(this)">Close</button>
+                  </div>
+                  <div class="program-preview-chart" id="preview-chart-${attrName}"></div>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
         applyProgramLoadButtons();
       } catch (e) {
         tbody.innerHTML = `<tr><td colspan="4" style="color:var(--error)">${e.message}</td></tr>`;
       }
     }
     
+    async function togglePreview(button) {
+      if (!button) return;
+      const name = button.dataset.program;
+      if (!name) return;
+      const selector = `tr[data-preview="${cssEscape(name)}"]`;
+      const row = document.querySelector(selector);
+      if (!row) return;
+      const descRow = document.querySelector(`tr[data-description="${cssEscape(name)}"]`);
+      const isOpen = row.dataset.open === 'true';
+      if (isOpen) {
+        row.dataset.open = 'false';
+        row.style.display = 'none';
+        if (descRow) {
+          descRow.style.display = 'none';
+        }
+        updatePreviewButtonLabels(name, false);
+        return;
+      }
+      row.dataset.open = 'true';
+      row.style.display = 'table-row';
+      if (descRow) {
+        descRow.style.display = 'table-row';
+      }
+      updatePreviewButtonLabels(name, true);
+      const container = row.querySelector('.program-preview-chart');
+      await showProgramPreview(name, container);
+    }
+
+    function updatePreviewButtonLabels(name, open) {
+      document.querySelectorAll(`button[data-program="${cssEscape(name)}"]`).forEach(btn => {
+        const action = btn.dataset.previewAction;
+        if (action === 'toggle') {
+          btn.textContent = open ? 'Hide Preview' : 'Preview';
+        } else if (action === 'close') {
+          btn.textContent = 'Close';
+        }
+      });
+    }
+
+    async function showProgramPreview(name, container) {
+      if (!container) return;
+      container.innerHTML = '<div class="preview-loading">Loading preview…</div>';
+      const width = container.clientWidth || 320;
+      try {
+        const content = await fetchProgramContent(name);
+        const data = buildProgramPreviewData(content);
+        if (!data) {
+          container.innerHTML = '<div class="preview-error">Unable to render preview</div>';
+          return;
+        }
+        container.innerHTML = '';
+        const baseMs = Date.now();
+        const opts = {
+          width,
+          height: 160,
+          scales: {
+            x: { time: false },
+            y: { auto: true }
+          },
+          axes: [
+            {
+              stroke: '#888',
+              grid: { stroke: '#2d2d3a', width: 1 },
+              ticks: { stroke: '#2d2d3a' },
+              values: (_, vals) => vals.map(v => formatPreviewTimeLabel(baseMs, v)),
+              label: 'Time (hh:mm)'
+            },
+            {
+              stroke: '#888',
+              grid: { stroke: '#2d2d3a', width: 1 },
+              ticks: { stroke: '#2d2d3a' },
+              values: (_, vals) => vals.map(v => `${Math.round(v)}°C`),
+              label: 'Temperature (°C)'
+            }
+          ],
+          series: [
+            {},
+            {
+              label: 'Target',
+              stroke: '#4ade80',
+              width: 2,
+              points: { show: false }
+            }
+          ],
+          cursor: { show: false },
+        };
+        if (previewCharts.has(name)) {
+          previewCharts.get(name).destroy();
+        }
+        const chart = new uPlot(opts, data, container);
+        previewCharts.set(name, chart);
+      } catch (err) {
+        container.innerHTML = `<div class="preview-error">${err.message}</div>`;
+      }
+    }
+
+    async function fetchProgramContent(name) {
+      if (previewCache.has(name)) {
+        return previewCache.get(name);
+      }
+      const res = await fetch(`/programs/${encodeURIComponent(name)}`);
+      if (!res.ok) {
+        throw new Error('Failed to load program');
+      }
+      const text = await res.text();
+      previewCache.set(name, text);
+      return text;
+    }
+
+    function buildProgramPreviewData(content) {
+      try {
+        const program = JSON.parse(content);
+        const segments = Array.isArray(program.segments) ? program.segments : [];
+        if (!segments.length) return null;
+        const minutes = [0];
+        const temps = [(segments[0].target ?? 0)];
+        let elapsed = 0;
+        let currentTemp = temps[0];
+        segments.forEach(segment => {
+          const target = typeof segment.target === 'number' ? segment.target : currentTemp;
+          const rampSeconds = timeToSeconds(segment.ramp_time);
+          if (rampSeconds > 0) {
+            elapsed += rampSeconds;
+            minutes.push(elapsed / 60);
+            temps.push(target);
+          } else if (target !== currentTemp) {
+            minutes.push(elapsed / 60);
+            temps.push(target);
+          }
+          currentTemp = target;
+          const dwellSeconds = timeToSeconds(segment.dwell_time);
+          if (dwellSeconds > 0) {
+            elapsed += dwellSeconds;
+            minutes.push(elapsed / 60);
+            temps.push(target);
+          }
+        });
+        return [minutes, temps];
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function timeToSeconds(field) {
+      if (!field) return 0;
+      const hours = Number(field.hours) || 0;
+      const minutes = Number(field.minutes) || 0;
+      const seconds = Number(field.seconds) || 0;
+      return hours * 3600 + minutes * 60 + seconds;
+    }
     function createProgram() {
       const name = prompt('Program name (e.g., my_program.txt):');
       if (!name) return;
@@ -1537,48 +1768,46 @@
         [0, 0]            // Set temps
       ];
       
-      const opts = {
-        width: width,
-        height: height,
-        scales: {
-          x: { time: true },
-          y: { auto: true }
-        },
-        series: [
-          {},
-          {
-            label: 'Kiln',
-            stroke: '#ff6b4a',
-            width: 2,
-            points: { show: false }
+        const opts = {
+          width: width,
+          height: height,
+          scales: {
+            x: { time: true },
+            y: { auto: true }
           },
-          {
-            label: 'Target',
-            stroke: '#4ade80',
-            width: 2,
-            points: { show: false }
-          }
-        ],
-        axes: [
-          {
-            stroke: '#888',
-            grid: { stroke: '#2d2d3a', width: 1 },
-            ticks: { stroke: '#2d2d3a' },
-            values: (u, vals) => vals.map(v => {
-              const d = new Date(v * 1000);
-              return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-            })
-          },
-          {
-            stroke: '#888',
-            grid: { stroke: '#2d2d3a', width: 1 },
-            ticks: { stroke: '#2d2d3a' },
-            values: (u, vals) => vals.map(v => Math.round(v) + '°C')
-          }
-        ],
-        legend: { show: true },
-        cursor: { show: true }
-      };
+          series: [
+            {},
+            {
+              label: 'Kiln',
+              stroke: '#ff6b4a',
+              width: 2,
+              points: { show: false }
+            },
+            {
+              label: 'Target',
+              stroke: '#4ade80',
+              width: 2,
+              points: { show: false }
+            }
+          ],
+          axes: [
+            {
+              stroke: '#888',
+              grid: { stroke: '#2d2d3a', width: 1 },
+              ticks: { stroke: '#2d2d3a' },
+              values: (_, vals) => vals.map(v => formatTimeLabel(v)),
+              label: 'Time (hh:mm)'
+            },
+            {
+              stroke: '#888',
+              grid: { stroke: '#2d2d3a', width: 1 },
+              ticks: { stroke: '#2d2d3a' },
+              values: (u, vals) => vals.map(v => Math.round(v) + '°C')
+            }
+          ],
+          legend: { show: true },
+          cursor: { show: true }
+        };
       
       // Use setTimeout to ensure DOM is fully rendered
       setTimeout(() => {
@@ -1789,6 +2018,21 @@
     
     function escapeHtml(str) {
       return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function escapeAttr(value) {
+      return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function escapeJs(value) {
+      return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    }
+
+    function cssEscape(value) {
+      if (window.CSS && CSS.escape) {
+        return CSS.escape(value);
+      }
+      return String(value).replace(/[^a-zA-Z0-9_-]/g, match => `\\${match}`);
     }
 
     // =========================================================================
