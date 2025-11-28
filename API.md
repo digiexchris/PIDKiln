@@ -108,7 +108,6 @@ Sent in response to client commands.
 { "type": "command", "action": "pause" }
 { "type": "command", "action": "resume" }
 { "type": "command", "action": "stop" }
-{ "type": "command", "action": "abort" }
 ```
 
 | Action | Description |
@@ -117,7 +116,6 @@ Sent in response to client commands.
 | `pause` | Pause running program |
 | `resume` | Resume paused program |
 | `stop` | Stop program gracefully |
-| `abort` | Abort program immediately |
 
 **Start Command Options:**
 
@@ -373,7 +371,6 @@ Returns up to 24 hours of temperature data at 10 second intervals, including eve
 |------|-------|-------------|
 | `start` | program name | Program started |
 | `stop` | - | Program stopped by user |
-| `abort` | - | Program aborted |
 | `finish` | - | Program completed successfully |
 | `pause` | - | Program paused |
 | `resume` | - | Program resumed |
@@ -440,6 +437,24 @@ Content-Type: application/json
 - If no program running: Starts manual hold mode at the specified temperature
 - If program running: Overrides the current segment's target temperature
 
+#### Stop Program (HTTP)
+
+```
+POST /api/stop
+Content-Type: application/json
+```
+
+**Description:**
+- Stops the current program gracefully (same as WebSocket `stop` command)  
+- Useful for automation or one-click “panic stop” links
+
+**Response:**
+```json
+{ "success": true, "status": 4 }
+```
+
+If no program is running, the endpoint still succeeds but the status stays at `READY`.
+
 #### Reboot Device
 ```
 POST /api/reboot
@@ -487,7 +502,7 @@ POST /api/program/:action
 
 | Param | Values |
 |-------|--------|
-| `action` | `start`, `pause`, `stop`, `abort`, `load` |
+| `action` | `start`, `pause`, `stop`, `load` |
 
 **Body (for load action):**
 ```json

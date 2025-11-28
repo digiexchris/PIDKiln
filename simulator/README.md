@@ -59,9 +59,16 @@ npm start
 
 ## API Endpoints
 
+See [API.md](../API.md) for complete documentation.
+
+### WebSocket
+| Endpoint | Description |
+|----------|-------------|
+| `ws://localhost:3000/ws` | Real-time state updates and commands |
+
+### HTTP
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/PIDKiln_vars.json` | Live temperature/status data |
 | GET | `/programs/` | List program files (JSON) |
 | GET | `/programs/:filename` | Get program content |
 | POST | `/upload` | Upload program file |
@@ -72,7 +79,16 @@ npm start
 | GET | `/api/preferences` | Get preferences (JSON) |
 | POST | `/api/preferences` | Save preferences (JSON) |
 | GET | `/api/debug` | Get debug info (JSON) |
-| POST | `/api/program/:action` | Control program (start/pause/stop/abort/load) |
+| GET | `/api/history` | Temperature history (24h) |
+| POST | `/api/temperature` | Set target temperature |
+| POST | `/api/reboot` | Reboot device |
+| POST | `/update-firmware` | Upload firmware |
+
+### Legacy (Deprecated)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/PIDKiln_vars.json` | Use WebSocket instead |
+| POST | `/api/program/:action` | Use WebSocket instead |
 
 ## Program Status Codes
 
@@ -98,5 +114,6 @@ npm start
 ## Notes
 
 - File uploads are limited to 10KB (same as ESP32)
-- Filenames must be max 20 characters, alphanumeric with `.txt` extension
-- The simulator stores all data in memory; restarting resets to defaults
+- Filenames must be max 20 characters, alphanumeric with `.json` or `.txt` extension
+- Programs are stored on the filesystem in `../data/programs/`
+- Logs and preferences are stored in memory; restarting resets them to defaults

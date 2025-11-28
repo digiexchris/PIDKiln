@@ -53,14 +53,14 @@ docker-compose run --rm sim sh
 ┌─────────────────────────────────────────────────────────┐
 │  Docker Container (node:22-alpine)                      │
 │                                                         │
-│  /app (built into image)                                │
-│  ├── server.js                                          │
-│  ├── mock-data.js                                       │
-│  ├── package.json                                       │
-│  └── node_modules/                                      │
+│  /app                                                   │
+│  ├── server.js     (volume mount, read-only)            │
+│  ├── mock-data.js  (volume mount, read-only)            │
+│  ├── package.json  (built into image)                   │
+│  └── node_modules/ (built into image)                   │
 │                                                         │
 │  /frontend (volume mount from ../data/, read-only)      │
-│  └── *.html, css/, js/, icons/, etc.                    │
+│  └── *.html, css/, icons/, programs/, etc.              │
 │                                                         │
 │  Port 3000 ─────────────────────────────────────────▶   │
 └─────────────────────────────────────────────────────────┘
@@ -68,9 +68,9 @@ docker-compose run --rm sim sh
 
 ## Live Reloading
 
-The `data/` directory is mounted as a volume at `/frontend`. Changes to HTML, CSS, and JavaScript files are immediately visible when you refresh the browser — no container rebuild needed.
+**Frontend files:** The `data/` directory is mounted as a volume at `/frontend`. Changes to HTML, CSS, and JavaScript files are immediately visible when you refresh the browser — no container rebuild needed.
 
-To apply changes to the simulator code (`server.js`, `mock-data.js`), restart the container:
+**Backend files:** The `server.js` and `mock-data.js` files are also mounted as volumes. Changes require a container restart:
 ```bash
 docker-compose restart
 ```

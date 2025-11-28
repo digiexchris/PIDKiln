@@ -96,7 +96,6 @@ ws://localhost:3000/ws
 { "type": "command", "action": "pause" }
 { "type": "command", "action": "resume" }
 { "type": "command", "action": "stop" }
-{ "type": "command", "action": "abort" }
 { "type": "command", "action": "load", "program": "program1.txt" }
 { "type": "command", "action": "set_temp", "temperature": 500.0 }
 ```
@@ -154,7 +153,6 @@ GET /api/history?since=<timestamp>&limit=<count>
 - Includes event markers for program lifecycle:
   - `start` - Program started (value: program name)
   - `stop` - Program stopped by user
-  - `abort` - Program aborted
   - `finish` - Program completed
   - `pause` - Program paused
   - `resume` - Program resumed
@@ -176,6 +174,20 @@ GET /api/history?since=<timestamp>&limit=<count>
 ```
 
 ---
+
+## Step 4: HTTP Stop Endpoint [COMPLETE]
+
+Expose a REST route that mirrors the WebSocket `stop` command so automation links can halt the kiln without opening a socket.
+
+**Endpoint:** `POST /api/stop`
+
+**Tasks:**
+- Add an Express route that invokes `executeCommand('stop')`, broadcasts the new state, and returns the status code.
+- Update the README/banner so the new endpoint appears next to the rest system routes.
+- Document the endpoint in `API.md` under the System section.
+
+**Outcome:**
+- REST clients can now stop the kiln safely; the endpoint shares the same validation and state handling as the WebSocket command.
 
 ## Program Status Codes
 

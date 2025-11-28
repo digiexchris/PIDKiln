@@ -104,7 +104,7 @@ Added firmware upload functionality to Debug page.
 - [x] Upload button with confirmation dialog
 - [x] Status feedback (uploading, success, error)
 - [x] Warning message about device restart
-- [x] POST to `/update` endpoint
+- [x] POST to `/update-firmware` endpoint
 
 ---
 

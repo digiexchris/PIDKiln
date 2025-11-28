@@ -310,6 +310,7 @@ function stopSimulationLoop() {
  */
 function stopSimulation() {
   state.heatPercent = 0;
+  state.setTemp = 0;  // Reset target temperature
   
   // If already at room temp, stop the loop
   if (Math.abs(state.kilnTemp - state.envTemp) < 1) {
@@ -518,12 +519,6 @@ function executeCommand(action, params = {}) {
     case 'stop':
       addHistoryMarker('stop');
       state.programStatus = PROGRAM_STATUS.STOPPED;
-      stopSimulation();
-      return { success: true };
-      
-    case 'abort':
-      addHistoryMarker('abort');
-      state.programStatus = PROGRAM_STATUS.ABORTED;
       stopSimulation();
       return { success: true };
       

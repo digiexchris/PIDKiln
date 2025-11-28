@@ -16,6 +16,7 @@
  *   POST /api/preferences       - Save preferences (JSON)
  *   GET  /api/debug             - Debug info (JSON)
  *   POST /api/reboot            - Reboot device
+ *   POST /api/stop              - Stop running program
  *   GET  /PIDKiln_vars.json     - Live data (deprecated, use WebSocket)
  *   POST /api/program/:action   - Control program (deprecated, use WebSocket)
  * 
@@ -453,6 +454,19 @@ app.post('/api/temperature', (req, res) => {
 });
 
 /**
+ * Stop running program (HTTP shortcut)
+ */
+app.post('/api/stop', (req, res) => {
+  const result = executeCommand('stop');
+
+  if (result.success) {
+    res.json({ success: true, status: state.programStatus });
+  } else {
+    res.status(400).json({ success: false, error: result.error });
+  }
+});
+
+/**
  * Reboot device
  */
 app.post('/api/reboot', (req, res) => {
@@ -500,8 +514,6 @@ app.post('/index.html', (req, res) => {
     executeCommand('pause');
   } else if (req.body.prog_end) {
     executeCommand('stop');
-  } else if (req.body.prog_abort) {
-    executeCommand('abort');
   }
   res.redirect('/index.html');
 });
@@ -599,6 +611,7 @@ server.listen(PORT, () => {
 ║    GET  /api/history          - Temperature history (24h)          ║
 ║    POST /api/reboot           - Reboot device                      ║
 ║    POST /api/temperature      - Set target temperature             ║
+║    POST /api/stop             - Stop running program               ║
 ║                                                                    ║
 ║  Legacy (deprecated):                                              ║
 ║    GET  /PIDKiln_vars.json    - Live data (use WebSocket)          ║
@@ -611,7 +624,6 @@ server.listen(PORT, () => {
 ║    { "type": "command", "action": "pause" }                        ║
 ║    { "type": "command", "action": "resume" }                       ║
 ║    { "type": "command", "action": "stop" }                         ║
-║    { "type": "command", "action": "abort" }                        ║
 ║    { "type": "command", "action": "load", "program": "file.txt" }  ║
 ║    { "type": "command", "action": "set_temp", "temperature": 500 } ║
 ║                                                                    ║

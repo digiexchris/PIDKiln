@@ -207,6 +207,16 @@
     .control-btn.primary:hover { background: #22c55e; }
     .control-btn.danger { background: var(--error); }
     .control-btn.danger:hover { background: #dc2626; }
+    .control-btn.running-disabled,
+    .btn-small.running-disabled {
+      background: var(--primary);
+      color: var(--text);
+      cursor: not-allowed;
+    }
+    .control-btn.running-disabled:hover,
+    .btn-small.running-disabled:hover {
+      background: var(--surface-2);
+    }
     
     .control-row {
       display: flex;
@@ -237,6 +247,8 @@
     .control-input-group button {
       padding: 0.4rem 0.6rem;
       flex-shrink: 0;
+      width: auto;
+      min-width: 64px;
     }
     
     /* Content Area */
@@ -417,6 +429,7 @@
     .btn-small:hover { background: var(--surface-2); }
     .btn-small.primary { background: var(--accent); }
     .btn-small.danger { background: var(--error); }
+    .btn-small.running-disabled { background: var(--primary); color: var(--text); }
     
     /* Preferences View */
     .prefs-section {
@@ -675,19 +688,20 @@
       <div class="controls-section">
         <div class="nav-section-title">Controls</div>
         <div class="control-row">
-          <button class="control-btn primary" onclick="sendCommand('start')">▶ Start</button>
+          <button class="control-btn primary" id="startBtn" onclick="sendCommand('start')">▶ Start</button>
           <button class="control-btn" onclick="sendCommand('pause')">⏸ Pause</button>
         </div>
         <div class="control-row">
-          <button class="control-btn" onclick="sendCommand('stop')">⏹ Stop</button>
-          <button class="control-btn danger" onclick="sendCommand('abort')">⛔ Abort</button>
+          <button class="control-btn danger" onclick="sendCommand('stop')">⛔ Stop</button>
         </div>
         <div class="nav-divider"></div>
         <div class="control-input-group">
           <select id="programSelect">
             <option value="">Load program...</option>
           </select>
-          <button class="control-btn" onclick="loadProgram()">Load</button>
+        </div>
+        <div class="control-input-group">
+          <button class="control-btn load-btn" id="sidebarLoadBtn" onclick="loadProgram()">Load</button>
         </div>
         <div class="control-input-group">
           <input type="number" id="tempInput" placeholder="Temp °C" min="0" max="1350">
@@ -1086,6 +1100,35 @@
       ws.send(JSON.stringify(msg));
     }
 
+    let isProgramRunning = false;
+
+    function updateLoadControls(status) {
+      const running = status === 2;
+      isProgramRunning = running;
+      const select = document.getElementById('programSelect');
+      if (select) select.disabled = running;
+      const sidebarBtn = document.getElementById('sidebarLoadBtn');
+      if (sidebarBtn) sidebarBtn.disabled = running;
+      applyProgramLoadButtons();
+    }
+
+    function applyProgramLoadButtons() {
+      document.querySelectorAll('.program-load-btn').forEach(btn => {
+        btn.disabled = isProgramRunning;
+        btn.classList.toggle('primary', !isProgramRunning);
+        btn.classList.toggle('running-disabled', isProgramRunning);
+      });
+    }
+
+    function updateStartButton(status) {
+      const btn = document.getElementById('startBtn');
+      const running = status === 2;
+      if (!btn) return;
+      btn.disabled = running;
+      btn.classList.toggle('primary', !running);
+      btn.classList.toggle('running-disabled', running);
+    }
+
     // =========================================================================
     // UI Updates
     // =========================================================================
@@ -1115,6 +1158,8 @@
       document.getElementById('dashEnd').textContent = s.prog_end || '--';
       document.getElementById('dashTime').textContent = s.curr_time || '--';
       document.getElementById('dashChange').textContent = `${s.temp_change || 0}°C/h`;
+      updateLoadControls(s.program_status);
+      updateStartButton(s.program_status);
     }
     
     function formatTemp(val) {
@@ -1173,18 +1218,20 @@
       try {
         const res = await fetch('/programs/');
         const data = await res.json();
+        const disableAttr = isProgramRunning ? ' disabled' : '';
         tbody.innerHTML = data.files.map(f => `
           <tr>
             <td>${escapeHtml(f.name)}</td>
             <td>${f.size} B</td>
             <td>${escapeHtml(f.description || '')}</td>
             <td class="actions">
-              <button class="btn-small primary" onclick="sendCommand('load', {program:'${f.name}'})">Load</button>
+              <button class="btn-small primary program-load-btn"${disableAttr} onclick="sendCommand('load', {program:'${f.name}'})">Load</button>
               <button class="btn-small" onclick="editProgram('${f.name}')">Edit</button>
               <button class="btn-small danger" onclick="deleteProgram('${f.name}')">Delete</button>
             </td>
           </tr>
         `).join('');
+        applyProgramLoadButtons();
       } catch (e) {
         tbody.innerHTML = `<tr><td colspan="4" style="color:var(--error)">${e.message}</td></tr>`;
       }
