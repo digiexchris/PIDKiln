@@ -1,0 +1,26 @@
+{
+  "description": "Short description of fail1. Additional notes: this program is to test failure. This will fail - to big temperature",
+  "segments": [
+    {
+      "target": 95,
+      "ramp_time": { "hours": 1, "minutes": 40, "seconds": 0 },
+      "dwell_time": { "hours": 2, "minutes": 0, "seconds": 0 }
+    },
+    {
+      "target": 134,
+      "ramp_time": { "hours": 0, "minutes": 20, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 30, "seconds": 0 }
+    },
+    {
+      "target": 1360,
+      "ramp_time": { "hours": 3, "minutes": 0, "seconds": 0 },
+      "dwell_time": { "hours": 2, "minutes": 0, "seconds": 0 }
+    },
+    {
+      "target": 600,
+      "ramp_time": { "hours": 3, "minutes": 20, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 30, "seconds": 0 }
+    }
+  ]
+}
+

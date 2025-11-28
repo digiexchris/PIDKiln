@@ -25,6 +25,7 @@ const PROGRAM_STATUS = {
 const state = {
   programStatus: PROGRAM_STATUS.READY,
   loadedProgram: 'program1.txt',
+  loadedProgramContent: null,  // Store program content when loaded
   kilnTemp: 25.5,
   setTemp: 0,
   envTemp: 22.3,
@@ -325,32 +326,55 @@ function stopSimulation() {
 }
 
 /**
- * Parse a program file into segments
- * Returns array of { target, ramp, dwell } objects
+ * Convert time object to total minutes
+ */
+function timeToMinutes(time) {
+  return (time.hours || 0) * 60 + (time.minutes || 0) + (time.seconds || 0) / 60;
+}
+
+/**
+ * Parse a program file (JSON format)
+ * Returns array of { target, ramp, dwell } objects (ramp/dwell in minutes)
  */
 function parseProgram(content) {
-  const segments = [];
-  const lines = content.split('\n');
-  
-  for (const line of lines) {
-    const trimmed = line.trim();
-    // Skip empty lines and comments
-    if (!trimmed || trimmed.startsWith('#')) continue;
+  try {
+    // Try to parse as JSON first
+    const program = JSON.parse(content);
     
-    // Remove inline comments
-    const cleanLine = trimmed.split('#')[0].trim();
-    const parts = cleanLine.split(':').map(p => parseFloat(p.trim()));
-    
-    if (parts.length >= 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
-      segments.push({
-        target: parts[0],  // Target temperature
-        ramp: parts[1],    // Minutes to reach target
-        dwell: parts[2]    // Minutes to hold at target
-      });
+    if (!program.segments || !Array.isArray(program.segments)) {
+      throw new Error('Invalid program format: missing segments array');
     }
+    
+    return program.segments.map(seg => ({
+      target: seg.target,
+      ramp: timeToMinutes(seg.ramp_time),
+      dwell: timeToMinutes(seg.dwell_time)
+    }));
+  } catch (e) {
+    // Fallback to old text format for backwards compatibility
+    const segments = [];
+    const lines = content.split('\n');
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Skip empty lines and comments
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      
+      // Remove inline comments
+      const cleanLine = trimmed.split('#')[0].trim();
+      const parts = cleanLine.split(':').map(p => parseFloat(p.trim()));
+      
+      if (parts.length >= 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+        segments.push({
+          target: parts[0],  // Target temperature
+          ramp: parts[1],    // Minutes to reach target
+          dwell: parts[2]    // Minutes to hold at target
+        });
+      }
+    }
+    
+    return segments;
   }
-  
-  return segments;
 }
 
 /**
@@ -426,7 +450,8 @@ function executeCommand(action, params = {}) {
       }
       
       // Parse program to handle segment/minute parameters
-      const programContent = programs[state.loadedProgram];
+      // Use stored content or fallback to in-memory programs
+      const programContent = state.loadedProgramContent || programs[state.loadedProgram];
       if (!programContent) {
         return { success: false, error: 'Program not found' };
       }
@@ -502,24 +527,30 @@ function executeCommand(action, params = {}) {
       stopSimulation();
       return { success: true };
       
-    case 'load':
+    case 'load': {
       const filename = params.program || params.filename;
       if (!filename) {
         return { success: false, error: 'No program specified' };
       }
-      if (!programs[filename]) {
+      
+      // Get program content (from params or in-memory)
+      const programContent = params.content || programs[filename];
+      if (!programContent) {
         return { success: false, error: 'Program not found' };
       }
+      
       state.loadedProgram = filename;
+      state.loadedProgramContent = programContent;  // Store content for later use
       state.programStatus = PROGRAM_STATUS.READY;
       state.currentStep = 0;
       
       // Parse program to get total steps
-      const lines = programs[filename].split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
-      state.totalSteps = lines.length;
+      const segments = parseProgram(programContent);
+      state.totalSteps = segments.length;
       
       emitStateChange();
       return { success: true };
+    }
       
     case 'set_temp':
     case 'setTemp':

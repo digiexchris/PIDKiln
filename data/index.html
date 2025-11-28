@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PIDKiln</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+  <link rel="stylesheet" href="/uPlot.min.css">
   <style>
     :root {
       --bg: #0f0f14;
@@ -772,6 +774,11 @@
             </div>
           </div>
         </div>
+        
+        <div class="card" style="margin-top: 1rem;">
+          <div class="card-title">Temperature History</div>
+          <div id="chartContainer" style="width: 100%; height: 300px;"></div>
+        </div>
       </div>
 
       <!-- Programs View -->
@@ -945,6 +952,7 @@
     </main>
   </div>
 
+  <script src="/uPlot.iife.min.js"></script>
   <script>
     // =========================================================================
     // State
@@ -953,6 +961,17 @@
     let state = {};
     let preferences = {};
     let editorState = { filename: '', isNew: false };
+    
+    // Chart state
+    let chart = null;
+    let chartInitializing = false;
+    let chartData = {
+      timestamps: [],  // Unix seconds
+      kilnTemps: [],
+      setTemps: [],
+      markers: []      // { x: timestamp, type: string, value?: any }
+    };
+    const CHART_MAX_POINTS = 8640; // 24h at 10s intervals
     
     const STATUS_NAMES = {
       0: 'NONE', 1: 'READY', 2: 'RUNNING', 3: 'PAUSED',
@@ -991,6 +1010,13 @@
       if (viewId === 'preferences') loadPreferences();
       if (viewId === 'debug') loadDebugInfo();
       if (viewId === 'about') loadAboutInfo();
+      if (viewId === 'dashboard' || viewId === '') {
+        // Initialize chart if not already done (dashboard is now visible)
+        // Use delay to ensure DOM is fully rendered
+        if (!chart) {
+          setTimeout(initChart, 100);
+        }
+      }
     }
     
     window.addEventListener('hashchange', navigate);
@@ -1043,6 +1069,10 @@
       if (msg.type === 'state') {
         state = msg.data;
         updateUI();
+        // Update chart with new data point
+        if (state.kiln_temp !== undefined && state.set_temp !== undefined) {
+          addChartPoint(state.kiln_temp, state.set_temp);
+        }
       }
     }
     
@@ -1410,6 +1440,220 @@
     }
 
     // =========================================================================
+    // Temperature Chart
+    // =========================================================================
+    
+    function initChart() {
+      if (chart || chartInitializing) return; // Already initialized or in progress
+      
+      // Check if uPlot is loaded
+      if (typeof uPlot === 'undefined') {
+        console.warn('uPlot not loaded');
+        return;
+      }
+      
+      const container = document.getElementById('chartContainer');
+      if (!container) {
+        console.warn('Chart container not found');
+        return;
+      }
+      
+      // Check if dashboard view is active (visible)
+      const dashboardView = document.getElementById('view-dashboard');
+      if (!dashboardView || !dashboardView.classList.contains('active')) {
+        // Dashboard not visible, skip initialization
+        return;
+      }
+      
+      // Ensure element is actually in the rendered DOM (not display:none)
+      if (!container.offsetParent && getComputedStyle(container).display === 'none') {
+        return;
+      }
+      
+      // Get container dimensions - use clientWidth which is more reliable
+      const width = container.clientWidth || 400;
+      const height = 300;
+      
+      if (width < 100) {
+        // Container too small, try again later
+        return;
+      }
+      
+      // Mark that initialization is in progress
+      chartInitializing = true;
+      
+      // Initial data (will be replaced by history)
+      const now = Date.now() / 1000;
+      const data = [
+        [now - 60, now],  // timestamps
+        [25, 25],         // Kiln temps
+        [0, 0]            // Set temps
+      ];
+      
+      const opts = {
+        width: width,
+        height: height,
+        scales: {
+          x: { time: true },
+          y: { auto: true }
+        },
+        series: [
+          {},
+          {
+            label: 'Kiln',
+            stroke: '#ff6b4a',
+            width: 2,
+            points: { show: false }
+          },
+          {
+            label: 'Target',
+            stroke: '#4ade80',
+            width: 2,
+            points: { show: false }
+          }
+        ],
+        axes: [
+          {
+            stroke: '#888',
+            grid: { stroke: '#2d2d3a', width: 1 },
+            ticks: { stroke: '#2d2d3a' },
+            values: (u, vals) => vals.map(v => {
+              const d = new Date(v * 1000);
+              return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            })
+          },
+          {
+            stroke: '#888',
+            grid: { stroke: '#2d2d3a', width: 1 },
+            ticks: { stroke: '#2d2d3a' },
+            values: (u, vals) => vals.map(v => Math.round(v) + '°C')
+          }
+        ],
+        legend: { show: true },
+        cursor: { show: true }
+      };
+      
+      // Use setTimeout to ensure DOM is fully rendered
+      setTimeout(() => {
+        try {
+          const el = document.getElementById('chartContainer');
+          if (!el) {
+            console.warn('Chart container not found');
+            chartInitializing = false;
+            return;
+          }
+          
+          el.innerHTML = '';
+          chart = new uPlot(opts, data, el);
+          chartInitializing = false;
+          console.log('Chart initialized successfully');
+          
+          // Handle resize
+          const resizeObserver = new ResizeObserver(() => {
+            if (chart && el.clientWidth > 0) {
+              chart.setSize({ width: el.clientWidth, height: 300 });
+            }
+          });
+          resizeObserver.observe(el);
+        } catch (e) {
+          console.error('Failed to initialize chart:', e);
+          chart = null;
+          chartInitializing = false;
+        }
+      }, 100);
+    }
+    
+    async function loadChartHistory() {
+      try {
+        const res = await fetch('/api/history');
+        
+        // Handle non-OK responses
+        if (!res.ok) {
+          console.warn('History API not available (status:', res.status, ')');
+          return;
+        }
+        
+        const data = await res.json();
+        
+        if (!data.data || !data.data.length) {
+          console.log('No history data available');
+          return;
+        }
+        
+        // Convert history to chart format
+        chartData.timestamps = [];
+        chartData.kilnTemps = [];
+        chartData.setTemps = [];
+        chartData.markers = [];
+        
+        for (const point of data.data) {
+          if (point.t && point.k !== undefined && point.s !== undefined) {
+            chartData.timestamps.push(point.t / 1000); // Convert ms to seconds
+            chartData.kilnTemps.push(point.k);
+            chartData.setTemps.push(point.s);
+            
+            if (point.m) {
+              chartData.markers.push({
+                x: point.t / 1000,
+                type: point.m.type,
+                value: point.m.value
+              });
+            }
+          }
+        }
+        
+        console.log('Loaded', chartData.timestamps.length, 'history points');
+        
+        if (chart) {
+          updateChartData();
+        }
+      } catch (e) {
+        console.warn('Failed to load chart history:', e.message);
+      }
+    }
+    
+    function addChartPoint(kilnTemp, setTemp) {
+      // Validate inputs
+      if (kilnTemp === undefined || setTemp === undefined || isNaN(kilnTemp) || isNaN(setTemp)) {
+        return;
+      }
+      
+      const now = Date.now() / 1000;
+      
+      chartData.timestamps.push(now);
+      chartData.kilnTemps.push(parseFloat(kilnTemp));
+      chartData.setTemps.push(parseFloat(setTemp));
+      
+      // Trim old data
+      while (chartData.timestamps.length > CHART_MAX_POINTS) {
+        chartData.timestamps.shift();
+        chartData.kilnTemps.shift();
+        chartData.setTemps.shift();
+      }
+      
+      updateChartData();
+    }
+    
+    function updateChartData() {
+      if (!chart) return;
+      
+      // Ensure all arrays have the same length
+      const len = chartData.timestamps.length;
+      if (len === 0) return;
+      
+      // Trim arrays to same length
+      const timestamps = chartData.timestamps.slice(-len);
+      const kilnTemps = chartData.kilnTemps.slice(-len);
+      const setTemps = chartData.setTemps.slice(-len);
+      
+      chart.setData([
+        timestamps,
+        kilnTemps,
+        setTemps
+      ]);
+    }
+
+    // =========================================================================
     // Firmware Upload
     // =========================================================================
     async function uploadFirmware() {
@@ -1505,8 +1749,10 @@
     // =========================================================================
     window.addEventListener('load', () => {
       initWsLogState();
-      navigate();
+      navigate();  // This will call initChart() when dashboard is shown
       connect();
+      // Load history after a short delay to ensure everything is ready
+      setTimeout(loadChartHistory, 500);
     });
   </script>
 </body>

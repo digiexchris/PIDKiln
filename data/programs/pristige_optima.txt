@@ -1,5 +1,0 @@
-# Pristige Optima PLA Burnout
-# Run dry cycle first at 150c for several hours
-# Program parameters target temperature in Celcius:minutes to achieve this temperature:dwelling time in minutes
-750:10:300
-550:30:480

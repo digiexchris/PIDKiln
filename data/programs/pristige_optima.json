@@ -1,0 +1,16 @@
+{
+  "description": "Pristige Optima PLA Burnout. Run dry cycle first at 150c for several hours",
+  "segments": [
+    {
+      "target": 750,
+      "ramp_time": { "hours": 0, "minutes": 10, "seconds": 0 },
+      "dwell_time": { "hours": 5, "minutes": 0, "seconds": 0 }
+    },
+    {
+      "target": 550,
+      "ramp_time": { "hours": 0, "minutes": 30, "seconds": 0 },
+      "dwell_time": { "hours": 8, "minutes": 0, "seconds": 0 }
+    }
+  ]
+}
+

@@ -516,26 +516,80 @@ Use WebSocket commands instead.
 
 ## Program File Format
 
-Programs are plain text files with temperature profiles.
+Programs are JSON files containing an array of temperature profile segments.
 
-**Format:** `target_temp:ramp_minutes:dwell_minutes`
+**Format (JSON):**
+```json
+{
+  "description": "Program description text",
+  "segments": [
+    {
+      "target": 93,
+      "ramp_time": { "hours": 1, "minutes": 0, "seconds": 0 },
+      "dwell_time": { "hours": 1, "minutes": 0, "seconds": 0 }
+    },
+    {
+      "target": 260,
+      "ramp_time": { "hours": 2, "minutes": 0, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 0, "seconds": 0 }
+    }
+  ]
+}
+```
+
+**Segment Fields:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `target` | number | Yes | Target temperature in °C (0-1350) |
+| `ramp_time` | object | Yes | Time to reach target temperature |
+| `dwell_time` | object | Yes | Time to hold at target temperature |
+
+**Time Object:**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `hours` | number | No | Hours (default: 0) |
+| `minutes` | number | No | Minutes (default: 0) |
+| `seconds` | number | No | Seconds (default: 0) |
 
 **Example:**
-```
-# Comment lines start with #
-# Cone 06 bisque firing
-93:60:60      # Ramp to 93°C over 60min, hold 60min (water smoking)
-260:120:0     # Ramp to 260°C over 120min
-537:120:30    # Ramp to 537°C over 120min, hold 30min (quartz inversion)
-1000:180:15   # Ramp to 1000°C over 180min, hold 15min
+```json
+{
+  "description": "Cone 06 bisque firing",
+  "segments": [
+    {
+      "target": 93,
+      "ramp_time": { "hours": 1, "minutes": 0, "seconds": 0 },
+      "dwell_time": { "hours": 1, "minutes": 0, "seconds": 0 }
+    },
+    {
+      "target": 260,
+      "ramp_time": { "hours": 2, "minutes": 0, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 0, "seconds": 0 }
+    },
+    {
+      "target": 537,
+      "ramp_time": { "hours": 2, "minutes": 0, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 30, "seconds": 0 }
+    },
+    {
+      "target": 1000,
+      "ramp_time": { "hours": 3, "minutes": 0, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 15, "seconds": 0 }
+    }
+  ]
+}
 ```
 
 **Constraints:**
 - Max file size: 10KB
 - Max filename: 20 characters
 - Allowed characters: A-Z, a-z, 0-9, `.`, `_`
-- Must end with `.txt`
+- Must end with `.json` (`.txt` format deprecated but supported for backwards compatibility)
 - Max temperature: 1350°C
+- All time values must be non-negative numbers
+
+**Legacy Text Format (Deprecated):**
+The old text format (`target_temp:ramp_minutes:dwell_minutes`) is still supported for backwards compatibility but should not be used for new programs.
 
 ---
 

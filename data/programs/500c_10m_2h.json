@@ -1,0 +1,11 @@
+{
+  "description": "Heat to 500c over 10 min, heat to 500c over 10 mins, soak for 2 hours",
+  "segments": [
+    {
+      "target": 500,
+      "ramp_time": { "hours": 0, "minutes": 10, "seconds": 0 },
+      "dwell_time": { "hours": 2, "minutes": 0, "seconds": 0 }
+    }
+  ]
+}
+

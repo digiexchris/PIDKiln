@@ -26,6 +26,7 @@
 const express = require('express');
 const http = require('http');
 const path = require('path');
+const fs = require('fs');
 const multer = require('multer');
 const { WebSocketServer } = require('ws');
 const {
@@ -71,6 +72,20 @@ wss.on('connection', (ws) => {
       console.log('WebSocket received:', msg);
       
       if (msg.type === 'command') {
+        // For load command, read program from filesystem if needed
+        if (msg.action === 'load' && msg.program) {
+          const filename = msg.program;
+          const filePath = path.join(PROGRAMS_DIR, filename);
+          
+          if (fs.existsSync(filePath)) {
+            try {
+              msg.content = fs.readFileSync(filePath, 'utf8');
+            } catch (e) {
+              console.error(`Error reading program ${filename}:`, e);
+            }
+          }
+        }
+        
         const result = executeCommand(msg.action, msg);
         ws.send(JSON.stringify({
           type: 'ack',
@@ -161,13 +176,45 @@ app.get('/PIDKiln_vars.json', (req, res) => {
  * Programs directory listing
  */
 app.get('/programs/', (req, res) => {
-  res.json({
-    files: Object.keys(programs).map(name => ({
-      name,
-      size: programs[name].length,
-      description: extractDescription(programs[name])
-    }))
-  });
+  try {
+    const files = [];
+    
+    // Read from filesystem
+    if (fs.existsSync(PROGRAMS_DIR)) {
+      const filenames = fs.readdirSync(PROGRAMS_DIR)
+        .filter(f => f.endsWith('.json') || f.endsWith('.txt'));
+      
+      for (const filename of filenames) {
+        try {
+          const filePath = path.join(PROGRAMS_DIR, filename);
+          const content = fs.readFileSync(filePath, 'utf8');
+          files.push({
+            name: filename,
+            size: content.length,
+            description: extractDescription(content)
+          });
+        } catch (e) {
+          console.error(`Error reading ${filename}:`, e);
+        }
+      }
+    }
+    
+    // Also include in-memory programs (for backwards compatibility)
+    for (const [name, content] of Object.entries(programs)) {
+      if (!files.find(f => f.name === name)) {
+        files.push({
+          name,
+          size: content.length,
+          description: extractDescription(content)
+        });
+      }
+    }
+    
+    res.json({ files });
+  } catch (e) {
+    console.error('Error listing programs:', e);
+    res.status(500).json({ error: 'Failed to list programs' });
+  }
 });
 
 /**
@@ -178,6 +225,17 @@ app.get('/programs/:filename', (req, res) => {
   if (filename === 'index.html') {
     return res.redirect('/programs/');
   }
+  
+  // Try filesystem first
+  const filePath = path.join(PROGRAMS_DIR, filename);
+  if (fs.existsSync(filePath)) {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const contentType = filename.endsWith('.json') ? 'application/json' : 'text/plain';
+    res.type(contentType).send(content);
+    return;
+  }
+  
+  // Fallback to in-memory
   if (programs[filename]) {
     res.type('text/plain').send(programs[filename]);
   } else {
@@ -199,13 +257,32 @@ app.post('/upload', upload.single('upload'), (req, res) => {
   if (filename.length > 20) {
     return res.status(400).send('Filename too long (max 20 chars)');
   }
-  if (!/^[A-Za-z0-9._]+\.txt$/i.test(filename)) {
-    return res.status(400).send('Invalid filename');
+  if (!/^[A-Za-z0-9._]+\.(json|txt)$/i.test(filename)) {
+    return res.status(400).send('Invalid filename (must end with .json or .txt)');
   }
   
-  programs[filename] = content;
-  console.log(`Uploaded program: ${filename} (${content.length} bytes)`);
-  res.send('OK');
+  // Validate JSON if .json file
+  if (filename.endsWith('.json')) {
+    try {
+      JSON.parse(content);
+    } catch (e) {
+      return res.status(400).send('Invalid JSON format');
+    }
+  }
+  
+  // Save to filesystem
+  try {
+    if (!fs.existsSync(PROGRAMS_DIR)) {
+      fs.mkdirSync(PROGRAMS_DIR, { recursive: true });
+    }
+    const filePath = path.join(PROGRAMS_DIR, filename);
+    fs.writeFileSync(filePath, content, 'utf8');
+    console.log(`Uploaded program: ${filename} (${content.length} bytes)`);
+    res.send('OK');
+  } catch (e) {
+    console.error('Error saving program:', e);
+    res.status(500).send('Failed to save program');
+  }
 });
 
 /**
@@ -216,6 +293,23 @@ app.post('/delete', (req, res) => {
   if (!filename) {
     return res.status(400).send('No filename provided');
   }
+  
+  // Try filesystem first
+  const filePath = path.join(PROGRAMS_DIR, filename);
+  if (fs.existsSync(filePath)) {
+    try {
+      fs.unlinkSync(filePath);
+      console.log(`Deleted program: ${filename}`);
+      res.send('OK');
+      return;
+    } catch (e) {
+      console.error('Error deleting program:', e);
+      res.status(500).send('Failed to delete program');
+      return;
+    }
+  }
+  
+  // Fallback to in-memory
   if (programs[filename]) {
     delete programs[filename];
     console.log(`Deleted program: ${filename}`);
@@ -430,6 +524,7 @@ app.post('/programs/:filename', (req, res) => {
 
 // Data directory: use DATA_DIR env var (for Docker) or default to ../data/
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
+const PROGRAMS_DIR = path.join(DATA_DIR, 'programs');
 
 // Serve files from data directory
 app.use(express.static(DATA_DIR));
@@ -448,6 +543,17 @@ app.get('*', (req, res, next) => {
 // =============================================================================
 
 function extractDescription(content) {
+  // Try JSON format first
+  try {
+    const program = JSON.parse(content);
+    if (program.description) {
+      return program.description.substring(0, 50);
+    }
+  } catch (e) {
+    // Not JSON, try text format
+  }
+  
+  // Text format: look for comment lines
   const lines = content.split('\n');
   for (const line of lines) {
     if (line.startsWith('#') && line.length > 2) {

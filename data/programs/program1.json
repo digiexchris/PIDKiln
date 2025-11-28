@@ -1,0 +1,41 @@
+{
+  "description": "Short, clear description of the program. Full description on as many lines you wish - just remember about default program limit - 10KiB",
+  "segments": [
+    {
+      "target": 95,
+      "ramp_time": { "hours": 0, "minutes": 30, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 20, "seconds": 0 }
+    },
+    {
+      "target": 134,
+      "ramp_time": { "hours": 0, "minutes": 20, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 30, "seconds": 0 }
+    },
+    {
+      "target": 97,
+      "ramp_time": { "hours": 1, "minutes": 20, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 30, "seconds": 0 }
+    },
+    {
+      "target": 360,
+      "ramp_time": { "hours": 3, "minutes": 0, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 20, "seconds": 0 }
+    },
+    {
+      "target": 600,
+      "ramp_time": { "hours": 1, "minutes": 40, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 30, "seconds": 0 }
+    },
+    {
+      "target": 970,
+      "ramp_time": { "hours": 2, "minutes": 0, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 50, "seconds": 0 }
+    },
+    {
+      "target": 600,
+      "ramp_time": { "hours": 1, "minutes": 30, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 0, "seconds": 0 }
+    }
+  ]
+}
+

@@ -1,13 +1,15 @@
 # PIDKiln Simulator Docker Compose
 #
 # Usage:
-#   docker-compose up --build      # Build and start simulator
-#   docker-compose up              # Start simulator (after initial build)
+#   docker-compose up --build      # Build and start simulator (first time)
+#   docker-compose up              # Start simulator
 #   docker-compose down            # Stop simulator
 #   docker-compose run --rm sim npm <command>  # Run npm commands
 #
-# The frontend files in ../data/ are mounted as a volume, so changes
-# to HTML/CSS/JS are reflected immediately without rebuilding.
+# Both frontend (../data/) and backend (server.js, mock-data.js) files are
+# mounted as volumes. Changes are reflected immediately - just restart the
+# container (Ctrl+C, then docker-compose up) for backend changes.
+# Frontend changes (HTML/CSS/JS) are live without restart.
 
 services:
   sim:
@@ -17,6 +19,9 @@ services:
     volumes:
       # Mount the data directory for live frontend development
       - ../data:/frontend:ro
+      # Mount simulator source for live backend development (no rebuild needed)
+      - ./server.js:/app/server.js:ro
+      - ./mock-data.js:/app/mock-data.js:ro
     environment:
       - NODE_ENV=development
       - DATA_DIR=/frontend

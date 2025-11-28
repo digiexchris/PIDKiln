@@ -108,27 +108,26 @@ Added firmware upload functionality to Debug page.
 
 ---
 
-## Step 7a: Dashboard Temperature Chart [PENDING]
+## Step 7a: Dashboard Temperature Chart [COMPLETE]
 
-Add live temperature visualization to Dashboard using uPlot.
+Added live temperature visualization to Dashboard using uPlot.
 
 **Library:** uPlot v1.6.31 (~45KB JS + 2KB CSS)
-- Download `uPlot.iife.min.js` and `uPlot.min.css` to `data/`
-- No npm/build required
 
-**Data Source:** `GET /api/history` - Returns 24h of temperature data with event markers
+**Completed:**
+- [x] Downloaded `uPlot.iife.min.js` and `uPlot.min.css` to `data/`
+- [x] Added `<link>` and `<script>` tags to `index.html`
+- [x] Added chart container to Dashboard
+- [x] On load, fetch `/api/history` to populate chart with historical data
+- [x] Plot kiln temp (orange) vs set temp (green dashed) over time
+- [x] Update in real-time from WebSocket state messages
+- [x] Time-based X axis with HH:MM format
+- [x] Responsive sizing with ResizeObserver
+- [x] Dark theme matching the SPA
 
-**Tasks:**
-- [ ] Download uPlot files to `data/`
-- [ ] Add `<link>` and `<script>` tags to `index.html`
-- [ ] Add chart container to Dashboard
-- [ ] On load, fetch `/api/history` to populate chart with historical data
-- [ ] Plot kiln temp vs set temp over time
-- [ ] Update in real-time from WebSocket state messages
-- [ ] Show event markers (program start/stop, step changes)
-- [ ] Show program profile overlay (target curve) when program loaded
-- [ ] Time-based X axis
-- [ ] Responsive sizing
+**Pending enhancements (future):**
+- [ ] Show event markers on chart (program start/stop, step changes)
+- [ ] Show program profile overlay when program loaded
 
 ---
 
@@ -195,6 +194,56 @@ Allow starting a program from a specific segment or time offset.
 - [ ] Send start command with optional `segment` or `minute` parameter
 - [ ] Show current start point in program status display
 - [ ] Update chart to show actual vs planned timeline
+
+---
+
+## Step 7e: UI-Based Program Editor [PENDING]
+
+Replace text editor with a visual segment-based editor for JSON program format.
+
+**Use Cases:**
+- Easier program creation without JSON syntax knowledge
+- Visual feedback for program structure
+- Validation and error prevention
+
+**Tasks:**
+- [ ] Replace text editor with segment list UI
+- [ ] Add/Remove segment buttons
+- [ ] Segment editor widget with:
+  - Target temperature input (0-1350°C)
+  - Ramp time inputs (hours, minutes, seconds)
+  - Dwell time inputs (hours, minutes, seconds)
+- [ ] Program description field
+- [ ] Real-time validation (temperature range, time values)
+- [ ] Preview total program duration
+- [ ] Save as JSON format
+- [ ] Import/export JSON (for backup/sharing)
+- [ ] Optional: Visual timeline preview
+
+**UI Layout:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Edit Program: program1.json                    [Save] [Cancel]│
+├─────────────────────────────────────────────────────────────┤
+│  Description: [________________________________]            │
+│                                                             │
+│  Segments:                                    [+ Add Segment]│
+│  ┌───────────────────────────────────────────────────────┐ │
+│  │ Segment 1                              [↑] [↓] [×]    │ │
+│  │ Target: [500] °C                                       │ │
+│  │ Ramp:   [0]h [30]m [0]s                               │ │
+│  │ Dwell:  [0]h [20]m [0]s                               │ │
+│  └───────────────────────────────────────────────────────┘ │
+│  ┌───────────────────────────────────────────────────────┐ │
+│  │ Segment 2                              [↑] [↓] [×]    │ │
+│  │ Target: [750] °C                                       │ │
+│  │ Ramp:   [1]h [0]m [0]s                                │ │
+│  │ Dwell:  [0]h [15]m [0]s                               │ │
+│  └───────────────────────────────────────────────────────┘ │
+│                                                             │
+│  Total Duration: 1h 45m 0s                                 │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 

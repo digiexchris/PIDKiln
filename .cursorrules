@@ -2,3 +2,5 @@
 - Do not apologize or say sorry
 - Be direct and concise
 - State corrections matter-of-factly without hedging
+- Avoid adding uneccessary comments unless it is important for readability
+- Avoid removing existing comments unless they are no longer relevant

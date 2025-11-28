@@ -1,0 +1,26 @@
+{
+  "description": "Second program short description. Some additional informations about the second program",
+  "segments": [
+    {
+      "target": 10,
+      "ramp_time": { "hours": 0, "minutes": 20, "seconds": 0 },
+      "dwell_time": { "hours": 3, "minutes": 20, "seconds": 0 }
+    },
+    {
+      "target": 99,
+      "ramp_time": { "hours": 0, "minutes": 30, "seconds": 0 },
+      "dwell_time": { "hours": 1, "minutes": 40, "seconds": 0 }
+    },
+    {
+      "target": 1340,
+      "ramp_time": { "hours": 3, "minutes": 20, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 10, "seconds": 0 }
+    },
+    {
+      "target": 700,
+      "ramp_time": { "hours": 2, "minutes": 0, "seconds": 0 },
+      "dwell_time": { "hours": 1, "minutes": 40, "seconds": 0 }
+    }
+  ]
+}
+

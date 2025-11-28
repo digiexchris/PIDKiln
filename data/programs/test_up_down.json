@@ -1,0 +1,16 @@
+{
+  "description": "Program to test up and down temp. change",
+  "segments": [
+    {
+      "target": 45,
+      "ramp_time": { "hours": 0, "minutes": 5, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 5, "seconds": 0 }
+    },
+    {
+      "target": 30,
+      "ramp_time": { "hours": 0, "minutes": 5, "seconds": 0 },
+      "dwell_time": { "hours": 0, "minutes": 5, "seconds": 0 }
+    }
+  ]
+}
+

@@ -11,7 +11,9 @@ docker-compose up --build
 
 Then open http://localhost:3000 in your browser.
 
-The `data/` directory is mounted as a volume, so frontend changes (HTML/CSS/JS) are reflected immediately without rebuilding the container.
+**Live development:**
+- Frontend changes (`data/` directory: HTML/CSS/JS) are reflected immediately on refresh
+- Backend changes (`server.js`, `mock-data.js`) require a container restart: Ctrl+C, then `docker-compose up`
 
 ## Docker Commands
 
