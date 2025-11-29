@@ -4,13 +4,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node build.js",
+    "generate": "flatc --ts --gen-object-api -o src/generated ../proto/furnace.fbs && node -e \"const fs=require('fs'),p=require('path'),d='src/generated';const walk=(dir)=>fs.readdirSync(dir).forEach(f=>{const fp=p.join(dir,f);fs.statSync(fp).isDirectory()?walk(fp):fp.endsWith('.ts')&&!fs.readFileSync(fp,'utf8').startsWith('// @ts-nocheck')&&fs.writeFileSync(fp,'// @ts-nocheck\\n'+fs.readFileSync(fp,'utf8'))});walk(d)\"",
+    "build": "npm run generate && node build.js",
     "watch": "node build.js --watch",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "flatbuffers": "24.12.23"
+  },
   "devDependencies": {
-    "esbuild": "^0.20.0",
-    "typescript": "^5.3.0"
+    "esbuild": "0.20.2",
+    "typescript": "5.9.3"
   }
 }
 

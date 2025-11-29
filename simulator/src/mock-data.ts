@@ -3,29 +3,113 @@
  * Simulates ESP32 responses for frontend development
  */
 
-const EventEmitter = require('events');
+import { EventEmitter } from 'events';
 
 // Event emitter for state changes
-const stateEmitter = new EventEmitter();
+export const stateEmitter = new EventEmitter();
 
 // Program status constants (matches pidkiln.h)
-const PROGRAM_STATUS = {
+export const PROGRAM_STATUS = {
   NONE: 0,
   READY: 1,
   RUNNING: 2,
   PAUSED: 3,
   STOPPED: 4,
-  ABORTED: 5,
+  ERROR: 5,
   WAITING_THRESHOLD: 6,
-  FINISHED: 7,
-  FAILED: 8
-};
+  FINISHED: 7
+} as const;
+
+export type ProgramStatusCode = typeof PROGRAM_STATUS[keyof typeof PROGRAM_STATUS];
+
+// Types
+interface SimulatorState {
+  programStatus: ProgramStatusCode;
+  loadedProgram: string | null;
+  loadedProgramContent: string | null;
+  kilnTemp: number;
+  setTemp: number;
+  envTemp: number;
+  caseTemp: number;
+  heatPercent: number;
+  tempChange: number;
+  currentStep: number;
+  totalSteps: number;
+  programStartTime: Date | null;
+  programEndTime: Date | null;
+}
+
+interface HistoryMarker {
+  type: string;
+  value?: string | number | Record<string, unknown>;
+}
+
+interface HistoryPoint {
+  t: number;
+  k: number;
+  s: number;
+  p: number;
+  e: number;
+  c: number;
+  m?: HistoryMarker;
+}
+
+interface TimeValue {
+  hours?: number;
+  minutes?: number;
+  seconds?: number;
+}
+
+interface ProgramSegment {
+  target: number;
+  ramp_time: TimeValue;
+  dwell_time: TimeValue;
+}
+
+interface ParsedSegment {
+  target: number;
+  ramp: number;
+  dwell: number;
+}
+
+interface SegmentTiming {
+  segment: number;
+  startMinute: number;
+  endMinute: number;
+  rampEnd: number;
+  target: number;
+  ramp: number;
+  dwell: number;
+}
+
+interface ProgramTiming {
+  totalMinutes: number;
+  segmentTimes: SegmentTiming[];
+}
+
+interface CommandResult {
+  success: boolean;
+  error?: string;
+  temperature?: number;
+  startSegment?: number;
+  totalSegments?: number;
+}
+
+interface CommandParams {
+  program?: string;
+  filename?: string;
+  content?: string;
+  segment?: number | string;
+  minute?: number | string;
+  temperature?: number | string;
+  temp?: number | string;
+}
 
 // Simulator state
-const state = {
+export const state: SimulatorState = {
   programStatus: PROGRAM_STATUS.NONE,
   loadedProgram: null,
-  loadedProgramContent: null,  // Store program content when loaded
+  loadedProgramContent: null,
   kilnTemp: 25.5,
   setTemp: 0,
   envTemp: 22.3,
@@ -43,28 +127,17 @@ const HISTORY_INTERVAL_MS = 10000; // 10 seconds
 const HISTORY_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 const HISTORY_MAX_POINTS = Math.ceil(HISTORY_MAX_AGE_MS / HISTORY_INTERVAL_MS);
 
-// History data structure
-// Each point: { t: timestamp (ms), k: kiln_temp, s: set_temp, p: power, m?: marker }
-// Marker types:
-//   - 'start'    : program started
-//   - 'stop'     : program stopped by user
-//   - 'abort'    : program aborted
-//   - 'finish'   : program completed successfully
-//   - 'pause'    : program paused
-//   - 'resume'   : program resumed
-//   - 'target'   : target temperature changed (manual set_temp)
-//   - 'step'     : program step completed (value = step number)
-const temperatureHistory = [];
-let historyInterval = null;
+const temperatureHistory: HistoryPoint[] = [];
+let historyInterval: ReturnType<typeof setInterval> | null = null;
 
 // Simulation intervals
-let simulationInterval = null;
-let broadcastInterval = null;
+let simulationInterval: ReturnType<typeof setInterval> | null = null;
+let broadcastInterval: ReturnType<typeof setInterval> | null = null;
 
 /**
  * Format date for display
  */
-function formatTime(d) {
+function formatTime(d: Date | null): string {
   if (!d) return '-';
   return d.toLocaleString('en-GB', { 
     year: 'numeric', month: '2-digit', day: '2-digit',
@@ -79,8 +152,8 @@ function formatTime(d) {
 /**
  * Record a history point
  */
-function recordHistoryPoint(marker = null) {
-  const point = {
+function recordHistoryPoint(marker: HistoryMarker | null = null): void {
+  const point: HistoryPoint = {
     t: Date.now(),
     k: parseFloat(state.kilnTemp.toFixed(1)),
     s: parseFloat(state.setTemp.toFixed(1)),
@@ -110,8 +183,8 @@ function recordHistoryPoint(marker = null) {
 /**
  * Add a marker to history (program events)
  */
-function addHistoryMarker(type, value = null) {
-  const marker = { type };
+function addHistoryMarker(type: string, value: string | number | Record<string, unknown> | null = null): void {
+  const marker: HistoryMarker = { type };
   if (value !== null) {
     marker.value = value;
   }
@@ -121,7 +194,7 @@ function addHistoryMarker(type, value = null) {
 /**
  * Start history recording (called on simulator init)
  */
-function startHistoryRecording() {
+function startHistoryRecording(): void {
   if (historyInterval) return;
   
   historyInterval = setInterval(() => {
@@ -135,7 +208,7 @@ function startHistoryRecording() {
 /**
  * Get temperature history
  */
-function getHistory() {
+export function getHistory(): HistoryPoint[] {
   return temperatureHistory;
 }
 
@@ -143,7 +216,7 @@ function getHistory() {
  * Generate initial history data (for demo purposes)
  * Creates ~1 hour of simulated past data
  */
-function generateInitialHistory() {
+function generateInitialHistory(): void {
   const now = Date.now();
   const oneHourAgo = now - 60 * 60 * 1000;
   
@@ -168,7 +241,7 @@ function generateInitialHistory() {
 /**
  * Get current state as object (for WebSocket broadcast)
  */
-function getState() {
+export function getState(): Record<string, unknown> {
   const now = new Date();
   return {
     program_status: state.programStatus,
@@ -189,7 +262,7 @@ function getState() {
 /**
  * Get log data point (for WebSocket broadcast during program run)
  */
-function getLogPoint() {
+export function getLogPoint(): Record<string, unknown> {
   return {
     timestamp: new Date().toISOString(),
     kiln_temp: parseFloat(state.kilnTemp.toFixed(1)),
@@ -201,21 +274,21 @@ function getLogPoint() {
 /**
  * Emit state change event
  */
-function emitStateChange() {
+function emitStateChange(): void {
   stateEmitter.emit('state', getState());
 }
 
 /**
  * Emit log data point
  */
-function emitLogPoint() {
+function emitLogPoint(): void {
   stateEmitter.emit('log', getLogPoint());
 }
 
 /**
  * Start simulation (called when program starts)
  */
-function startSimulation() {
+export function startSimulation(): void {
   if (simulationInterval) return;
   
   state.programStartTime = new Date();
@@ -229,18 +302,18 @@ function startSimulation() {
 /**
  * Start the simulation loop (handles both heating and cooling)
  */
-function startSimulationLoop() {
+function startSimulationLoop(): void {
   if (simulationInterval) return;
   
   // Simulation tick - update temperatures
   simulationInterval = setInterval(() => {
     const isRunning = state.programStatus === PROGRAM_STATUS.RUNNING;
-    const isCooling = [
+    const coolingStatuses: ProgramStatusCode[] = [
       PROGRAM_STATUS.STOPPED,
-      PROGRAM_STATUS.ABORTED,
-      PROGRAM_STATUS.FINISHED,
-      PROGRAM_STATUS.FAILED
-    ].includes(state.programStatus);
+      PROGRAM_STATUS.ERROR,
+      PROGRAM_STATUS.FINISHED
+    ];
+    const isCooling = coolingStatuses.includes(state.programStatus);
     
     if (isRunning) {
       // Simulate heating towards set temperature
@@ -298,7 +371,7 @@ function startSimulationLoop() {
 /**
  * Stop the simulation loop completely
  */
-function stopSimulationLoop() {
+export function stopSimulationLoop(): void {
   if (simulationInterval) {
     clearInterval(simulationInterval);
     simulationInterval = null;
@@ -312,7 +385,7 @@ function stopSimulationLoop() {
 /**
  * Stop program but continue cooling simulation
  */
-function stopSimulation() {
+export function stopSimulation(): void {
   state.heatPercent = 0;
   state.setTemp = 0;  // Reset target temperature
   
@@ -333,7 +406,7 @@ function stopSimulation() {
 /**
  * Convert time object to total minutes
  */
-function timeToMinutes(time) {
+function timeToMinutes(time: TimeValue): number {
   return (time.hours || 0) * 60 + (time.minutes || 0) + (time.seconds || 0) / 60;
 }
 
@@ -341,10 +414,10 @@ function timeToMinutes(time) {
  * Parse a program file (JSON format)
  * Returns array of { target, ramp, dwell } objects (ramp/dwell in minutes)
  */
-function parseProgram(content) {
+export function parseProgram(content: string): ParsedSegment[] {
   try {
     // Try to parse as JSON first
-    const program = JSON.parse(content);
+    const program = JSON.parse(content) as { segments?: ProgramSegment[]; description?: string };
     
     if (!program.segments || !Array.isArray(program.segments)) {
       throw new Error('Invalid program format: missing segments array');
@@ -355,9 +428,9 @@ function parseProgram(content) {
       ramp: timeToMinutes(seg.ramp_time),
       dwell: timeToMinutes(seg.dwell_time)
     }));
-  } catch (e) {
+  } catch {
     // Fallback to old text format for backwards compatibility
-    const segments = [];
+    const segments: ParsedSegment[] = [];
     const lines = content.split('\n');
     
     for (const line of lines) {
@@ -386,9 +459,9 @@ function parseProgram(content) {
  * Calculate program timing
  * Returns { totalMinutes, segmentTimes: [{ start, end, segment }] }
  */
-function calculateProgramTiming(segments) {
+export function calculateProgramTiming(segments: ParsedSegment[]): ProgramTiming {
   let currentMinute = 0;
-  const segmentTimes = [];
+  const segmentTimes: SegmentTiming[] = [];
   
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i];
@@ -417,7 +490,7 @@ function calculateProgramTiming(segments) {
  * Find start point from minute offset
  * Returns { segment, minuteIntoSegment, startTemp }
  */
-function findStartPointByMinute(segments, minute) {
+function findStartPointByMinute(segments: ParsedSegment[], minute: number): { segment: number; minuteIntoSegment: number; segmentInfo: SegmentTiming } | null {
   const timing = calculateProgramTiming(segments);
   
   for (const seg of timing.segmentTimes) {
@@ -447,16 +520,16 @@ function findStartPointByMinute(segments, minute) {
  * Execute a command (from WebSocket or HTTP)
  * Returns { success: boolean, error?: string }
  */
-function executeCommand(action, params = {}) {
+export function executeCommand(action: string, params: CommandParams = {}): CommandResult {
   switch (action) {
-    case 'start':
+    case 'start': {
       if (state.programStatus === PROGRAM_STATUS.NONE) {
         return { success: false, error: 'No program loaded' };
       }
       
       // Parse program to handle segment/minute parameters
       // Use stored content or fallback to in-memory programs
-      const programContent = state.loadedProgramContent || programs[state.loadedProgram];
+      const programContent = state.loadedProgramContent || (state.loadedProgram ? programs[state.loadedProgram] : null);
       if (!programContent) {
         return { success: false, error: 'Program not found' };
       }
@@ -466,11 +539,11 @@ function executeCommand(action, params = {}) {
       
       // Determine start point
       let startSegment = 1;
-      let startInfo = null;
+      let startInfo: Record<string, unknown> | null = null;
       
       if (params.segment !== undefined) {
         // Start from specific segment
-        const seg = parseInt(params.segment, 10);
+        const seg = parseInt(String(params.segment), 10);
         if (isNaN(seg) || seg < 1 || seg > segments.length) {
           return { success: false, error: `Invalid segment. Must be 1-${segments.length}` };
         }
@@ -478,7 +551,7 @@ function executeCommand(action, params = {}) {
         startInfo = { fromSegment: seg };
       } else if (params.minute !== undefined) {
         // Start from specific minute
-        const minute = parseInt(params.minute, 10);
+        const minute = parseInt(String(params.minute), 10);
         if (isNaN(minute) || minute < 0 || minute >= timing.totalMinutes) {
           return { success: false, error: `Invalid minute. Program duration is ${timing.totalMinutes} minutes` };
         }
@@ -498,9 +571,10 @@ function executeCommand(action, params = {}) {
         state.setTemp = segments[startSegment - 1].target;
       }
       
-      addHistoryMarker('start', startInfo || state.loadedProgram);
+      addHistoryMarker('start', startInfo || state.loadedProgram || undefined);
       startSimulation();
       return { success: true, startSegment, totalSegments: segments.length };
+    }
       
     case 'resume':
       if (state.programStatus !== PROGRAM_STATUS.PAUSED) {
@@ -539,7 +613,7 @@ function executeCommand(action, params = {}) {
       }
       
       state.loadedProgram = filename;
-      state.loadedProgramContent = programContent;  // Store content for later use
+      state.loadedProgramContent = programContent;
       state.programStatus = PROGRAM_STATUS.READY;
       state.currentStep = 0;
       
@@ -564,16 +638,17 @@ function executeCommand(action, params = {}) {
       return { success: true };
       
     case 'set_temp':
-    case 'setTemp':
-      const temp = parseFloat(params.temperature ?? params.temp);
+    case 'setTemp': {
+      const temp = parseFloat(String(params.temperature ?? params.temp));
       if (isNaN(temp)) {
         return { success: false, error: 'Invalid temperature value' };
       }
-      if (temp < preferences.MIN_Temperature || temp > preferences.MAX_Temperature) {
-        return { success: false, error: `Temperature must be between ${preferences.MIN_Temperature} and ${preferences.MAX_Temperature}` };
+      const minTemp = Number(preferences.MIN_Temperature);
+      const maxTemp = Number(preferences.MAX_Temperature);
+      if (temp < minTemp || temp > maxTemp) {
+        return { success: false, error: `Temperature must be between ${minTemp} and ${maxTemp}` };
       }
       
-      const prevTemp = state.setTemp;
       state.setTemp = temp;
       
       // If no program running, start manual hold mode
@@ -581,13 +656,13 @@ function executeCommand(action, params = {}) {
           state.programStatus === PROGRAM_STATUS.READY ||
           state.programStatus === PROGRAM_STATUS.STOPPED ||
           state.programStatus === PROGRAM_STATUS.FINISHED ||
-          state.programStatus === PROGRAM_STATUS.ABORTED) {
+          state.programStatus === PROGRAM_STATUS.ERROR) {
         state.loadedProgram = '(manual hold)';
         state.programStatus = PROGRAM_STATUS.RUNNING;
         state.currentStep = 1;
         state.totalSteps = 1;
         state.programStartTime = new Date();
-        state.programEndTime = null; // Indefinite hold
+        state.programEndTime = null;
         addHistoryMarker('start', '(manual hold)');
         startSimulation();
       } else {
@@ -597,6 +672,7 @@ function executeCommand(action, params = {}) {
       
       emitStateChange();
       return { success: true, temperature: temp };
+    }
       
     default:
       return { success: false, error: 'Unknown action' };
@@ -606,28 +682,30 @@ function executeCommand(action, params = {}) {
 /**
  * Record a step completion marker
  */
-function recordStepComplete(stepNumber) {
+export function recordStepComplete(stepNumber: number): void {
   addHistoryMarker('step', stepNumber);
 }
 
 /**
  * Generate PIDKiln_vars.json response (legacy format)
  */
-function getVarsJson() {
+export function getVarsJson(): Record<string, unknown> {
   const s = getState();
   return {
     program_status: s.program_status,
-    log_file: s.program_status >= PROGRAM_STATUS.RUNNING ? `/logs/${new Date().toISOString().slice(0,10)}_${state.loadedProgram.replace('.json', '')}.csv` : '',
+    log_file: (s.program_status as number) >= PROGRAM_STATUS.RUNNING && state.loadedProgram
+      ? `/logs/${new Date().toISOString().slice(0,10)}_${state.loadedProgram.replace('.json', '')}.csv`
+      : '',
     pidkiln: [
-      { html_id: '#kiln_temp', value: s.kiln_temp.toString() },
-      { html_id: '#set_temp', value: s.set_temp.toString() },
-      { html_id: '#env_temp', value: s.env_temp.toString() },
-      { html_id: '#case_temp', value: s.case_temp.toString() },
+      { html_id: '#kiln_temp', value: String(s.kiln_temp) },
+      { html_id: '#set_temp', value: String(s.set_temp) },
+      { html_id: '#env_temp', value: String(s.env_temp) },
+      { html_id: '#case_temp', value: String(s.case_temp) },
       { html_id: '#prog_start', value: s.prog_start },
       { html_id: '#prog_end', value: s.prog_end },
       { html_id: '#curr_time', value: s.curr_time },
-      { html_id: '#heat_time', value: s.heat_percent.toString() },
-      { html_id: '#temp_change', value: s.temp_change.toString() },
+      { html_id: '#heat_time', value: String(s.heat_percent) },
+      { html_id: '#temp_change', value: String(s.temp_change) },
       { html_id: '#step', value: s.step }
     ]
   };
@@ -637,12 +715,12 @@ function getVarsJson() {
  * Sample program files (stored in memory as fallback)
  * Note: Programs are now JSON format and primarily loaded from filesystem
  */
-const programs = {};
+export const programs: Record<string, string> = {};
 
 /**
  * Sample log files
  */
-function generateLogCsv() {
+function generateLogCsv(): string {
   const lines = ['Date,Temperature,Set,Power'];
   const now = Date.now();
   for (let i = 0; i < 100; i++) {
@@ -655,7 +733,7 @@ function generateLogCsv() {
   return lines.join('\n');
 }
 
-const logs = {
+export const logs: Record<string, string> = {
   '2024-01-15_program1.csv': generateLogCsv(),
   '2024-01-14_test.csv': generateLogCsv(),
   '2024-01-10_bisque.csv': generateLogCsv()
@@ -664,7 +742,7 @@ const logs = {
 /**
  * Default preferences (parsed from pidkiln.conf format)
  */
-const preferences = {
+export const preferences: Record<string, string | number> = {
   WiFi_SSID: 'MyNetwork',
   WiFi_Password: 'secret123',
   WiFi_Retry_cnt: 9,
@@ -702,7 +780,7 @@ const preferences = {
 /**
  * Debug/system info
  */
-const debugInfo = {
+export const debugInfo: Record<string, string> = {
   CHIP_ID: 'ESP32-D0WDQ6',
   CHIP_REV: '1',
   CHIP_REVF: '1',
@@ -747,26 +825,3 @@ setInterval(() => {
   emitStateChange();
 }, 1000);
 
-module.exports = {
-  PROGRAM_STATUS,
-  state,
-  stateEmitter,
-  getState,
-  getLogPoint,
-  getVarsJson,
-  executeCommand,
-  programs,
-  logs,
-  preferences,
-  debugInfo,
-  startSimulation,
-  stopSimulation,
-  stopSimulationLoop,
-  // History functions
-  getHistory,
-  addHistoryMarker,
-  recordStepComplete,
-  // Program parsing
-  parseProgram,
-  calculateProgramTiming
-};

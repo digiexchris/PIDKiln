@@ -4,25 +4,37 @@
 
 FROM node:22-alpine
 
+# Install flatc compiler for FlatBuffers code generation
+RUN apk add --no-cache flatbuffers-dev
+
 WORKDIR /app
 
-# Copy and install simulator dependencies
-COPY simulator/package.json ./simulator/
+# Copy schema file (shared between frontend and simulator)
+COPY proto/ ./proto/
+
+# Copy and install simulator dependencies (npm ci verifies integrity hashes)
+COPY simulator/package.json simulator/package-lock.json ./simulator/
 WORKDIR /app/simulator
-RUN npm install
+RUN npm ci
 
-# Copy and install frontend dependencies
+# Copy and install frontend dependencies (npm ci verifies integrity hashes)
 WORKDIR /app
-COPY frontend/package.json ./frontend/
+COPY frontend/package.json frontend/package-lock.json ./frontend/
 WORKDIR /app/frontend
-RUN npm install
+RUN npm ci
 
-# Copy application code (will be overridden by volume mounts in dev)
+# Copy simulator source and build
 WORKDIR /app
-COPY simulator/server.js simulator/mock-data.js ./simulator/
+COPY simulator/build.js simulator/tsconfig.json ./simulator/
+COPY simulator/src/ ./simulator/src/
+
+WORKDIR /app/simulator
+RUN npm run build
+
+# Copy frontend source and build
+WORKDIR /app
 COPY frontend/ ./frontend/
 
-# Build frontend initially
 WORKDIR /app/frontend
 RUN npm run build
 
@@ -31,5 +43,5 @@ EXPOSE 3000
 
 WORKDIR /app
 
-# Start frontend watch and simulator server
-CMD sh -c "cd /app/frontend && npm run watch & sleep 2 && cd /app/simulator && node server.js"
+# Start frontend watch, simulator watch, and simulator server
+CMD sh -c "cd /app/frontend && npm run watch & cd /app/simulator && npm run watch & sleep 3 && node /app/simulator/dist/server.js"

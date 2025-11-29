@@ -1,0 +1,205 @@
+// Furnace FlatBuffers Schema
+// Shared between frontend (TypeScript) and ESP32 (C)
+
+namespace Furnace;
+
+// ============================================
+// Enums
+// ============================================
+
+enum ProgramStatus : byte {
+  None = 0,
+  Ready = 1,
+  Running = 2,
+  Paused = 3,
+  Stopped = 4,
+  Error = 5,
+  WaitingThreshold = 6,
+  Finished = 7
+}
+
+enum MarkerType : byte {
+  Start = 0,
+  Stop = 1,
+  Finish = 2,
+  Pause = 3,
+  Resume = 4,
+  Target = 5,
+  Step = 6
+}
+
+// ============================================
+// Server → Client Messages
+// ============================================
+
+table State {
+  program_status: ProgramStatus;
+  program_name: string;
+  kiln_temp: float;
+  set_temp: float;
+  env_temp: float;
+  case_temp: float;
+  heat_percent: ubyte;
+  temp_change: float;
+  step: string;
+  prog_start_ms: long;
+  prog_end_ms: long;
+  curr_time_ms: long;
+}
+
+table Ack {
+  success: bool;
+  request_id: uint;
+  error: string;
+}
+
+table HistoryPoint {
+  timestamp_ms: long;
+  kiln_temp: float;
+  set_temp: float;
+  heat_percent: ubyte;
+  env_temp: float;
+  case_temp: float;
+  marker_type: MarkerType = null;
+  marker_value: string;
+}
+
+table HistoryResponse {
+  interval_ms: uint;
+  max_age_ms: uint;
+  data: [HistoryPoint];
+}
+
+table ProgramInfo {
+  name: string;
+  size: uint;
+  description: string;
+}
+
+table ProgramListResponse {
+  programs: [ProgramInfo];
+}
+
+table ProgramContentResponse {
+  name: string;
+  content: string;  // JSON program content (Option A: raw string)
+}
+
+table PreferencesResponse {
+  json: string;  // Preferences as JSON string (flexible schema)
+}
+
+table DebugInfoResponse {
+  json: string;  // Debug info as JSON string
+}
+
+table LogInfo {
+  name: string;
+  size: uint;
+}
+
+table LogListResponse {
+  logs: [LogInfo];
+}
+
+table LogContentResponse {
+  name: string;
+  content: string;  // CSV log content
+}
+
+table Error {
+  code: int;
+  message: string;
+}
+
+// ============================================
+// Client → Server Messages
+// ============================================
+
+table StartCommand {
+  segment: int = 0;  // 0 = from beginning
+  minute: int = 0;   // 0 = from beginning
+}
+
+table PauseCommand {}
+table ResumeCommand {}
+table StopCommand {}
+table LoadCommand { program: string (required); }
+table UnloadCommand {}
+table SetTempCommand { temperature: float; }
+
+// Note: Reboot uses HTTP POST /api/reboot
+// Note: Firmware upload uses HTTP POST /update-firmware
+
+table HistoryRequest {
+  since_ms: long = 0;
+  limit: int = 0;
+}
+
+table ListProgramsRequest {}
+table GetProgramRequest { name: string (required); }
+table SaveProgramRequest { 
+  name: string (required);
+  content: string (required);  // JSON program content
+}
+table DeleteProgramRequest { name: string (required); }
+
+table GetPreferencesRequest {}
+table SavePreferencesRequest { json: string (required); }
+
+table GetDebugInfoRequest {}
+
+table ListLogsRequest {}
+table GetLogRequest { name: string (required); }
+
+// ============================================
+// Message Envelope (Union-based framing)
+// ============================================
+
+union ClientMessage {
+  // Commands
+  StartCommand,
+  PauseCommand,
+  ResumeCommand,
+  StopCommand,
+  LoadCommand,
+  UnloadCommand,
+  SetTempCommand,
+  // Requests
+  HistoryRequest,
+  ListProgramsRequest,
+  GetProgramRequest,
+  SaveProgramRequest,
+  DeleteProgramRequest,
+  GetPreferencesRequest,
+  SavePreferencesRequest,
+  GetDebugInfoRequest,
+  ListLogsRequest,
+  GetLogRequest
+}
+
+union ServerMessage {
+  State,
+  Ack,
+  HistoryResponse,
+  ProgramListResponse,
+  ProgramContentResponse,
+  PreferencesResponse,
+  DebugInfoResponse,
+  LogListResponse,
+  LogContentResponse,
+  Error
+}
+
+table ClientEnvelope {
+  request_id: uint;  // For matching responses to requests
+  message: ClientMessage;
+}
+
+table ServerEnvelope {
+  request_id: uint;  // 0 for unsolicited (state broadcasts)
+  message: ServerMessage;
+}
+
+root_type ServerEnvelope;
+

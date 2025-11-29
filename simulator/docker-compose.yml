@@ -5,9 +5,8 @@
 #   docker-compose up              # Start simulator
 #   docker-compose down            # Stop simulator
 #
-# Frontend TypeScript is compiled by esbuild in watch mode.
+# Both frontend and simulator TypeScript are compiled by esbuild in watch mode.
 # Changes to src/*.ts files trigger automatic rebuild.
-# Backend changes require container restart (Ctrl+C, then docker-compose up).
 
 services:
   sim:
@@ -17,13 +16,18 @@ services:
     ports:
       - "3000:3000"
     volumes:
+      # Mount proto schema for code generation
+      - ../proto:/app/proto:ro
       # Mount entire frontend directory for live development
       - ../frontend:/app/frontend
-      # Named volume to preserve node_modules from container build
+      # Named volume to preserve frontend node_modules from container build
       - frontend_node_modules:/app/frontend/node_modules
       # Mount simulator source for live backend development
-      - ./server.js:/app/simulator/server.js:ro
-      - ./mock-data.js:/app/simulator/mock-data.js:ro
+      - ./src:/app/simulator/src
+      - ./build.js:/app/simulator/build.js:ro
+      - ./tsconfig.json:/app/simulator/tsconfig.json:ro
+      # Named volume to preserve simulator node_modules from container build
+      - simulator_node_modules:/app/simulator/node_modules
     environment:
       - NODE_ENV=development
       - DATA_DIR=/app/frontend/dist
@@ -31,3 +35,4 @@ services:
 
 volumes:
   frontend_node_modules:
+  simulator_node_modules:

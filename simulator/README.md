@@ -99,10 +99,9 @@ See [API.md](../API.md) for complete documentation.
 | 2 | RUNNING |
 | 3 | PAUSED |
 | 4 | STOPPED |
-| 5 | ABORTED |
+| 5 | ERROR |
 | 6 | WAITING_THRESHOLD |
 | 7 | FINISHED |
-| 8 | FAILED |
 
 ## Environment Variables
 

@@ -1,6 +1,39 @@
-# PIDKiln API Reference
+# Furnace API Reference
 
-Complete API documentation for the PIDKiln HTTP and WebSocket interfaces.
+Complete API documentation for the Furnace HTTP and WebSocket interfaces.
+
+---
+
+## Protocol Overview
+
+The Furnace API uses **FlatBuffers over WebSocket** as the primary protocol for all real-time communication. A small number of HTTP endpoints are retained for specific use cases.
+
+### FlatBuffers Schema
+
+The FlatBuffers schema is defined in `proto/furnace.fbs`. Key message types:
+
+**Client → Server (ClientEnvelope):**
+- Commands: `StartCommand`, `PauseCommand`, `ResumeCommand`, `StopCommand`, `LoadCommand`, `UnloadCommand`, `SetTempCommand`
+- Requests: `HistoryRequest`, `ListProgramsRequest`, `GetProgramRequest`, `SaveProgramRequest`, `DeleteProgramRequest`, `GetPreferencesRequest`, `SavePreferencesRequest`, `GetDebugInfoRequest`, `ListLogsRequest`, `GetLogRequest`
+
+**Server → Client (ServerEnvelope):**
+- Broadcasts: `State` (periodic state updates)
+- Responses: `Ack`, `HistoryResponse`, `ProgramListResponse`, `ProgramContentResponse`, `PreferencesResponse`, `DebugInfoResponse`, `LogListResponse`, `LogContentResponse`, `Error`
+
+Each envelope includes a `request_id` for matching requests to responses.
+
+### Retained HTTP Endpoints
+
+Only the following HTTP endpoints are available:
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/logs/:filename` | Direct log file download |
+| POST | `/api/stop` | Emergency stop (HTTP fallback for safety) |
+| POST | `/api/reboot` | Reboot device |
+| POST | `/update-firmware` | Firmware upload |
+
+All other API operations use FlatBuffers over WebSocket.
 
 ---
 
@@ -12,9 +45,14 @@ Complete API documentation for the PIDKiln HTTP and WebSocket interfaces.
 ws://[host]:3000/ws
 ```
 
+**Note:** Set `ws.binaryType = 'arraybuffer'` for FlatBuffers mode.
+
 ### Server → Client Messages
 
-#### State Update
+#### State Update (FlatBuffers)
+Sent on connect and periodically during operation. In FlatBuffers mode, this is a `ServerEnvelope` containing a `State` message.
+
+#### State Update (JSON - Legacy)
 Sent on connect and every ~1 second during program execution.
 
 ```json
@@ -532,10 +570,9 @@ Use WebSocket commands instead.
 | 2 | `RUNNING` | Program executing |
 | 3 | `PAUSED` | Program paused |
 | 4 | `STOPPED` | Program stopped by user |
-| 5 | `ABORTED` | Program aborted (error or user) |
+| 5 | `ERROR` | Program encountered an error |
 | 6 | `WAITING_THRESHOLD` | Waiting for temperature threshold |
 | 7 | `FINISHED` | Program completed successfully |
-| 8 | `FAILED` | Program failed |
 
 ---
 
