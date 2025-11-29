@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any, @typescript-eslint/no-non-null-assertion */
 
 export { Ack, AckT } from './furnace/ack.js';
+export { ClearErrorCommand, ClearErrorCommandT } from './furnace/clear-error-command.js';
 export { ClientEnvelope, ClientEnvelopeT } from './furnace/client-envelope.js';
 export { ClientMessage } from './furnace/client-message.js';
 export { DebugInfoResponse, DebugInfoResponseT } from './furnace/debug-info-response.js';
@@ -35,6 +36,7 @@ export { SaveProgramRequest, SaveProgramRequestT } from './furnace/save-program-
 export { ServerEnvelope, ServerEnvelopeT } from './furnace/server-envelope.js';
 export { ServerMessage } from './furnace/server-message.js';
 export { SetTempCommand, SetTempCommandT } from './furnace/set-temp-command.js';
+export { SetTimeScaleCommand, SetTimeScaleCommandT } from './furnace/set-time-scale-command.js';
 export { StartCommand, StartCommandT } from './furnace/start-command.js';
 export { State, StateT } from './furnace/state.js';
 export { StopCommand, StopCommandT } from './furnace/stop-command.js';

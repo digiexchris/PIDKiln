@@ -1,0 +1,16 @@
+{
+  "time": {
+    "timeScale": 50.0,
+    "tickIntervalMs": 1000
+  },
+  "thermal": {
+    "heaterPower": 5.0,
+    "coolingCoefficient": 0.001,
+    "thermalMass": 100,
+    "ambientTemp": 20.0,
+    "ambientVariation": 0.5,
+    "caseHeatTransfer": 0.03,
+    "caseBaseTemp": 25.0
+  }
+}
+

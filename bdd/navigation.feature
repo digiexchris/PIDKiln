@@ -14,7 +14,7 @@ Feature: Navigation
       | Dashboard   | #/          |
       | Programs    | #/programs  |
       | Logs        | #/logs      |
-      | Preferences | #/prefs     |
+      | Preferences | #/preferences |
       | Debug       | #/debug     |
       | About       | #/about     |
 
@@ -29,7 +29,7 @@ Feature: Navigation
       | #/         | Dashboard   | Dashboard   |
       | #/programs | Programs    | Programs    |
       | #/logs     | Logs        | Logs        |
-      | #/prefs    | Preferences | Preferences |
+      | #/preferences | Preferences | Preferences |
       | #/debug    | Debug       | Debug       |
       | #/about    | About       | About       |
       | #/editor   | Editor      | Programs    |

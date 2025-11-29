@@ -9,8 +9,7 @@ export enum ProgramStatus {
   Running = 2,
   Paused = 3,
   Stopped = 4,
-  Aborted = 5,
+  Error = 5,
   WaitingThreshold = 6,
-  Finished = 7,
-  Failed = 8
+  Finished = 7
 }

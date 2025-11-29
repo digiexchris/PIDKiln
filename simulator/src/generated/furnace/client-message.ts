@@ -3,6 +3,7 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any, @typescript-eslint/no-non-null-assertion */
 
+import { ClearErrorCommand, ClearErrorCommandT } from '../furnace/clear-error-command.js';
 import { DeleteProgramRequest, DeleteProgramRequestT } from '../furnace/delete-program-request.js';
 import { GetDebugInfoRequest, GetDebugInfoRequestT } from '../furnace/get-debug-info-request.js';
 import { GetLogRequest, GetLogRequestT } from '../furnace/get-log-request.js';
@@ -17,6 +18,7 @@ import { ResumeCommand, ResumeCommandT } from '../furnace/resume-command.js';
 import { SavePreferencesRequest, SavePreferencesRequestT } from '../furnace/save-preferences-request.js';
 import { SaveProgramRequest, SaveProgramRequestT } from '../furnace/save-program-request.js';
 import { SetTempCommand, SetTempCommandT } from '../furnace/set-temp-command.js';
+import { SetTimeScaleCommand, SetTimeScaleCommandT } from '../furnace/set-time-scale-command.js';
 import { StartCommand, StartCommandT } from '../furnace/start-command.js';
 import { StopCommand, StopCommandT } from '../furnace/stop-command.js';
 import { UnloadCommand, UnloadCommandT } from '../furnace/unload-command.js';
@@ -31,22 +33,24 @@ export enum ClientMessage {
   LoadCommand = 5,
   UnloadCommand = 6,
   SetTempCommand = 7,
-  HistoryRequest = 8,
-  ListProgramsRequest = 9,
-  GetProgramRequest = 10,
-  SaveProgramRequest = 11,
-  DeleteProgramRequest = 12,
-  GetPreferencesRequest = 13,
-  SavePreferencesRequest = 14,
-  GetDebugInfoRequest = 15,
-  ListLogsRequest = 16,
-  GetLogRequest = 17
+  ClearErrorCommand = 8,
+  SetTimeScaleCommand = 9,
+  HistoryRequest = 10,
+  ListProgramsRequest = 11,
+  GetProgramRequest = 12,
+  SaveProgramRequest = 13,
+  DeleteProgramRequest = 14,
+  GetPreferencesRequest = 15,
+  SavePreferencesRequest = 16,
+  GetDebugInfoRequest = 17,
+  ListLogsRequest = 18,
+  GetLogRequest = 19
 }
 
 export function unionToClientMessage(
   type: ClientMessage,
-  accessor: (obj:DeleteProgramRequest|GetDebugInfoRequest|GetLogRequest|GetPreferencesRequest|GetProgramRequest|HistoryRequest|ListLogsRequest|ListProgramsRequest|LoadCommand|PauseCommand|ResumeCommand|SavePreferencesRequest|SaveProgramRequest|SetTempCommand|StartCommand|StopCommand|UnloadCommand) => DeleteProgramRequest|GetDebugInfoRequest|GetLogRequest|GetPreferencesRequest|GetProgramRequest|HistoryRequest|ListLogsRequest|ListProgramsRequest|LoadCommand|PauseCommand|ResumeCommand|SavePreferencesRequest|SaveProgramRequest|SetTempCommand|StartCommand|StopCommand|UnloadCommand|null
-): DeleteProgramRequest|GetDebugInfoRequest|GetLogRequest|GetPreferencesRequest|GetProgramRequest|HistoryRequest|ListLogsRequest|ListProgramsRequest|LoadCommand|PauseCommand|ResumeCommand|SavePreferencesRequest|SaveProgramRequest|SetTempCommand|StartCommand|StopCommand|UnloadCommand|null {
+  accessor: (obj:ClearErrorCommand|DeleteProgramRequest|GetDebugInfoRequest|GetLogRequest|GetPreferencesRequest|GetProgramRequest|HistoryRequest|ListLogsRequest|ListProgramsRequest|LoadCommand|PauseCommand|ResumeCommand|SavePreferencesRequest|SaveProgramRequest|SetTempCommand|SetTimeScaleCommand|StartCommand|StopCommand|UnloadCommand) => ClearErrorCommand|DeleteProgramRequest|GetDebugInfoRequest|GetLogRequest|GetPreferencesRequest|GetProgramRequest|HistoryRequest|ListLogsRequest|ListProgramsRequest|LoadCommand|PauseCommand|ResumeCommand|SavePreferencesRequest|SaveProgramRequest|SetTempCommand|SetTimeScaleCommand|StartCommand|StopCommand|UnloadCommand|null
+): ClearErrorCommand|DeleteProgramRequest|GetDebugInfoRequest|GetLogRequest|GetPreferencesRequest|GetProgramRequest|HistoryRequest|ListLogsRequest|ListProgramsRequest|LoadCommand|PauseCommand|ResumeCommand|SavePreferencesRequest|SaveProgramRequest|SetTempCommand|SetTimeScaleCommand|StartCommand|StopCommand|UnloadCommand|null {
   switch(ClientMessage[type]) {
     case 'NONE': return null; 
     case 'StartCommand': return accessor(new StartCommand())! as StartCommand;
@@ -56,6 +60,8 @@ export function unionToClientMessage(
     case 'LoadCommand': return accessor(new LoadCommand())! as LoadCommand;
     case 'UnloadCommand': return accessor(new UnloadCommand())! as UnloadCommand;
     case 'SetTempCommand': return accessor(new SetTempCommand())! as SetTempCommand;
+    case 'ClearErrorCommand': return accessor(new ClearErrorCommand())! as ClearErrorCommand;
+    case 'SetTimeScaleCommand': return accessor(new SetTimeScaleCommand())! as SetTimeScaleCommand;
     case 'HistoryRequest': return accessor(new HistoryRequest())! as HistoryRequest;
     case 'ListProgramsRequest': return accessor(new ListProgramsRequest())! as ListProgramsRequest;
     case 'GetProgramRequest': return accessor(new GetProgramRequest())! as GetProgramRequest;
@@ -72,9 +78,9 @@ export function unionToClientMessage(
 
 export function unionListToClientMessage(
   type: ClientMessage, 
-  accessor: (index: number, obj:DeleteProgramRequest|GetDebugInfoRequest|GetLogRequest|GetPreferencesRequest|GetProgramRequest|HistoryRequest|ListLogsRequest|ListProgramsRequest|LoadCommand|PauseCommand|ResumeCommand|SavePreferencesRequest|SaveProgramRequest|SetTempCommand|StartCommand|StopCommand|UnloadCommand) => DeleteProgramRequest|GetDebugInfoRequest|GetLogRequest|GetPreferencesRequest|GetProgramRequest|HistoryRequest|ListLogsRequest|ListProgramsRequest|LoadCommand|PauseCommand|ResumeCommand|SavePreferencesRequest|SaveProgramRequest|SetTempCommand|StartCommand|StopCommand|UnloadCommand|null, 
+  accessor: (index: number, obj:ClearErrorCommand|DeleteProgramRequest|GetDebugInfoRequest|GetLogRequest|GetPreferencesRequest|GetProgramRequest|HistoryRequest|ListLogsRequest|ListProgramsRequest|LoadCommand|PauseCommand|ResumeCommand|SavePreferencesRequest|SaveProgramRequest|SetTempCommand|SetTimeScaleCommand|StartCommand|StopCommand|UnloadCommand) => ClearErrorCommand|DeleteProgramRequest|GetDebugInfoRequest|GetLogRequest|GetPreferencesRequest|GetProgramRequest|HistoryRequest|ListLogsRequest|ListProgramsRequest|LoadCommand|PauseCommand|ResumeCommand|SavePreferencesRequest|SaveProgramRequest|SetTempCommand|SetTimeScaleCommand|StartCommand|StopCommand|UnloadCommand|null, 
   index: number
-): DeleteProgramRequest|GetDebugInfoRequest|GetLogRequest|GetPreferencesRequest|GetProgramRequest|HistoryRequest|ListLogsRequest|ListProgramsRequest|LoadCommand|PauseCommand|ResumeCommand|SavePreferencesRequest|SaveProgramRequest|SetTempCommand|StartCommand|StopCommand|UnloadCommand|null {
+): ClearErrorCommand|DeleteProgramRequest|GetDebugInfoRequest|GetLogRequest|GetPreferencesRequest|GetProgramRequest|HistoryRequest|ListLogsRequest|ListProgramsRequest|LoadCommand|PauseCommand|ResumeCommand|SavePreferencesRequest|SaveProgramRequest|SetTempCommand|SetTimeScaleCommand|StartCommand|StopCommand|UnloadCommand|null {
   switch(ClientMessage[type]) {
     case 'NONE': return null; 
     case 'StartCommand': return accessor(index, new StartCommand())! as StartCommand;
@@ -84,6 +90,8 @@ export function unionListToClientMessage(
     case 'LoadCommand': return accessor(index, new LoadCommand())! as LoadCommand;
     case 'UnloadCommand': return accessor(index, new UnloadCommand())! as UnloadCommand;
     case 'SetTempCommand': return accessor(index, new SetTempCommand())! as SetTempCommand;
+    case 'ClearErrorCommand': return accessor(index, new ClearErrorCommand())! as ClearErrorCommand;
+    case 'SetTimeScaleCommand': return accessor(index, new SetTimeScaleCommand())! as SetTimeScaleCommand;
     case 'HistoryRequest': return accessor(index, new HistoryRequest())! as HistoryRequest;
     case 'ListProgramsRequest': return accessor(index, new ListProgramsRequest())! as ListProgramsRequest;
     case 'GetProgramRequest': return accessor(index, new GetProgramRequest())! as GetProgramRequest;

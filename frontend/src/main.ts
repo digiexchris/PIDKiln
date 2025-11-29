@@ -4,7 +4,7 @@
 import { navigate, initRouter } from './router.js';
 
 // WebSocket connection
-import { connect, disconnect, manualConnect } from './websocket.js';
+import { connect, disconnect, manualConnect, sendTimeScale, clearError } from './websocket.js';
 
 // Commands
 import { sendCommand, loadProgram, clearProgram, setTemperature, reboot } from './commands.js';
@@ -31,6 +31,20 @@ window.addEventListener('load', () => {
   navigate();
   connect();
   window.setTimeout(() => { void loadChartHistory(); }, 500);
+  
+  // Time scale slider event listener
+  const slider = document.getElementById('timeScaleSlider') as HTMLInputElement | null;
+  if (slider) {
+    slider.addEventListener('input', () => {
+      const scale = parseFloat(slider.value);
+      const label = document.getElementById('timeScaleLabel');
+      if (label) label.textContent = `${scale.toFixed(1)}x`;
+    });
+    slider.addEventListener('change', () => {
+      const scale = parseFloat(slider.value);
+      sendTimeScale(scale);
+    });
+  }
 });
 
 // Expose handlers used by HTML onclick attributes to the global scope
@@ -63,6 +77,7 @@ declare global {
     uploadFirmware: typeof uploadFirmware;
     toggleWsLog: typeof toggleWsLog;
     clearLog: typeof clearLog;
+    clearError: typeof clearError;
   }
 }
 
@@ -94,6 +109,7 @@ Object.assign(window, {
   uploadFirmware,
   toggleWsLog,
   clearLog,
+  clearError,
 });
 
 export {};

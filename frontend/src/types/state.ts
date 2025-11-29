@@ -23,6 +23,7 @@ export interface FurnaceState {
   prog_start: string | null;
   prog_end: string | null;
   curr_time: string;
+  error_message: string | null;
 }
 
 export interface EditorState {

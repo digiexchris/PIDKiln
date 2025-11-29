@@ -4,6 +4,7 @@
  */
 
 import { EventEmitter } from 'events';
+import { getTimeScale, getThermalConfig, getTickIntervalMs, setTimeScale as configSetTimeScale } from './config.js';
 
 // Event emitter for state changes
 export const stateEmitter = new EventEmitter();
@@ -35,8 +36,10 @@ interface SimulatorState {
   tempChange: number;
   currentStep: number;
   totalSteps: number;
-  programStartTime: Date | null;
-  programEndTime: Date | null;
+  programStartTime: number | null;  // Simulated time ms
+  programEndTime: number | null;    // Simulated time ms
+  programStartTemp: number;         // Kiln temp when program started (for first segment ramp)
+  errorMessage: string | null;      // Error reason when in ERROR state
 }
 
 interface HistoryMarker {
@@ -105,56 +108,109 @@ interface CommandParams {
   temp?: number | string;
 }
 
-// Simulator state
-export const state: SimulatorState = {
-  programStatus: PROGRAM_STATUS.NONE,
-  loadedProgram: null,
-  loadedProgramContent: null,
-  kilnTemp: 25.5,
-  setTemp: 0,
-  envTemp: 22.3,
-  caseTemp: 28.1,
-  heatPercent: 0,
-  tempChange: 0.0,
-  currentStep: 0,
-  totalSteps: 7,
-  programStartTime: null,
-  programEndTime: null
-};
+// =============================================================================
+// Simulated Time
+// =============================================================================
 
-// Temperature history buffer (24h at 10s intervals = max 8640 points)
-const HISTORY_INTERVAL_MS = 10000; // 10 seconds
-const HISTORY_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
-const HISTORY_MAX_POINTS = Math.ceil(HISTORY_MAX_AGE_MS / HISTORY_INTERVAL_MS);
-
-const temperatureHistory: HistoryPoint[] = [];
-let historyInterval: ReturnType<typeof setInterval> | null = null;
-
-// Simulation intervals
-let simulationInterval: ReturnType<typeof setInterval> | null = null;
-let broadcastInterval: ReturnType<typeof setInterval> | null = null;
+// Simulated time starts at real time and advances at timeScale rate
+let simulatedTimeMs = Date.now();
+let lastRealTimeMs = Date.now();
 
 /**
- * Format date for display
+ * Get current simulated time in milliseconds
  */
-function formatTime(d: Date | null): string {
-  if (!d) return '-';
+export function getSimulatedTime(): number {
+  return simulatedTimeMs;
+}
+
+/**
+ * Advance simulated time based on real elapsed time and time scale
+ */
+function advanceSimulatedTime(): void {
+  const now = Date.now();
+  const realElapsed = now - lastRealTimeMs;
+  // Round to integer to avoid BigInt conversion errors
+  const simulatedElapsed = Math.round(realElapsed * getTimeScale());
+  simulatedTimeMs = Math.round(simulatedTimeMs + simulatedElapsed);
+  lastRealTimeMs = now;
+}
+
+
+/**
+ * Format simulated date for display
+ */
+function formatSimulatedTime(ms: number | null): string {
+  if (!ms) return '-';
+  const d = new Date(ms);
   return d.toLocaleString('en-GB', { 
     year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit'
   }).replace(',', '');
 }
 
+/**
+ * Set time scale (exposed for API)
+ */
+export function setTimeScale(scale: number): void {
+  // Sync simulated time before changing scale
+  advanceSimulatedTime();
+  configSetTimeScale(scale);
+}
+
+// =============================================================================
+// Simulator State
+// =============================================================================
+
+export const state: SimulatorState = {
+  programStatus: PROGRAM_STATUS.NONE,
+  loadedProgram: null,
+  loadedProgramContent: null,
+  kilnTemp: 20.0,  // Start at ambient
+  setTemp: 0,
+  envTemp: 20.0,
+  caseTemp: 25.0,
+  heatPercent: 0,
+  tempChange: 0.0,
+  currentStep: 0,
+  totalSteps: 0,
+  programStartTime: null,
+  programEndTime: null,
+  programStartTemp: 0,
+  errorMessage: null
+};
+
+// Temperature history buffer (24h at 10s intervals = max 8640 points)
+const HISTORY_INTERVAL_SIMULATED_MS = 10000; // 10 simulated seconds
+const HISTORY_MAX_AGE_SIMULATED_MS = 24 * 60 * 60 * 1000; // 24 simulated hours
+const HISTORY_MAX_POINTS = Math.ceil(HISTORY_MAX_AGE_SIMULATED_MS / HISTORY_INTERVAL_SIMULATED_MS);
+
+const temperatureHistory: HistoryPoint[] = [];
+let lastHistoryTime = 0;
+
+// PID controller state
+let pidIntegral = 0;
+let pidLastError = 0;
+
+// PID tuning constants
+const PID_KP = 5.0;    // Proportional gain
+const PID_KI = 0.02;   // Integral gain
+const PID_KD = 1.0;    // Derivative gain
+const PID_INTEGRAL_MAX = 100;  // Anti-windup limit
+
+// Simulation intervals
+let simulationInterval: ReturnType<typeof setInterval> | null = null;
+let broadcastInterval: ReturnType<typeof setInterval> | null = null;
+
 // =============================================================================
 // Temperature History
 // =============================================================================
 
 /**
- * Record a history point
+ * Record a history point at current simulated time
  */
 function recordHistoryPoint(marker: HistoryMarker | null = null): void {
   const point: HistoryPoint = {
-    t: Date.now(),
+    t: simulatedTimeMs,
     k: parseFloat(state.kilnTemp.toFixed(1)),
     s: parseFloat(state.setTemp.toFixed(1)),
     p: state.heatPercent,
@@ -168,8 +224,8 @@ function recordHistoryPoint(marker: HistoryMarker | null = null): void {
   
   temperatureHistory.push(point);
   
-  // Trim old data
-  const cutoff = Date.now() - HISTORY_MAX_AGE_MS;
+  // Trim old data (based on simulated time)
+  const cutoff = simulatedTimeMs - HISTORY_MAX_AGE_SIMULATED_MS;
   while (temperatureHistory.length > 0 && temperatureHistory[0].t < cutoff) {
     temperatureHistory.shift();
   }
@@ -192,17 +248,13 @@ function addHistoryMarker(type: string, value: string | number | Record<string, 
 }
 
 /**
- * Start history recording (called on simulator init)
+ * Check if we should record a history point (every 10 simulated seconds)
  */
-function startHistoryRecording(): void {
-  if (historyInterval) return;
-  
-  historyInterval = setInterval(() => {
+function maybeRecordHistory(): void {
+  if (simulatedTimeMs - lastHistoryTime >= HISTORY_INTERVAL_SIMULATED_MS) {
     recordHistoryPoint();
-  }, HISTORY_INTERVAL_MS);
-  
-  // Record initial point
-  recordHistoryPoint();
+    lastHistoryTime = simulatedTimeMs;
+  }
 }
 
 /**
@@ -214,35 +266,40 @@ export function getHistory(): HistoryPoint[] {
 
 /**
  * Generate initial history data (for demo purposes)
- * Creates ~1 hour of simulated past data
+ * Creates ~1 simulated hour of past data
  */
 function generateInitialHistory(): void {
-  const now = Date.now();
+  const thermal = getThermalConfig();
+  const now = simulatedTimeMs;
   const oneHourAgo = now - 60 * 60 * 1000;
   
-  // Generate points for the last hour
-  let temp = 25;
-  for (let t = oneHourAgo; t < now; t += HISTORY_INTERVAL_MS) {
-    // Simulate some temperature variation
+  let temp = thermal.ambientTemp;
+  for (let t = oneHourAgo; t < now; t += HISTORY_INTERVAL_SIMULATED_MS) {
+    // Simulate some temperature variation around ambient
     temp += (Math.random() - 0.5) * 0.5;
-    temp = Math.max(20, Math.min(30, temp)); // Keep around room temp
+    temp = Math.max(thermal.ambientTemp - 2, Math.min(thermal.ambientTemp + 2, temp));
     
     temperatureHistory.push({
       t,
       k: parseFloat(temp.toFixed(1)),
       s: 0,
       p: 0,
-      e: parseFloat((22 + (Math.random() - 0.5) * 0.2).toFixed(1)),
-      c: parseFloat((28 + (Math.random() - 0.5) * 0.5).toFixed(1))
+      e: parseFloat((thermal.ambientTemp + (Math.random() - 0.5) * thermal.ambientVariation).toFixed(1)),
+      c: parseFloat((thermal.caseBaseTemp + (Math.random() - 0.5) * 0.5).toFixed(1))
     });
   }
+  
+  lastHistoryTime = now;
 }
+
+// =============================================================================
+// State Getters
+// =============================================================================
 
 /**
  * Get current state as object (for WebSocket broadcast)
  */
 export function getState(): Record<string, unknown> {
-  const now = new Date();
   return {
     program_status: state.programStatus,
     program_name: state.loadedProgram || '',
@@ -253,9 +310,14 @@ export function getState(): Record<string, unknown> {
     heat_percent: state.heatPercent,
     temp_change: parseFloat(state.tempChange.toFixed(1)),
     step: `${state.currentStep} of ${state.totalSteps}`,
-    prog_start: formatTime(state.programStartTime),
-    prog_end: formatTime(state.programEndTime),
-    curr_time: formatTime(now)
+    prog_start: formatSimulatedTime(state.programStartTime),
+    prog_end: formatSimulatedTime(state.programEndTime),
+    curr_time: formatSimulatedTime(simulatedTimeMs),
+    error_message: state.errorMessage,
+    // Simulator-specific fields
+    is_simulator: true,
+    time_scale: getTimeScale(),
+    curr_time_ms: simulatedTimeMs,
   };
 }
 
@@ -264,7 +326,7 @@ export function getState(): Record<string, unknown> {
  */
 export function getLogPoint(): Record<string, unknown> {
   return {
-    timestamp: new Date().toISOString(),
+    timestamp: new Date(simulatedTimeMs).toISOString(),
     kiln_temp: parseFloat(state.kilnTemp.toFixed(1)),
     set_temp: parseFloat(state.setTemp.toFixed(1)),
     power: state.heatPercent
@@ -285,18 +347,175 @@ function emitLogPoint(): void {
   stateEmitter.emit('log', getLogPoint());
 }
 
+// =============================================================================
+// Thermal Simulation
+// =============================================================================
+
+/**
+ * Calculate temperature change for one simulation tick
+ * Uses realistic thermal model with configurable parameters
+ */
+function simulateThermalTick(): void {
+  const thermal = getThermalConfig();
+  const timeScale = getTimeScale();
+  
+  // Simulated seconds per real tick
+  const simulatedSeconds = (getTickIntervalMs() / 1000) * timeScale;
+  
+  const isRunning = state.programStatus === PROGRAM_STATUS.RUNNING;
+  const coolingStatuses: ProgramStatusCode[] = [
+    PROGRAM_STATUS.STOPPED,
+    PROGRAM_STATUS.ERROR,
+    PROGRAM_STATUS.FINISHED
+  ];
+  const isCooling = coolingStatuses.includes(state.programStatus);
+  
+  // Calculate heat input using PID controller
+  let heatInput = 0;
+  if (isRunning && state.setTemp > 0) {
+    // PID controller
+    const error = state.setTemp - state.kilnTemp;
+    
+    // Proportional term
+    const pTerm = PID_KP * error;
+    
+    // Integral term (with anti-windup)
+    pidIntegral += error * simulatedSeconds;
+    pidIntegral = Math.max(-PID_INTEGRAL_MAX, Math.min(PID_INTEGRAL_MAX, pidIntegral));
+    const iTerm = PID_KI * pidIntegral;
+    
+    // Derivative term
+    const dTerm = PID_KD * (error - pidLastError) / simulatedSeconds;
+    pidLastError = error;
+    
+    // Combined PID output (0-100%)
+    const pidOutput = pTerm + iTerm + dTerm;
+    state.heatPercent = Math.max(0, Math.min(100, Math.round(pidOutput)));
+    
+    heatInput = thermal.heaterPower * (state.heatPercent / 100);
+  } else if (isCooling) {
+    // Reset PID state when not running
+    pidIntegral = 0;
+    pidLastError = 0;
+    state.heatPercent = 0;
+    heatInput = 0;
+  } else {
+    // Not running, not cooling - reset PID
+    pidIntegral = 0;
+    pidLastError = 0;
+    state.heatPercent = 0;
+    heatInput = 0;
+  }
+  
+  // Calculate heat loss (Newton's law of cooling)
+  const tempDiff = state.kilnTemp - thermal.ambientTemp;
+  const heatLoss = thermal.coolingCoefficient * tempDiff;
+  
+  // Net temperature change
+  const netChange = (heatInput - heatLoss) * simulatedSeconds / thermal.thermalMass;
+  state.kilnTemp += netChange;
+  
+  // Calculate rate of change in °C/hour (for display)
+  state.tempChange = parseFloat((netChange * 3600 / simulatedSeconds).toFixed(1));
+  
+  // Update case temperature based on kiln temp
+  const caseHeatFromKiln = (state.kilnTemp - thermal.ambientTemp) * thermal.caseHeatTransfer;
+  state.caseTemp = thermal.caseBaseTemp + caseHeatFromKiln;
+  
+  // Add some random variation to env temp
+  state.envTemp = thermal.ambientTemp + (Math.random() - 0.5) * thermal.ambientVariation;
+  
+  // Stop cooling simulation if close enough to ambient
+  if (isCooling && Math.abs(state.kilnTemp - thermal.ambientTemp) < 0.5) {
+    state.kilnTemp = thermal.ambientTemp;
+    state.tempChange = 0;
+    stopSimulationLoop();
+  }
+}
+
 /**
  * Start simulation (called when program starts)
  */
 export function startSimulation(): void {
-  if (simulationInterval) return;
+  // Always update start time when a program starts (even if restarting)
+  state.programStartTime = simulatedTimeMs;
+  // Capture the kiln temperature at program start (for first segment ramp)
+  state.programStartTemp = state.kilnTemp;
+  // Estimate end time (will be updated as program runs)
+  state.programEndTime = simulatedTimeMs + 4 * 60 * 60 * 1000;
   
-  state.programStartTime = new Date();
-  state.programEndTime = new Date(Date.now() + 4 * 60 * 60 * 1000); // 4 hours
-  state.setTemp = 95;
-  state.currentStep = 1;
+  // Only start the loop if not already running
+  if (!simulationInterval) {
+    startSimulationLoop();
+  }
+}
+
+/**
+ * Update program progress - calculates current segment and target temperature
+ */
+function updateProgramProgress(): void {
+  if (state.programStatus !== PROGRAM_STATUS.RUNNING || !state.programStartTime) {
+    return;
+  }
   
-  startSimulationLoop();
+  const programContent = state.loadedProgramContent;
+  if (!programContent) return;
+  
+  const segments = parseProgram(programContent);
+  if (segments.length === 0) return;
+  
+  const timing = calculateProgramTiming(segments);
+  const elapsedMs = simulatedTimeMs - state.programStartTime;
+  const elapsedMinutes = elapsedMs / 60000;
+  
+  // Check if program is complete
+  if (elapsedMinutes >= timing.totalMinutes) {
+    state.programStatus = PROGRAM_STATUS.FINISHED;
+    state.setTemp = 0;
+    state.currentStep = timing.segmentTimes.length;
+    addHistoryMarker('finish');
+    stopSimulation();
+    return;
+  }
+  
+  // Find current segment
+  let currentSegment: SegmentTiming | null = null;
+  for (const seg of timing.segmentTimes) {
+    if (elapsedMinutes >= seg.startMinute && elapsedMinutes < seg.endMinute) {
+      currentSegment = seg;
+      break;
+    }
+  }
+  
+  if (!currentSegment) return;
+  
+  // Update current step
+  const newStep = currentSegment.segment;
+  if (newStep !== state.currentStep) {
+    // Step changed - record marker for completed step
+    if (state.currentStep > 0 && state.currentStep < newStep) {
+      recordStepComplete(state.currentStep);
+    }
+    state.currentStep = newStep;
+  }
+  
+  // Calculate target temperature based on position in segment
+  const minuteInSegment = elapsedMinutes - currentSegment.startMinute;
+  
+  if (currentSegment.ramp > 0 && minuteInSegment < currentSegment.ramp) {
+    // During ramp phase - linearly interpolate from previous target to current target
+    const prevTarget = currentSegment.segment === 1 
+      ? state.programStartTemp  // First segment ramps from kiln temp at program start
+      : timing.segmentTimes[currentSegment.segment - 2]?.target ?? 0;
+    const rampProgress = minuteInSegment / currentSegment.ramp;
+    state.setTemp = prevTarget + (currentSegment.target - prevTarget) * rampProgress;
+  } else {
+    // Ramp time is 0 OR we're past ramp (in dwell phase) - hold at target
+    state.setTemp = currentSegment.target;
+  }
+  
+  // Update estimated end time
+  state.programEndTime = state.programStartTime + timing.totalMinutes * 60000;
 }
 
 /**
@@ -305,65 +524,32 @@ export function startSimulation(): void {
 function startSimulationLoop(): void {
   if (simulationInterval) return;
   
+  const tickInterval = getTickIntervalMs();
+  
   // Simulation tick - update temperatures
   simulationInterval = setInterval(() => {
-    const isRunning = state.programStatus === PROGRAM_STATUS.RUNNING;
-    const coolingStatuses: ProgramStatusCode[] = [
-      PROGRAM_STATUS.STOPPED,
-      PROGRAM_STATUS.ERROR,
-      PROGRAM_STATUS.FINISHED
-    ];
-    const isCooling = coolingStatuses.includes(state.programStatus);
+    // Advance simulated time
+    advanceSimulatedTime();
     
-    if (isRunning) {
-      // Simulate heating towards set temperature
-      const diff = state.setTemp - state.kilnTemp;
-      if (diff > 0) {
-        state.kilnTemp += Math.min(diff * 0.1, 2);
-        state.heatPercent = Math.min(100, Math.round(diff * 2));
-        state.tempChange = Math.round((Math.random() * 50 + 20) * 10) / 10;
-      } else if (diff < 0) {
-        // Cooling down to lower set temp
-        state.kilnTemp += Math.max(diff * 0.05, -1);
-        state.heatPercent = 0;
-        state.tempChange = -Math.round((Math.random() * 30 + 10) * 10) / 10;
-      } else {
-        state.heatPercent = Math.max(0, state.heatPercent - 5);
-        state.tempChange = 0;
-      }
-    } else if (isCooling) {
-      // Passive cooling towards environment temperature
-      const diff = state.envTemp - state.kilnTemp;
-      if (Math.abs(diff) > 0.5) {
-        // Cooling rate depends on temperature difference (faster when hotter)
-        const coolingRate = Math.max(0.1, Math.abs(diff) * 0.02);
-        state.kilnTemp += diff > 0 ? coolingRate : -coolingRate;
-        state.tempChange = -Math.round(coolingRate * 3600 * 10) / 10; // °C/hour
-      } else {
-        // Close enough to env temp, stop cooling simulation
-        state.kilnTemp = state.envTemp;
-        state.tempChange = 0;
-        stopSimulationLoop();
-      }
-      state.heatPercent = 0;
-    }
+    // Update program progress (target temp, current step)
+    updateProgramProgress();
     
-    // Update case temperature based on kiln temp
-    state.caseTemp = 28 + (state.kilnTemp - 25) * 0.05;
+    // Run thermal simulation
+    simulateThermalTick();
     
-    // Add some random variation to env temp
-    state.envTemp = 22 + (Math.random() - 0.5) * 0.2;
-  }, 1000);
+    // Record history if enough simulated time has passed
+    maybeRecordHistory();
+  }, tickInterval);
   
-  // Broadcast state every second
+  // Broadcast state every tick
   broadcastInterval = setInterval(() => {
     emitStateChange();
     
-    // Also emit log point during running state (simulating LOG_Window)
+    // Also emit log point during running state
     if (state.programStatus === PROGRAM_STATUS.RUNNING) {
       emitLogPoint();
     }
-  }, 1000);
+  }, tickInterval);
   
   emitStateChange();
 }
@@ -387,10 +573,12 @@ export function stopSimulationLoop(): void {
  */
 export function stopSimulation(): void {
   state.heatPercent = 0;
-  state.setTemp = 0;  // Reset target temperature
+  state.setTemp = 0;
+  
+  const thermal = getThermalConfig();
   
   // If already at room temp, stop the loop
-  if (Math.abs(state.kilnTemp - state.envTemp) < 1) {
+  if (Math.abs(state.kilnTemp - thermal.ambientTemp) < 1) {
     state.tempChange = 0;
     stopSimulationLoop();
   } else {
@@ -402,6 +590,40 @@ export function stopSimulation(): void {
   
   emitStateChange();
 }
+
+/**
+ * Set error state with message
+ */
+export function setError(message: string): void {
+  state.programStatus = PROGRAM_STATUS.ERROR;
+  state.errorMessage = message;
+  state.heatPercent = 0;
+  addHistoryMarker('error', message);
+  
+  // Continue cooling simulation
+  const thermal = getThermalConfig();
+  if (Math.abs(state.kilnTemp - thermal.ambientTemp) >= 1 && !simulationInterval) {
+    startSimulationLoop();
+  }
+  
+  emitStateChange();
+}
+
+/**
+ * Clear error state - returns to STOPPED
+ */
+export function clearError(): void {
+  if (state.programStatus !== PROGRAM_STATUS.ERROR) {
+    return;
+  }
+  state.programStatus = PROGRAM_STATUS.STOPPED;
+  state.errorMessage = null;
+  emitStateChange();
+}
+
+// =============================================================================
+// Program Parsing
+// =============================================================================
 
 /**
  * Convert time object to total minutes
@@ -416,7 +638,6 @@ function timeToMinutes(time: TimeValue): number {
  */
 export function parseProgram(content: string): ParsedSegment[] {
   try {
-    // Try to parse as JSON first
     const program = JSON.parse(content) as { segments?: ProgramSegment[]; description?: string };
     
     if (!program.segments || !Array.isArray(program.segments)) {
@@ -435,18 +656,16 @@ export function parseProgram(content: string): ParsedSegment[] {
     
     for (const line of lines) {
       const trimmed = line.trim();
-      // Skip empty lines and comments
       if (!trimmed || trimmed.startsWith('#')) continue;
       
-      // Remove inline comments
       const cleanLine = trimmed.split('#')[0].trim();
       const parts = cleanLine.split(':').map(p => parseFloat(p.trim()));
       
       if (parts.length >= 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
         segments.push({
-          target: parts[0],  // Target temperature
-          ramp: parts[1],    // Minutes to reach target
-          dwell: parts[2]    // Minutes to hold at target
+          target: parts[0],
+          ramp: parts[1],
+          dwell: parts[2]
         });
       }
     }
@@ -457,7 +676,6 @@ export function parseProgram(content: string): ParsedSegment[] {
 
 /**
  * Calculate program timing
- * Returns { totalMinutes, segmentTimes: [{ start, end, segment }] }
  */
 export function calculateProgramTiming(segments: ParsedSegment[]): ProgramTiming {
   let currentMinute = 0;
@@ -488,7 +706,6 @@ export function calculateProgramTiming(segments: ParsedSegment[]): ProgramTiming
 
 /**
  * Find start point from minute offset
- * Returns { segment, minuteIntoSegment, startTemp }
  */
 function findStartPointByMinute(segments: ParsedSegment[], minute: number): { segment: number; minuteIntoSegment: number; segmentInfo: SegmentTiming } | null {
   const timing = calculateProgramTiming(segments);
@@ -503,7 +720,6 @@ function findStartPointByMinute(segments: ParsedSegment[], minute: number): { se
     }
   }
   
-  // If minute is beyond program, return last segment
   if (timing.segmentTimes.length > 0) {
     const lastSeg = timing.segmentTimes[timing.segmentTimes.length - 1];
     return {
@@ -516,9 +732,12 @@ function findStartPointByMinute(segments: ParsedSegment[], minute: number): { se
   return null;
 }
 
+// =============================================================================
+// Command Execution
+// =============================================================================
+
 /**
  * Execute a command (from WebSocket or HTTP)
- * Returns { success: boolean, error?: string }
  */
 export function executeCommand(action: string, params: CommandParams = {}): CommandResult {
   switch (action) {
@@ -527,8 +746,6 @@ export function executeCommand(action: string, params: CommandParams = {}): Comm
         return { success: false, error: 'No program loaded' };
       }
       
-      // Parse program to handle segment/minute parameters
-      // Use stored content or fallback to in-memory programs
       const programContent = state.loadedProgramContent || (state.loadedProgram ? programs[state.loadedProgram] : null);
       if (!programContent) {
         return { success: false, error: 'Program not found' };
@@ -537,12 +754,10 @@ export function executeCommand(action: string, params: CommandParams = {}): Comm
       const segments = parseProgram(programContent);
       const timing = calculateProgramTiming(segments);
       
-      // Determine start point
       let startSegment = 1;
       let startInfo: Record<string, unknown> | null = null;
       
       if (params.segment !== undefined) {
-        // Start from specific segment
         const seg = parseInt(String(params.segment), 10);
         if (isNaN(seg) || seg < 1 || seg > segments.length) {
           return { success: false, error: `Invalid segment. Must be 1-${segments.length}` };
@@ -550,7 +765,6 @@ export function executeCommand(action: string, params: CommandParams = {}): Comm
         startSegment = seg;
         startInfo = { fromSegment: seg };
       } else if (params.minute !== undefined) {
-        // Start from specific minute
         const minute = parseInt(String(params.minute), 10);
         if (isNaN(minute) || minute < 0 || minute >= timing.totalMinutes) {
           return { success: false, error: `Invalid minute. Program duration is ${timing.totalMinutes} minutes` };
@@ -566,7 +780,6 @@ export function executeCommand(action: string, params: CommandParams = {}): Comm
       state.totalSteps = segments.length;
       state.programStatus = PROGRAM_STATUS.RUNNING;
       
-      // Set initial target temperature for the starting segment
       if (segments[startSegment - 1]) {
         state.setTemp = segments[startSegment - 1].target;
       }
@@ -606,7 +819,6 @@ export function executeCommand(action: string, params: CommandParams = {}): Comm
         return { success: false, error: 'No program specified' };
       }
       
-      // Get program content (from params or in-memory)
       const programContent = params.content || programs[filename];
       if (!programContent) {
         return { success: false, error: 'Program not found' };
@@ -616,8 +828,10 @@ export function executeCommand(action: string, params: CommandParams = {}): Comm
       state.loadedProgramContent = programContent;
       state.programStatus = PROGRAM_STATUS.READY;
       state.currentStep = 0;
+      // Clear start/end times - will be set when program actually starts
+      state.programStartTime = null;
+      state.programEndTime = null;
       
-      // Parse program to get total steps
       const segments = parseProgram(programContent);
       state.totalSteps = segments.length;
       
@@ -651,7 +865,6 @@ export function executeCommand(action: string, params: CommandParams = {}): Comm
       
       state.setTemp = temp;
       
-      // If no program running, start manual hold mode
       if (state.programStatus === PROGRAM_STATUS.NONE || 
           state.programStatus === PROGRAM_STATUS.READY ||
           state.programStatus === PROGRAM_STATUS.STOPPED ||
@@ -661,12 +874,11 @@ export function executeCommand(action: string, params: CommandParams = {}): Comm
         state.programStatus = PROGRAM_STATUS.RUNNING;
         state.currentStep = 1;
         state.totalSteps = 1;
-        state.programStartTime = new Date();
+        state.programStartTime = simulatedTimeMs;
         state.programEndTime = null;
         addHistoryMarker('start', '(manual hold)');
         startSimulation();
       } else {
-        // Program running - record target change
         addHistoryMarker('target', temp);
       }
       
@@ -694,7 +906,7 @@ export function getVarsJson(): Record<string, unknown> {
   return {
     program_status: s.program_status,
     log_file: (s.program_status as number) >= PROGRAM_STATUS.RUNNING && state.loadedProgram
-      ? `/logs/${new Date().toISOString().slice(0,10)}_${state.loadedProgram.replace('.json', '')}.csv`
+      ? `/logs/${new Date(simulatedTimeMs).toISOString().slice(0,10)}_${state.loadedProgram.replace('.json', '')}.csv`
       : '',
     pidkiln: [
       { html_id: '#kiln_temp', value: String(s.kiln_temp) },
@@ -711,9 +923,12 @@ export function getVarsJson(): Record<string, unknown> {
   };
 }
 
+// =============================================================================
+// Static Data
+// =============================================================================
+
 /**
  * Sample program files (stored in memory as fallback)
- * Note: Programs are now JSON format and primarily loaded from filesystem
  */
 export const programs: Record<string, string> = {};
 
@@ -740,7 +955,7 @@ export const logs: Record<string, string> = {
 };
 
 /**
- * Default preferences (parsed from pidkiln.conf format)
+ * Default preferences
  */
 export const preferences: Record<string, string | number> = {
   WiFi_SSID: 'MyNetwork',
@@ -807,21 +1022,36 @@ export const debugInfo: Record<string, string> = {
   VERSION: 'Furnace v1.0.0 (Simulator)'
 };
 
-// Initialize history recording and generate initial data
-generateInitialHistory();
-startHistoryRecording();
+// =============================================================================
+// Initialization
+// =============================================================================
 
-// Start continuous state broadcast (simulates live sensor updates)
+// Initialize with thermal config values
+const thermal = getThermalConfig();
+state.kilnTemp = thermal.ambientTemp;
+state.envTemp = thermal.ambientTemp;
+state.caseTemp = thermal.caseBaseTemp;
+
+// Generate initial history and start recording
+generateInitialHistory();
+
+// Start continuous state broadcast (even when idle)
 setInterval(() => {
-  // Add small random variation to env temp (simulates real sensor noise)
-  state.envTemp = 22 + (Math.random() - 0.5) * 0.4;
+  // Advance simulated time
+  advanceSimulatedTime();
+  
+  // Add small random variation to env temp
+  const thermal = getThermalConfig();
+  state.envTemp = thermal.ambientTemp + (Math.random() - 0.5) * thermal.ambientVariation;
   
   // If idle (not running/cooling), add tiny variation to kiln temp too
   if (state.programStatus !== PROGRAM_STATUS.RUNNING && 
-      Math.abs(state.kilnTemp - state.envTemp) < 1) {
-    state.kilnTemp = state.envTemp + (Math.random() - 0.5) * 0.2;
+      Math.abs(state.kilnTemp - thermal.ambientTemp) < 1) {
+    state.kilnTemp = thermal.ambientTemp + (Math.random() - 0.5) * 0.2;
   }
   
+  // Record history periodically
+  maybeRecordHistory();
+  
   emitStateChange();
-}, 1000);
-
+}, getTickIntervalMs());

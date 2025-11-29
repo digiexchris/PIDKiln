@@ -41,9 +41,10 @@ Feature: Preferences Page
     Then the browser should download "pidkiln.conf"
     And the file should contain the current configuration in INI format
 
-  @preferences @validation
-  Scenario: Validate preference values
-    When I enter an invalid value for "MAX_Temperature"
-    Then a validation error should be displayed
-    And the Save button should be disabled until corrected
+  @preferences @save-error
+  Scenario: Handle save error
+    Given the WebSocket connection is lost
+    When I try to save preferences
+    Then an error message should be displayed
+    And the preferences should not be saved
 

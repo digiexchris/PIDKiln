@@ -45,6 +45,10 @@ table State {
   prog_start_ms: long;
   prog_end_ms: long;
   curr_time_ms: long;
+  error_message: string;  // Set when program_status is Error
+  // Simulator-specific fields (ignored by real ESP32)
+  is_simulator: bool = false;
+  time_scale: float = 1.0;
 }
 
 table Ack {
@@ -127,6 +131,10 @@ table StopCommand {}
 table LoadCommand { program: string (required); }
 table UnloadCommand {}
 table SetTempCommand { temperature: float; }
+table ClearErrorCommand {}
+
+// Simulator-only: Set time acceleration (1.0 to 25.0)
+table SetTimeScaleCommand { time_scale: float; }
 
 // Note: Reboot uses HTTP POST /api/reboot
 // Note: Firmware upload uses HTTP POST /update-firmware
@@ -165,6 +173,8 @@ union ClientMessage {
   LoadCommand,
   UnloadCommand,
   SetTempCommand,
+  ClearErrorCommand,
+  SetTimeScaleCommand,  // Simulator only
   // Requests
   HistoryRequest,
   ListProgramsRequest,

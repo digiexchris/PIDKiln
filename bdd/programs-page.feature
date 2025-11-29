@@ -59,10 +59,11 @@ Feature: Programs Page
     And I cancel the confirmation dialog
     Then "program1.json" should still be in the list
 
-  @programs @upload
-  Scenario: Upload a new program
-    When I select a program file to upload
-    And I click the "Upload" button
-    Then the new program should appear in the list
-    And a success message should be shown
+  @programs @create
+  Scenario: Create a new program
+    When I click the "New Program" button
+    Then a prompt should ask for the program filename
+    When I enter "my_program.json" as the filename
+    Then I should be navigated to the Editor view
+    And the editor should contain a template JSON structure
 

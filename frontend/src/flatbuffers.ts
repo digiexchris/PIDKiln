@@ -18,6 +18,8 @@ import { StopCommand } from './generated/furnace/stop-command.js';
 import { LoadCommand } from './generated/furnace/load-command.js';
 import { UnloadCommand } from './generated/furnace/unload-command.js';
 import { SetTempCommand } from './generated/furnace/set-temp-command.js';
+import { SetTimeScaleCommand } from './generated/furnace/set-time-scale-command.js';
+import { ClearErrorCommand } from './generated/furnace/clear-error-command.js';
 
 // Requests
 import { HistoryRequest } from './generated/furnace/history-request.js';
@@ -95,6 +97,10 @@ export interface DecodedState {
   progStartMs: bigint;
   progEndMs: bigint;
   currTimeMs: bigint;
+  errorMessage: string | null;
+  // Simulator-specific fields
+  isSimulator: boolean;
+  timeScale: number;
 }
 
 export interface DecodedAck {
@@ -281,6 +287,25 @@ export function encodeSetTempCommand(temperature: number): Uint8Array {
   return createEnvelope(builder, getNextRequestId(), ClientMessage.SetTempCommand, cmd);
 }
 
+export function encodeSetTimeScaleCommand(timeScale: number): Uint8Array {
+  const builder = new flatbuffers.Builder(48);
+  
+  SetTimeScaleCommand.startSetTimeScaleCommand(builder);
+  SetTimeScaleCommand.addTimeScale(builder, timeScale);
+  const cmd = SetTimeScaleCommand.endSetTimeScaleCommand(builder);
+  
+  return createEnvelope(builder, getNextRequestId(), ClientMessage.SetTimeScaleCommand, cmd);
+}
+
+export function encodeClearErrorCommand(): Uint8Array {
+  const builder = new flatbuffers.Builder(32);
+  
+  ClearErrorCommand.startClearErrorCommand(builder);
+  const cmd = ClearErrorCommand.endClearErrorCommand(builder);
+  
+  return createEnvelope(builder, getNextRequestId(), ClientMessage.ClearErrorCommand, cmd);
+}
+
 // Requests
 
 export function encodeHistoryRequest(sinceMs?: number, limit?: number): Uint8Array {
@@ -411,6 +436,9 @@ function decodeState(state: State): DecodedState {
     progStartMs: state.progStartMs(),
     progEndMs: state.progEndMs(),
     currTimeMs: state.currTimeMs(),
+    errorMessage: state.errorMessage(),
+    isSimulator: state.isSimulator(),
+    timeScale: state.timeScale(),
   };
 }
 

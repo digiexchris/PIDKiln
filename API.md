@@ -13,7 +13,7 @@ The Furnace API uses **FlatBuffers over WebSocket** as the primary protocol for 
 The FlatBuffers schema is defined in `proto/furnace.fbs`. Key message types:
 
 **Client → Server (ClientEnvelope):**
-- Commands: `StartCommand`, `PauseCommand`, `ResumeCommand`, `StopCommand`, `LoadCommand`, `UnloadCommand`, `SetTempCommand`
+- Commands: `StartCommand`, `PauseCommand`, `ResumeCommand`, `StopCommand`, `LoadCommand`, `UnloadCommand`, `SetTempCommand`, `ClearErrorCommand`, `SetTimeScaleCommand` (simulator only)
 - Requests: `HistoryRequest`, `ListProgramsRequest`, `GetProgramRequest`, `SaveProgramRequest`, `DeleteProgramRequest`, `GetPreferencesRequest`, `SavePreferencesRequest`, `GetDebugInfoRequest`, `ListLogsRequest`, `GetLogRequest`
 
 **Server → Client (ServerEnvelope):**
@@ -89,6 +89,10 @@ Sent on connect and every ~1 second during program execution.
 | `prog_start` | string | Program start time |
 | `prog_end` | string | Estimated completion time |
 | `curr_time` | string | Current system time |
+| `error_message` | string | Error description when `program_status` is ERROR (null otherwise) |
+| `is_simulator` | bool | True if connected to simulator (FlatBuffers only) |
+| `time_scale` | float | Current time scale (simulator only, 1.0-100.0) |
+| `curr_time_ms` | long | Current time as Unix timestamp ms (FlatBuffers only) |
 
 #### Log Data Point
 Sent during program run at LOG_Window interval (default 10s).
@@ -195,6 +199,40 @@ Clears the currently loaded program. Cannot be called while a program is running
 **Behavior:**
 - If no program running: Starts manual hold mode at the specified temperature
 - If program running: Overrides the current segment's target temperature
+
+#### Set Time Scale (Simulator Only)
+Sets the simulation speed multiplier. Only available when connected to the simulator.
+
+**FlatBuffers:** `SetTimeScaleCommand`
+
+```json
+{ "type": "command", "action": "set_time_scale", "time_scale": 10.0 }
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `time_scale` | float | Yes | Simulation speed (1.0 to 100.0) |
+
+**Behavior:**
+- Changes how fast simulated time advances relative to real time
+- At 10x, one real second equals 10 simulated seconds
+- Affects all timestamps in state updates and history
+- The frontend uses simulated time for the "Now" marker when connected to simulator
+
+#### Clear Error
+Clears the error state and returns to STOPPED state.
+
+**FlatBuffers:** `ClearErrorCommand`
+
+```json
+{ "type": "command", "action": "clear_error" }
+```
+
+**Behavior:**
+- Only valid when `program_status` is ERROR (5)
+- Clears the `error_message` field
+- Sets `program_status` to STOPPED (4)
+- Heater remains off; kiln continues cooling
 
 ---
 

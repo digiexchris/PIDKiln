@@ -29,7 +29,9 @@ import {
   logs,
   preferences,
   debugInfo,
-  getHistory
+  getHistory,
+  setTimeScale,
+  clearError,
 } from './mock-data.js';
 
 import {
@@ -113,18 +115,15 @@ interface StateFromMockData {
   prog_start: string | null;
   prog_end: string | null;
   curr_time: string;
+  curr_time_ms: number;
+  error_message: string | null;
+  is_simulator: boolean;
+  time_scale: number;
 }
 
 // Convert getState() to StateData for FlatBuffers
 function stateToFlatBuffers(): StateData {
   const s = getState() as unknown as StateFromMockData;
-  
-  // Safely parse dates, defaulting to 0 for null/undefined
-  const parseTimeMs = (val: string | null | undefined): number => {
-    if (!val) return 0;
-    const ms = new Date(val).getTime();
-    return isNaN(ms) ? 0 : ms;
-  };
   
   return {
     programStatus: s.program_status,
@@ -136,9 +135,12 @@ function stateToFlatBuffers(): StateData {
     heatPercent: s.heat_percent,
     tempChange: s.temp_change,
     step: s.step,
-    progStartMs: parseTimeMs(s.prog_start),
-    progEndMs: parseTimeMs(s.prog_end),
-    currTimeMs: parseTimeMs(s.curr_time) || Date.now(),
+    progStartMs: state.programStartTime || 0,
+    progEndMs: state.programEndTime || 0,
+    currTimeMs: s.curr_time_ms,
+    errorMessage: s.error_message,
+    isSimulator: s.is_simulator,
+    timeScale: s.time_scale,
   };
 }
 
@@ -272,6 +274,16 @@ function handleFlatBuffersMessage(ws: WebSocket, message: Buffer) {
       case 'set_temp': {
         const result = executeCommand('set_temp', { temperature: msg.temperature });
         ws.send(encodeAck(msg.requestId, result.success, result.error));
+        break;
+      }
+      case 'set_time_scale': {
+        setTimeScale(msg.timeScale);
+        ws.send(encodeAck(msg.requestId, true));
+        break;
+      }
+      case 'clear_error': {
+        clearError();
+        ws.send(encodeAck(msg.requestId, true));
         break;
       }
       case 'history': {

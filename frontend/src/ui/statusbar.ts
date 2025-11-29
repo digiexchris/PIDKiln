@@ -48,7 +48,7 @@ export function updateUI() {
   if (dashStart) dashStart.textContent = s.prog_start || '--';
   if (dashEnd) dashEnd.textContent = s.prog_end || '--';
   if (dashTime) dashTime.textContent = s.curr_time || '--';
-  if (dashChange) dashChange.textContent = `${s.temp_change || 0}°C/h`;
+  if (dashChange) dashChange.textContent = `${(s.temp_change || 0).toFixed(1)}°C/h`;
 
   updateLoadControls(s.program_status);
   updateStartButton(s.program_status);

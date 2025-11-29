@@ -116,6 +116,62 @@
     .status-bar .program-status.paused { background: var(--warning); color: #000; }
     .status-bar .program-status.error { background: var(--error); }
     
+    /* Simulator Controls */
+    .simulator-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: 1rem;
+      padding: 0.25rem 0.5rem;
+      background: rgba(34, 211, 238, 0.15);
+      border-radius: 4px;
+      border: 1px solid var(--info);
+    }
+    
+    .simulator-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--info);
+      letter-spacing: 0.05em;
+    }
+    
+    .simulator-controls input[type="range"] {
+      width: 240px;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--primary);
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    
+    .simulator-controls input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      background: var(--info);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    .simulator-controls input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      background: var(--info);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+    
+    .time-scale-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--info);
+      min-width: 2.5rem;
+      text-align: right;
+    }
+    
     /* Main Layout */
     .main-layout {
       display: flex;
@@ -727,6 +783,11 @@
         <span class="temp-label">Heat</span>
         <span class="temp-value" id="statusHeat">--%</span>
       </div>
+    </div>
+    <div id="simulatorControls" class="simulator-controls" style="display: none;">
+      <span id="simulatorBadge" class="simulator-badge">SIMULATED</span>
+      <input type="range" id="timeScaleSlider" min="1" max="100" step="1" value="1">
+      <span id="timeScaleLabel" class="time-scale-label">1.0x</span>
     </div>
     <div class="program-status" id="statusBadge">READY</div>
   </header>

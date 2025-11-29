@@ -90,8 +90,25 @@ currTimeMs():bigint {
   return offset ? this.bb!.readInt64(this.bb_pos + offset) : BigInt('0');
 }
 
+errorMessage():string|null
+errorMessage(optionalEncoding:flatbuffers.Encoding):string|Uint8Array|null
+errorMessage(optionalEncoding?:any):string|Uint8Array|null {
+  const offset = this.bb!.__offset(this.bb_pos, 28);
+  return offset ? this.bb!.__string(this.bb_pos + offset, optionalEncoding) : null;
+}
+
+isSimulator():boolean {
+  const offset = this.bb!.__offset(this.bb_pos, 30);
+  return offset ? !!this.bb!.readInt8(this.bb_pos + offset) : false;
+}
+
+timeScale():number {
+  const offset = this.bb!.__offset(this.bb_pos, 32);
+  return offset ? this.bb!.readFloat32(this.bb_pos + offset) : 1.0;
+}
+
 static startState(builder:flatbuffers.Builder) {
-  builder.startObject(12);
+  builder.startObject(15);
 }
 
 static addProgramStatus(builder:flatbuffers.Builder, programStatus:ProgramStatus) {
@@ -142,12 +159,24 @@ static addCurrTimeMs(builder:flatbuffers.Builder, currTimeMs:bigint) {
   builder.addFieldInt64(11, currTimeMs, BigInt('0'));
 }
 
+static addErrorMessage(builder:flatbuffers.Builder, errorMessageOffset:flatbuffers.Offset) {
+  builder.addFieldOffset(12, errorMessageOffset, 0);
+}
+
+static addIsSimulator(builder:flatbuffers.Builder, isSimulator:boolean) {
+  builder.addFieldInt8(13, +isSimulator, +false);
+}
+
+static addTimeScale(builder:flatbuffers.Builder, timeScale:number) {
+  builder.addFieldFloat32(14, timeScale, 1.0);
+}
+
 static endState(builder:flatbuffers.Builder):flatbuffers.Offset {
   const offset = builder.endObject();
   return offset;
 }
 
-static createState(builder:flatbuffers.Builder, programStatus:ProgramStatus, programNameOffset:flatbuffers.Offset, kilnTemp:number, setTemp:number, envTemp:number, caseTemp:number, heatPercent:number, tempChange:number, stepOffset:flatbuffers.Offset, progStartMs:bigint, progEndMs:bigint, currTimeMs:bigint):flatbuffers.Offset {
+static createState(builder:flatbuffers.Builder, programStatus:ProgramStatus, programNameOffset:flatbuffers.Offset, kilnTemp:number, setTemp:number, envTemp:number, caseTemp:number, heatPercent:number, tempChange:number, stepOffset:flatbuffers.Offset, progStartMs:bigint, progEndMs:bigint, currTimeMs:bigint, errorMessageOffset:flatbuffers.Offset, isSimulator:boolean, timeScale:number):flatbuffers.Offset {
   State.startState(builder);
   State.addProgramStatus(builder, programStatus);
   State.addProgramName(builder, programNameOffset);
@@ -161,6 +190,9 @@ static createState(builder:flatbuffers.Builder, programStatus:ProgramStatus, pro
   State.addProgStartMs(builder, progStartMs);
   State.addProgEndMs(builder, progEndMs);
   State.addCurrTimeMs(builder, currTimeMs);
+  State.addErrorMessage(builder, errorMessageOffset);
+  State.addIsSimulator(builder, isSimulator);
+  State.addTimeScale(builder, timeScale);
   return State.endState(builder);
 }
 
@@ -177,7 +209,10 @@ unpack(): StateT {
     this.step(),
     this.progStartMs(),
     this.progEndMs(),
-    this.currTimeMs()
+    this.currTimeMs(),
+    this.errorMessage(),
+    this.isSimulator(),
+    this.timeScale()
   );
 }
 
@@ -195,6 +230,9 @@ unpackTo(_o: StateT): void {
   _o.progStartMs = this.progStartMs();
   _o.progEndMs = this.progEndMs();
   _o.currTimeMs = this.currTimeMs();
+  _o.errorMessage = this.errorMessage();
+  _o.isSimulator = this.isSimulator();
+  _o.timeScale = this.timeScale();
 }
 }
 
@@ -211,13 +249,17 @@ constructor(
   public step: string|Uint8Array|null = null,
   public progStartMs: bigint = BigInt('0'),
   public progEndMs: bigint = BigInt('0'),
-  public currTimeMs: bigint = BigInt('0')
+  public currTimeMs: bigint = BigInt('0'),
+  public errorMessage: string|Uint8Array|null = null,
+  public isSimulator: boolean = false,
+  public timeScale: number = 1.0
 ){}
 
 
 pack(builder:flatbuffers.Builder): flatbuffers.Offset {
   const programName = (this.programName !== null ? builder.createString(this.programName!) : 0);
   const step = (this.step !== null ? builder.createString(this.step!) : 0);
+  const errorMessage = (this.errorMessage !== null ? builder.createString(this.errorMessage!) : 0);
 
   return State.createState(builder,
     this.programStatus,
@@ -231,7 +273,10 @@ pack(builder:flatbuffers.Builder): flatbuffers.Offset {
     step,
     this.progStartMs,
     this.progEndMs,
-    this.currTimeMs
+    this.currTimeMs,
+    errorMessage,
+    this.isSimulator,
+    this.timeScale
   );
 }
 }

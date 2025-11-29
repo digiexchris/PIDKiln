@@ -71,6 +71,18 @@
   function setWsLogEnabled(v) {
     wsLogEnabled = v;
   }
+  var isSimulator = false;
+  function setIsSimulator(v) {
+    isSimulator = v;
+  }
+  var timeScale = 1;
+  function setTimeScale(v) {
+    timeScale = v;
+  }
+  var simulatedNow = null;
+  function setSimulatedNow(v) {
+    simulatedNow = v;
+  }
   function resetChartData() {
     chartData.timestamps = [];
     chartData.kilnTemps = [];
@@ -886,6 +898,49 @@
     }
   };
 
+  // src/generated/furnace/clear-error-command.ts
+  var ClearErrorCommand = class _ClearErrorCommand {
+    constructor() {
+      this.bb = null;
+      this.bb_pos = 0;
+    }
+    __init(i, bb) {
+      this.bb_pos = i;
+      this.bb = bb;
+      return this;
+    }
+    static getRootAsClearErrorCommand(bb, obj) {
+      return (obj || new _ClearErrorCommand()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+    }
+    static getSizePrefixedRootAsClearErrorCommand(bb, obj) {
+      bb.setPosition(bb.position() + SIZE_PREFIX_LENGTH);
+      return (obj || new _ClearErrorCommand()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+    }
+    static startClearErrorCommand(builder) {
+      builder.startObject(0);
+    }
+    static endClearErrorCommand(builder) {
+      const offset = builder.endObject();
+      return offset;
+    }
+    static createClearErrorCommand(builder) {
+      _ClearErrorCommand.startClearErrorCommand(builder);
+      return _ClearErrorCommand.endClearErrorCommand(builder);
+    }
+    unpack() {
+      return new ClearErrorCommandT();
+    }
+    unpackTo(_o) {
+    }
+  };
+  var ClearErrorCommandT = class {
+    constructor() {
+    }
+    pack(builder) {
+      return ClearErrorCommand.createClearErrorCommand(builder);
+    }
+  };
+
   // src/generated/furnace/delete-program-request.ts
   var DeleteProgramRequest = class _DeleteProgramRequest {
     constructor() {
@@ -1646,6 +1701,64 @@
     }
   };
 
+  // src/generated/furnace/set-time-scale-command.ts
+  var SetTimeScaleCommand = class _SetTimeScaleCommand {
+    constructor() {
+      this.bb = null;
+      this.bb_pos = 0;
+    }
+    __init(i, bb) {
+      this.bb_pos = i;
+      this.bb = bb;
+      return this;
+    }
+    static getRootAsSetTimeScaleCommand(bb, obj) {
+      return (obj || new _SetTimeScaleCommand()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+    }
+    static getSizePrefixedRootAsSetTimeScaleCommand(bb, obj) {
+      bb.setPosition(bb.position() + SIZE_PREFIX_LENGTH);
+      return (obj || new _SetTimeScaleCommand()).__init(bb.readInt32(bb.position()) + bb.position(), bb);
+    }
+    timeScale() {
+      const offset = this.bb.__offset(this.bb_pos, 4);
+      return offset ? this.bb.readFloat32(this.bb_pos + offset) : 0;
+    }
+    static startSetTimeScaleCommand(builder) {
+      builder.startObject(1);
+    }
+    static addTimeScale(builder, timeScale2) {
+      builder.addFieldFloat32(0, timeScale2, 0);
+    }
+    static endSetTimeScaleCommand(builder) {
+      const offset = builder.endObject();
+      return offset;
+    }
+    static createSetTimeScaleCommand(builder, timeScale2) {
+      _SetTimeScaleCommand.startSetTimeScaleCommand(builder);
+      _SetTimeScaleCommand.addTimeScale(builder, timeScale2);
+      return _SetTimeScaleCommand.endSetTimeScaleCommand(builder);
+    }
+    unpack() {
+      return new SetTimeScaleCommandT(
+        this.timeScale()
+      );
+    }
+    unpackTo(_o) {
+      _o.timeScale = this.timeScale();
+    }
+  };
+  var SetTimeScaleCommandT = class {
+    constructor(timeScale2 = 0) {
+      this.timeScale = timeScale2;
+    }
+    pack(builder) {
+      return SetTimeScaleCommand.createSetTimeScaleCommand(
+        builder,
+        this.timeScale
+      );
+    }
+  };
+
   // src/generated/furnace/start-command.ts
   var StartCommand = class _StartCommand {
     constructor() {
@@ -1812,16 +1925,18 @@
     ClientMessage2[ClientMessage2["LoadCommand"] = 5] = "LoadCommand";
     ClientMessage2[ClientMessage2["UnloadCommand"] = 6] = "UnloadCommand";
     ClientMessage2[ClientMessage2["SetTempCommand"] = 7] = "SetTempCommand";
-    ClientMessage2[ClientMessage2["HistoryRequest"] = 8] = "HistoryRequest";
-    ClientMessage2[ClientMessage2["ListProgramsRequest"] = 9] = "ListProgramsRequest";
-    ClientMessage2[ClientMessage2["GetProgramRequest"] = 10] = "GetProgramRequest";
-    ClientMessage2[ClientMessage2["SaveProgramRequest"] = 11] = "SaveProgramRequest";
-    ClientMessage2[ClientMessage2["DeleteProgramRequest"] = 12] = "DeleteProgramRequest";
-    ClientMessage2[ClientMessage2["GetPreferencesRequest"] = 13] = "GetPreferencesRequest";
-    ClientMessage2[ClientMessage2["SavePreferencesRequest"] = 14] = "SavePreferencesRequest";
-    ClientMessage2[ClientMessage2["GetDebugInfoRequest"] = 15] = "GetDebugInfoRequest";
-    ClientMessage2[ClientMessage2["ListLogsRequest"] = 16] = "ListLogsRequest";
-    ClientMessage2[ClientMessage2["GetLogRequest"] = 17] = "GetLogRequest";
+    ClientMessage2[ClientMessage2["ClearErrorCommand"] = 8] = "ClearErrorCommand";
+    ClientMessage2[ClientMessage2["SetTimeScaleCommand"] = 9] = "SetTimeScaleCommand";
+    ClientMessage2[ClientMessage2["HistoryRequest"] = 10] = "HistoryRequest";
+    ClientMessage2[ClientMessage2["ListProgramsRequest"] = 11] = "ListProgramsRequest";
+    ClientMessage2[ClientMessage2["GetProgramRequest"] = 12] = "GetProgramRequest";
+    ClientMessage2[ClientMessage2["SaveProgramRequest"] = 13] = "SaveProgramRequest";
+    ClientMessage2[ClientMessage2["DeleteProgramRequest"] = 14] = "DeleteProgramRequest";
+    ClientMessage2[ClientMessage2["GetPreferencesRequest"] = 15] = "GetPreferencesRequest";
+    ClientMessage2[ClientMessage2["SavePreferencesRequest"] = 16] = "SavePreferencesRequest";
+    ClientMessage2[ClientMessage2["GetDebugInfoRequest"] = 17] = "GetDebugInfoRequest";
+    ClientMessage2[ClientMessage2["ListLogsRequest"] = 18] = "ListLogsRequest";
+    ClientMessage2[ClientMessage2["GetLogRequest"] = 19] = "GetLogRequest";
     return ClientMessage2;
   })(ClientMessage || {});
   function unionToClientMessage(type, accessor) {
@@ -1842,6 +1957,10 @@
         return accessor(new UnloadCommand());
       case "SetTempCommand":
         return accessor(new SetTempCommand());
+      case "ClearErrorCommand":
+        return accessor(new ClearErrorCommand());
+      case "SetTimeScaleCommand":
+        return accessor(new SetTimeScaleCommand());
       case "HistoryRequest":
         return accessor(new HistoryRequest());
       case "ListProgramsRequest":
@@ -2986,8 +3105,20 @@
       const offset = this.bb.__offset(this.bb_pos, 26);
       return offset ? this.bb.readInt64(this.bb_pos + offset) : BigInt("0");
     }
+    errorMessage(optionalEncoding) {
+      const offset = this.bb.__offset(this.bb_pos, 28);
+      return offset ? this.bb.__string(this.bb_pos + offset, optionalEncoding) : null;
+    }
+    isSimulator() {
+      const offset = this.bb.__offset(this.bb_pos, 30);
+      return offset ? !!this.bb.readInt8(this.bb_pos + offset) : false;
+    }
+    timeScale() {
+      const offset = this.bb.__offset(this.bb_pos, 32);
+      return offset ? this.bb.readFloat32(this.bb_pos + offset) : 1;
+    }
     static startState(builder) {
-      builder.startObject(12);
+      builder.startObject(15);
     }
     static addProgramStatus(builder, programStatus) {
       builder.addFieldInt8(0, programStatus, 0 /* None */);
@@ -3025,11 +3156,20 @@
     static addCurrTimeMs(builder, currTimeMs) {
       builder.addFieldInt64(11, currTimeMs, BigInt("0"));
     }
+    static addErrorMessage(builder, errorMessageOffset) {
+      builder.addFieldOffset(12, errorMessageOffset, 0);
+    }
+    static addIsSimulator(builder, isSimulator2) {
+      builder.addFieldInt8(13, +isSimulator2, 0);
+    }
+    static addTimeScale(builder, timeScale2) {
+      builder.addFieldFloat32(14, timeScale2, 1);
+    }
     static endState(builder) {
       const offset = builder.endObject();
       return offset;
     }
-    static createState(builder, programStatus, programNameOffset, kilnTemp, setTemp, envTemp, caseTemp, heatPercent, tempChange, stepOffset, progStartMs, progEndMs, currTimeMs) {
+    static createState(builder, programStatus, programNameOffset, kilnTemp, setTemp, envTemp, caseTemp, heatPercent, tempChange, stepOffset, progStartMs, progEndMs, currTimeMs, errorMessageOffset, isSimulator2, timeScale2) {
       _State.startState(builder);
       _State.addProgramStatus(builder, programStatus);
       _State.addProgramName(builder, programNameOffset);
@@ -3043,6 +3183,9 @@
       _State.addProgStartMs(builder, progStartMs);
       _State.addProgEndMs(builder, progEndMs);
       _State.addCurrTimeMs(builder, currTimeMs);
+      _State.addErrorMessage(builder, errorMessageOffset);
+      _State.addIsSimulator(builder, isSimulator2);
+      _State.addTimeScale(builder, timeScale2);
       return _State.endState(builder);
     }
     unpack() {
@@ -3058,7 +3201,10 @@
         this.step(),
         this.progStartMs(),
         this.progEndMs(),
-        this.currTimeMs()
+        this.currTimeMs(),
+        this.errorMessage(),
+        this.isSimulator(),
+        this.timeScale()
       );
     }
     unpackTo(_o) {
@@ -3074,10 +3220,13 @@
       _o.progStartMs = this.progStartMs();
       _o.progEndMs = this.progEndMs();
       _o.currTimeMs = this.currTimeMs();
+      _o.errorMessage = this.errorMessage();
+      _o.isSimulator = this.isSimulator();
+      _o.timeScale = this.timeScale();
     }
   };
   var StateT = class {
-    constructor(programStatus = 0 /* None */, programName = null, kilnTemp = 0, setTemp = 0, envTemp = 0, caseTemp = 0, heatPercent = 0, tempChange = 0, step = null, progStartMs = BigInt("0"), progEndMs = BigInt("0"), currTimeMs = BigInt("0")) {
+    constructor(programStatus = 0 /* None */, programName = null, kilnTemp = 0, setTemp = 0, envTemp = 0, caseTemp = 0, heatPercent = 0, tempChange = 0, step = null, progStartMs = BigInt("0"), progEndMs = BigInt("0"), currTimeMs = BigInt("0"), errorMessage = null, isSimulator2 = false, timeScale2 = 1) {
       this.programStatus = programStatus;
       this.programName = programName;
       this.kilnTemp = kilnTemp;
@@ -3090,10 +3239,14 @@
       this.progStartMs = progStartMs;
       this.progEndMs = progEndMs;
       this.currTimeMs = currTimeMs;
+      this.errorMessage = errorMessage;
+      this.isSimulator = isSimulator2;
+      this.timeScale = timeScale2;
     }
     pack(builder) {
       const programName = this.programName !== null ? builder.createString(this.programName) : 0;
       const step = this.step !== null ? builder.createString(this.step) : 0;
+      const errorMessage = this.errorMessage !== null ? builder.createString(this.errorMessage) : 0;
       return State.createState(
         builder,
         this.programStatus,
@@ -3107,7 +3260,10 @@
         step,
         this.progStartMs,
         this.progEndMs,
-        this.currTimeMs
+        this.currTimeMs,
+        errorMessage,
+        this.isSimulator,
+        this.timeScale
       );
     }
   };
@@ -3334,6 +3490,19 @@
     const cmd = SetTempCommand.endSetTempCommand(builder);
     return createEnvelope(builder, getNextRequestId(), 7 /* SetTempCommand */, cmd);
   }
+  function encodeSetTimeScaleCommand(timeScale2) {
+    const builder = new Builder(48);
+    SetTimeScaleCommand.startSetTimeScaleCommand(builder);
+    SetTimeScaleCommand.addTimeScale(builder, timeScale2);
+    const cmd = SetTimeScaleCommand.endSetTimeScaleCommand(builder);
+    return createEnvelope(builder, getNextRequestId(), 9 /* SetTimeScaleCommand */, cmd);
+  }
+  function encodeClearErrorCommand() {
+    const builder = new Builder(32);
+    ClearErrorCommand.startClearErrorCommand(builder);
+    const cmd = ClearErrorCommand.endClearErrorCommand(builder);
+    return createEnvelope(builder, getNextRequestId(), 8 /* ClearErrorCommand */, cmd);
+  }
   function encodeHistoryRequest(sinceMs, limit) {
     const builder = new Builder(64);
     HistoryRequest.startHistoryRequest(builder);
@@ -3342,13 +3511,13 @@
     if (limit !== void 0)
       HistoryRequest.addLimit(builder, limit);
     const req = HistoryRequest.endHistoryRequest(builder);
-    return createEnvelope(builder, getNextRequestId(), 8 /* HistoryRequest */, req);
+    return createEnvelope(builder, getNextRequestId(), 10 /* HistoryRequest */, req);
   }
   function encodeListProgramsRequest() {
     const builder = new Builder(32);
     ListProgramsRequest.startListProgramsRequest(builder);
     const req = ListProgramsRequest.endListProgramsRequest(builder);
-    return createEnvelope(builder, getNextRequestId(), 9 /* ListProgramsRequest */, req);
+    return createEnvelope(builder, getNextRequestId(), 11 /* ListProgramsRequest */, req);
   }
   function encodeGetProgramRequest(name) {
     const builder = new Builder(128);
@@ -3356,7 +3525,7 @@
     GetProgramRequest.startGetProgramRequest(builder);
     GetProgramRequest.addName(builder, nameOffset);
     const req = GetProgramRequest.endGetProgramRequest(builder);
-    return createEnvelope(builder, getNextRequestId(), 10 /* GetProgramRequest */, req);
+    return createEnvelope(builder, getNextRequestId(), 12 /* GetProgramRequest */, req);
   }
   function encodeSaveProgramRequest(name, content) {
     const builder = new Builder(content.length + 256);
@@ -3366,7 +3535,7 @@
     SaveProgramRequest.addName(builder, nameOffset);
     SaveProgramRequest.addContent(builder, contentOffset);
     const req = SaveProgramRequest.endSaveProgramRequest(builder);
-    return createEnvelope(builder, getNextRequestId(), 11 /* SaveProgramRequest */, req);
+    return createEnvelope(builder, getNextRequestId(), 13 /* SaveProgramRequest */, req);
   }
   function encodeDeleteProgramRequest(name) {
     const builder = new Builder(128);
@@ -3374,13 +3543,13 @@
     DeleteProgramRequest.startDeleteProgramRequest(builder);
     DeleteProgramRequest.addName(builder, nameOffset);
     const req = DeleteProgramRequest.endDeleteProgramRequest(builder);
-    return createEnvelope(builder, getNextRequestId(), 12 /* DeleteProgramRequest */, req);
+    return createEnvelope(builder, getNextRequestId(), 14 /* DeleteProgramRequest */, req);
   }
   function encodeGetPreferencesRequest() {
     const builder = new Builder(32);
     GetPreferencesRequest.startGetPreferencesRequest(builder);
     const req = GetPreferencesRequest.endGetPreferencesRequest(builder);
-    return createEnvelope(builder, getNextRequestId(), 13 /* GetPreferencesRequest */, req);
+    return createEnvelope(builder, getNextRequestId(), 15 /* GetPreferencesRequest */, req);
   }
   function encodeSavePreferencesRequest(json) {
     const builder = new Builder(json.length + 128);
@@ -3388,19 +3557,19 @@
     SavePreferencesRequest.startSavePreferencesRequest(builder);
     SavePreferencesRequest.addJson(builder, jsonOffset);
     const req = SavePreferencesRequest.endSavePreferencesRequest(builder);
-    return createEnvelope(builder, getNextRequestId(), 14 /* SavePreferencesRequest */, req);
+    return createEnvelope(builder, getNextRequestId(), 16 /* SavePreferencesRequest */, req);
   }
   function encodeGetDebugInfoRequest() {
     const builder = new Builder(32);
     GetDebugInfoRequest.startGetDebugInfoRequest(builder);
     const req = GetDebugInfoRequest.endGetDebugInfoRequest(builder);
-    return createEnvelope(builder, getNextRequestId(), 15 /* GetDebugInfoRequest */, req);
+    return createEnvelope(builder, getNextRequestId(), 17 /* GetDebugInfoRequest */, req);
   }
   function encodeListLogsRequest() {
     const builder = new Builder(32);
     ListLogsRequest.startListLogsRequest(builder);
     const req = ListLogsRequest.endListLogsRequest(builder);
-    return createEnvelope(builder, getNextRequestId(), 16 /* ListLogsRequest */, req);
+    return createEnvelope(builder, getNextRequestId(), 18 /* ListLogsRequest */, req);
   }
   function encodeGetLogRequest(name) {
     const builder = new Builder(128);
@@ -3408,7 +3577,7 @@
     GetLogRequest.startGetLogRequest(builder);
     GetLogRequest.addName(builder, nameOffset);
     const req = GetLogRequest.endGetLogRequest(builder);
-    return createEnvelope(builder, getNextRequestId(), 17 /* GetLogRequest */, req);
+    return createEnvelope(builder, getNextRequestId(), 19 /* GetLogRequest */, req);
   }
   function decodeState(state2) {
     return {
@@ -3424,7 +3593,10 @@
       step: state2.step(),
       progStartMs: state2.progStartMs(),
       progEndMs: state2.progEndMs(),
-      currTimeMs: state2.currTimeMs()
+      currTimeMs: state2.currTimeMs(),
+      errorMessage: state2.errorMessage(),
+      isSimulator: state2.isSimulator(),
+      timeScale: state2.timeScale()
     };
   }
   function decodeAck(ack, requestId) {
@@ -3649,10 +3821,11 @@
         updateChartData();
         return;
       }
+      const startTemp = state.kiln_temp ?? 0;
       const times = [0];
-      const temps = [segments[0].target ?? 0];
+      const temps = [startTemp];
       let elapsed = 0;
-      let currentTemp = temps[0];
+      let currentTemp = startTemp;
       for (const segment of segments) {
         const target = segment.target ?? currentTemp;
         const rampSeconds = timeToSeconds(segment.ramp_time);
@@ -3694,7 +3867,7 @@
     if (programProfileLocked && programProfile.startTime) {
       anchorTime = programProfile.startTime;
     } else {
-      anchorTime = Date.now() / 1e3;
+      anchorTime = getNowSeconds();
     }
     const profileTimes = programProfile.times;
     const profileTemps = programProfile.temps;
@@ -3717,40 +3890,79 @@
       return null;
     });
   }
+  var lastProgramStatus = 0;
   function handleProgramProfileUpdate() {
     const prevProgramName = programProfile?.name;
     const currentProgramName = state.program_name;
-    if (currentProgramName && currentProgramName !== prevProgramName) {
-      void loadProgramProfile(currentProgramName);
-    }
-    const wasLocked = programProfileLocked;
-    const isRunning = state.program_status === 2;
-    const isStopped = [4, 5, 7].includes(state.program_status);
-    if (isRunning && !wasLocked) {
-      setProgramProfileLocked(true);
-      if (programProfile) {
-        setProgramProfile({
-          ...programProfile,
-          startTime: Date.now() / 1e3
-        });
-      }
-    } else if (isStopped) {
-      setProgramProfileLocked(true);
-    }
-    if (!currentProgramName || state.program_status === 0) {
+    const currentStatus = state.program_status;
+    if (!currentProgramName || currentStatus === 0) {
       setProgramProfile(null);
       setProgramProfileLocked(false);
+      lastProgramStatus = currentStatus;
+      return;
     }
+    const programJustChanged = currentProgramName !== prevProgramName;
+    if (programJustChanged) {
+      setProgramProfileLocked(false);
+      void loadProgramProfile(currentProgramName);
+      lastProgramStatus = currentStatus;
+      return;
+    }
+    const profileMatchesProgram = programProfile && programProfile.name === currentProgramName;
+    if (!profileMatchesProgram) {
+      lastProgramStatus = currentStatus;
+      return;
+    }
+    const wasRunning = lastProgramStatus === 2;
+    const isRunning = currentStatus === 2;
+    const isReady = currentStatus === 1;
+    if (isRunning && !wasRunning && programProfile) {
+      const hasBackendStartTime = state.prog_start && state.prog_start !== "-";
+      if (hasBackendStartTime) {
+        const backendStartTime = new Date(state.prog_start).getTime() / 1e3;
+        setProgramProfileLocked(true);
+        setProgramProfile({
+          name: programProfile.name,
+          startTime: backendStartTime,
+          durationMinutes: programProfile.durationMinutes,
+          times: programProfile.times,
+          temps: programProfile.temps
+        });
+      }
+    } else if (isReady && !programProfileLocked) {
+      setProgramProfileLocked(false);
+    }
+    if ((isRunning || [4, 5, 7].includes(currentStatus)) && !programProfileLocked && programProfile) {
+      const hasBackendStartTime = state.prog_start && state.prog_start !== "-";
+      if (hasBackendStartTime) {
+        const backendStartTime = new Date(state.prog_start).getTime() / 1e3;
+        setProgramProfileLocked(true);
+        setProgramProfile({
+          name: programProfile.name,
+          startTime: backendStartTime,
+          durationMinutes: programProfile.durationMinutes,
+          times: programProfile.times,
+          temps: programProfile.temps
+        });
+      }
+    }
+    lastProgramStatus = currentStatus;
   }
 
   // src/chart/dashboard.ts
+  function getNowSeconds() {
+    if (isSimulator && simulatedNow !== null) {
+      return simulatedNow / 1e3;
+    }
+    return Date.now() / 1e3;
+  }
   function nowLinePlugin() {
     return {
       hooks: {
         draw: [
           (u) => {
             const ctx = u.ctx;
-            const now = Date.now() / 1e3;
+            const now = getNowSeconds();
             const xMin = u.scales.x.min;
             const xMax = u.scales.x.max;
             if (now < xMin || now > xMax)
@@ -3799,7 +4011,7 @@
     if (width < 100)
       return;
     setChartInitializing(true);
-    const now = Date.now() / 1e3;
+    const now = getNowSeconds();
     const data = [
       [now - 60, now],
       [25, 25],
@@ -4009,7 +4221,7 @@
     if (kilnTemp === void 0 || setTemp === void 0 || Number.isNaN(kilnTemp) || Number.isNaN(setTemp)) {
       return;
     }
-    const now = Date.now() / 1e3;
+    const now = getNowSeconds();
     chartData.timestamps.push(now);
     chartData.kilnTemps.push(Number(kilnTemp));
     chartData.setTemps.push(Number(setTemp));
@@ -4034,7 +4246,7 @@
       chartData.envTemps.push(22);
     while (chartData.caseTemps.length < len)
       chartData.caseTemps.push(28);
-    const now = Date.now() / 1e3;
+    const now = getNowSeconds();
     let timestamps = [...chartData.timestamps];
     let kilnTemps = [...chartData.kilnTemps];
     let setTemps = [...chartData.setTemps];
@@ -4067,7 +4279,7 @@
       profileTemps
     ], false);
     if (autoScrollEnabled) {
-      const nowSec = Date.now() / 1e3;
+      const nowSec = getNowSeconds();
       const newMin = nowSec - currentRange * 0.67;
       const newMax = nowSec + currentRange * 0.33;
       chart.setScale("x", { min: newMin, max: newMax });
@@ -4077,7 +4289,7 @@
     updateOverviewBar();
   }
   function getChartMaxRange() {
-    const now = Date.now() / 1e3;
+    const now = getNowSeconds();
     const oldest = chartData.timestamps.length > 0 ? chartData.timestamps[0] : now - 3600;
     const programEnd = getProgramEndTime();
     const rightEdge = Math.max(now + 6 * 3600, programEnd);
@@ -4085,8 +4297,8 @@
   }
   function getProgramEndTime() {
     if (!programProfile)
-      return Date.now() / 1e3;
-    const startTime = programProfile.startTime || Date.now() / 1e3;
+      return getNowSeconds();
+    const startTime = programProfile.startTime || getNowSeconds();
     return startTime + programProfile.durationMinutes * 60;
   }
   function resetZoom() {
@@ -4101,7 +4313,7 @@
   function setDefaultView() {
     if (!chart)
       return;
-    const now = Date.now() / 1e3;
+    const now = getNowSeconds();
     const windowSize = 60 * 60;
     const min = now - windowSize * 0.67;
     const max = now + windowSize * 0.33;
@@ -4114,7 +4326,7 @@
     updateAutoScrollButton();
     if (autoScrollEnabled) {
       const currentRange = chart.scales.x.max - chart.scales.x.min;
-      const now = Date.now() / 1e3;
+      const now = getNowSeconds();
       const min = now - currentRange * 0.67;
       const max = now + currentRange * 0.33;
       chart.setScale("x", { min, max });
@@ -4183,7 +4395,7 @@
       const dx = e.clientX - startX;
       const overviewWidth = overview.clientWidth;
       const dPct = dx / overviewWidth * 100;
-      const now = Date.now() / 1e3;
+      const now = getNowSeconds();
       const oldest = chartData.timestamps[0] || now - 3600;
       const programEnd = getProgramEndTime();
       const rightEdge = Math.max(now + 6 * 3600, programEnd);
@@ -4207,7 +4419,7 @@
       updateAutoScrollButton();
       const rect = overview.getBoundingClientRect();
       const clickPct = (e.clientX - rect.left) / rect.width;
-      const now = Date.now() / 1e3;
+      const now = getNowSeconds();
       const oldest = chartData.timestamps[0] || now - 3600;
       const programEnd = getProgramEndTime();
       const rightEdge = Math.max(now + 6 * 3600, programEnd);
@@ -4226,7 +4438,7 @@
     const viewport = overview.querySelector(".overview-viewport");
     if (!viewport)
       return;
-    const now = Date.now() / 1e3;
+    const now = getNowSeconds();
     const oldest = chartData.timestamps.length > 0 ? chartData.timestamps[0] : now - 3600;
     const programEnd = getProgramEndTime();
     const rightEdge = Math.max(now + 6 * 3600, programEnd);
@@ -4311,7 +4523,7 @@
     if (dashTime)
       dashTime.textContent = s.curr_time || "--";
     if (dashChange)
-      dashChange.textContent = `${s.temp_change || 0}\xB0C/h`;
+      dashChange.textContent = `${(s.temp_change || 0).toFixed(1)}\xB0C/h`;
     updateLoadControls(s.program_status);
     updateStartButton(s.program_status);
   }
@@ -4593,6 +4805,36 @@
     window.location.hash = "#/editor";
     textarea.focus();
   }
+  function validateProgramJson(content) {
+    try {
+      const program = JSON.parse(content);
+      if (typeof program !== "object" || program === null) {
+        return { valid: false, error: "Program must be a JSON object" };
+      }
+      if (!Array.isArray(program.segments)) {
+        return { valid: false, error: 'Program must have a "segments" array' };
+      }
+      if (program.segments.length === 0) {
+        return { valid: false, error: "Program must have at least one segment" };
+      }
+      for (let i = 0; i < program.segments.length; i++) {
+        const seg = program.segments[i];
+        const segNum = i + 1;
+        if (typeof seg.target !== "number") {
+          return { valid: false, error: `Segment ${segNum}: "target" must be a number` };
+        }
+        if (!seg.ramp_time || typeof seg.ramp_time !== "object") {
+          return { valid: false, error: `Segment ${segNum}: "ramp_time" must be an object` };
+        }
+        if (!seg.dwell_time || typeof seg.dwell_time !== "object") {
+          return { valid: false, error: `Segment ${segNum}: "dwell_time" must be an object` };
+        }
+      }
+      return { valid: true };
+    } catch (e) {
+      return { valid: false, error: `Invalid JSON: ${e instanceof Error ? e.message : "parse error"}` };
+    }
+  }
   async function saveProgram() {
     const textarea = document.getElementById("editorContent");
     if (!textarea)
@@ -4605,6 +4847,11 @@
     }
     if (content.length > 10240) {
       window.alert("File too large (max 10KB)");
+      return;
+    }
+    const validation = validateProgramJson(content);
+    if (!validation.valid) {
+      window.alert(`Invalid program: ${validation.error}`);
       return;
     }
     try {
@@ -5080,6 +5327,47 @@ The device will restart after upload.`)) {
       handleProgramProfileUpdate();
     }
   }
+  function updateSimulatorUI() {
+    const container = document.getElementById("simulatorControls");
+    const slider = document.getElementById("timeScaleSlider");
+    const label = document.getElementById("timeScaleLabel");
+    const badge = document.getElementById("simulatorBadge");
+    if (container) {
+      container.style.display = isSimulator ? "flex" : "none";
+    }
+    if (slider && Math.abs(slider.valueAsNumber - timeScale) > 0.1) {
+      slider.value = String(timeScale);
+    }
+    if (label) {
+      label.textContent = `${timeScale.toFixed(1)}x`;
+    }
+    if (badge) {
+      badge.style.display = isSimulator ? "inline" : "none";
+    }
+  }
+  function sendTimeScale(scale) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(encodeSetTimeScaleCommand(scale));
+    }
+  }
+  function clearError() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(encodeClearErrorCommand());
+    }
+  }
+  function updateErrorOverlay(s) {
+    const overlay = document.getElementById("errorOverlay");
+    const messageEl = document.getElementById("errorMessage");
+    if (!overlay)
+      return;
+    if (s.program_status === 5 && s.error_message) {
+      if (messageEl)
+        messageEl.textContent = s.error_message;
+      overlay.style.display = "flex";
+    } else {
+      overlay.style.display = "none";
+    }
+  }
   function handleFlatBuffersMessage(msg) {
     if ("requestId" in msg && msg.requestId > 0) {
       if (resolvePendingRequest(msg.requestId, msg)) {
@@ -5101,9 +5389,19 @@ The device will restart after upload.`)) {
           step: s.step || "",
           prog_start: s.progStartMs ? new Date(Number(s.progStartMs)).toISOString() : null,
           prog_end: s.progEndMs ? new Date(Number(s.progEndMs)).toISOString() : null,
-          curr_time: new Date(Number(s.currTimeMs)).toISOString()
+          curr_time: new Date(Number(s.currTimeMs)).toISOString(),
+          error_message: s.errorMessage
         };
         setState(newState);
+        setIsSimulator(s.isSimulator);
+        setTimeScale(s.timeScale);
+        if (s.isSimulator && s.currTimeMs) {
+          setSimulatedNow(Number(s.currTimeMs));
+        } else {
+          setSimulatedNow(null);
+        }
+        updateSimulatorUI();
+        updateErrorOverlay(newState);
         updateUI();
         if (newState.kiln_temp !== void 0 && newState.set_temp !== void 0) {
           addChartPoint(newState.kiln_temp, newState.set_temp, newState.env_temp, newState.case_temp);
@@ -5222,6 +5520,19 @@ The device will restart after upload.`)) {
     window.setTimeout(() => {
       void loadChartHistory();
     }, 500);
+    const slider = document.getElementById("timeScaleSlider");
+    if (slider) {
+      slider.addEventListener("input", () => {
+        const scale = parseFloat(slider.value);
+        const label = document.getElementById("timeScaleLabel");
+        if (label)
+          label.textContent = `${scale.toFixed(1)}x`;
+      });
+      slider.addEventListener("change", () => {
+        const scale = parseFloat(slider.value);
+        sendTimeScale(scale);
+      });
+    }
   });
   Object.assign(window, {
     sendCommand,
@@ -5250,7 +5561,8 @@ The device will restart after upload.`)) {
     centerOnProgram,
     uploadFirmware,
     toggleWsLog,
-    clearLog
+    clearLog,
+    clearError
   });
 })();
 //# sourceMappingURL=app.js.map

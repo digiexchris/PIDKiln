@@ -95,3 +95,59 @@ Feature: Program Control
     Then the target temperature should be set to 500°C
     And the kiln should begin heating toward 500°C
 
+  @program @execution @segments
+  Scenario: Program follows segment schedule
+    Given "program1.json" is loaded with multiple segments
+    When I start the program
+    Then the target temperature should follow the program schedule
+    And during ramp phases the target should gradually change
+    And during dwell phases the target should hold steady
+    And the step indicator should update as segments complete
+
+  @program @execution @ramp
+  Scenario: Target temperature ramps between segments
+    Given a program is running
+    And the current segment has a ramp phase
+    Then the target temperature should interpolate from the previous target to the current target
+    And the interpolation should be linear over the ramp duration
+
+  @program @execution @ramp @first-segment
+  Scenario: First segment ramps from current kiln temperature
+    Given the kiln is at 50°C
+    And a program is loaded with a first segment that has a ramp time
+    When I start the program
+    Then the target temperature should start at 50°C
+    And the target should ramp linearly to the first segment's target
+    And the program profile on the chart should also start at 50°C
+
+  @program @execution @ramp @first-segment-instant
+  Scenario: First segment with zero ramp time jumps to target
+    Given the kiln is at 50°C
+    And a program is loaded with a first segment that has zero ramp time
+    When I start the program
+    Then the target temperature should immediately jump to the first segment's target
+    And the program profile on the chart should show a vertical line from 50°C to the target
+
+  @program @execution @dwell
+  Scenario: Target temperature holds during dwell
+    Given a program is running
+    And the current segment is in the dwell phase
+    Then the target temperature should hold at the segment's target temperature
+    And the target should not change until the dwell time completes
+
+  @program @execution @finish
+  Scenario: Program completes when all segments finish
+    Given a program is running
+    When all segments have completed
+    Then the status badge should show "FINISHED"
+    And the target temperature should reset to 0
+    And the kiln should begin cooling toward ambient temperature
+
+  @program @execution @step-indicator
+  Scenario: Step indicator tracks progress
+    Given a program is running with 3 segments
+    When segment 1 completes
+    Then the step indicator should show "2 of 3"
+    When segment 2 completes
+    Then the step indicator should show "3 of 3"
+

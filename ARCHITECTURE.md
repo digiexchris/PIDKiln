@@ -269,42 +269,19 @@ enum ProgramStatus {
 
 ## Development Environment
 
-### Simulator
+See [DEVELOPMENT.md](DEVELOPMENT.md) for the complete development guide, including:
+- Docker setup and commands
+- Running npm commands through the container
+- FlatBuffers code generation
+- Simulator configuration
+- Adding new features
 
-A Node.js mock server simulates the ESP32 backend for frontend development:
+### Quick Start
 
 ```bash
 cd simulator
 docker-compose up --build
-```
-
-**Features:**
-- Full FlatBuffers protocol support
-- Simulated temperature curves
-- Program execution simulation
-- Temperature history with markers
-
-### Docker Setup
-
-The development container provides:
-- Node.js 22 runtime
-- FlatBuffers compiler (`flatc`)
-- Watch mode for both frontend and simulator
-- Volume mounts for live code editing
-
-```yaml
-# simulator/docker-compose.yml
-services:
-  sim:
-    build:
-      context: ..
-      dockerfile: simulator/Dockerfile
-    ports:
-      - "3000:3000"
-    volumes:
-      - ../frontend:/app/frontend
-      - ../proto:/app/proto:ro
-      - ./src:/app/simulator/src
+# Open http://localhost:3000
 ```
 
 ---
@@ -404,6 +381,7 @@ Preferences are stored in `furnace.conf` on the ESP32 SPIFFS filesystem:
 
 | File | Purpose |
 |------|---------|
+| `DEVELOPMENT.md` | Development workflow and commands |
 | `API.md` | Complete API reference |
 | `frontend/PLAN_SPA.md` | Frontend development plan |
 | `src/PLAN_FLATBUFFERS.md` | ESP32 FlatBuffers implementation |

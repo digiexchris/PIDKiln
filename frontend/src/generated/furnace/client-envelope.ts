@@ -5,6 +5,7 @@
 
 import * as flatbuffers from 'flatbuffers';
 
+import { ClearErrorCommand, ClearErrorCommandT } from '../furnace/clear-error-command.js';
 import { ClientMessage, unionToClientMessage, unionListToClientMessage } from '../furnace/client-message.js';
 import { DeleteProgramRequest, DeleteProgramRequestT } from '../furnace/delete-program-request.js';
 import { GetDebugInfoRequest, GetDebugInfoRequestT } from '../furnace/get-debug-info-request.js';
@@ -20,6 +21,7 @@ import { ResumeCommand, ResumeCommandT } from '../furnace/resume-command.js';
 import { SavePreferencesRequest, SavePreferencesRequestT } from '../furnace/save-preferences-request.js';
 import { SaveProgramRequest, SaveProgramRequestT } from '../furnace/save-program-request.js';
 import { SetTempCommand, SetTempCommandT } from '../furnace/set-temp-command.js';
+import { SetTimeScaleCommand, SetTimeScaleCommandT } from '../furnace/set-time-scale-command.js';
 import { StartCommand, StartCommandT } from '../furnace/start-command.js';
 import { StopCommand, StopCommandT } from '../furnace/stop-command.js';
 import { UnloadCommand, UnloadCommandT } from '../furnace/unload-command.js';
@@ -115,7 +117,7 @@ export class ClientEnvelopeT implements flatbuffers.IGeneratedObject {
 constructor(
   public requestId: number = 0,
   public messageType: ClientMessage = ClientMessage.NONE,
-  public message: DeleteProgramRequestT|GetDebugInfoRequestT|GetLogRequestT|GetPreferencesRequestT|GetProgramRequestT|HistoryRequestT|ListLogsRequestT|ListProgramsRequestT|LoadCommandT|PauseCommandT|ResumeCommandT|SavePreferencesRequestT|SaveProgramRequestT|SetTempCommandT|StartCommandT|StopCommandT|UnloadCommandT|null = null
+  public message: ClearErrorCommandT|DeleteProgramRequestT|GetDebugInfoRequestT|GetLogRequestT|GetPreferencesRequestT|GetProgramRequestT|HistoryRequestT|ListLogsRequestT|ListProgramsRequestT|LoadCommandT|PauseCommandT|ResumeCommandT|SavePreferencesRequestT|SaveProgramRequestT|SetTempCommandT|SetTimeScaleCommandT|StartCommandT|StopCommandT|UnloadCommandT|null = null
 ){}
 
 

@@ -182,6 +182,34 @@ This is short version - for detailed one, please see [Wiki documentation](https:
 - Most of the documentation you can find on [PIDKiln github page](https://github.com/Saur0o0n/pidkiln/wiki) - so please use it
 - Some less formal updates information and step by step instructions will be on [my webpage](https://adrian.siemieniak.net/portal/tag/PIDKiln/)
 
+## Try the Web Interface (Simulator)
+
+You can try the web interface without any hardware using the development simulator:
+
+```bash
+# Requires Docker
+cd simulator
+docker-compose up --build
+```
+
+Then open http://localhost:3000 in your browser.
+
+The simulator provides:
+- Full web interface with live temperature chart
+- Simulated temperature curves and program execution
+- Time acceleration (1x-25x) for testing long programs
+- All features of the real controller
+
+See [simulator/README.md](simulator/README.md) for more details.
+
+## Developer Documentation
+
+For developers working on the frontend or simulator:
+
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Development workflow and commands
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture
+- [API.md](API.md) - API reference
+
 ## Some future ideas
 
 Almost all, what I had in mind is done.. so not much to write here :)

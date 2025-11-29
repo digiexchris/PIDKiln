@@ -26,6 +26,7 @@ services:
       - ./src:/app/simulator/src
       - ./build.js:/app/simulator/build.js:ro
       - ./tsconfig.json:/app/simulator/tsconfig.json:ro
+      - ./config.json:/app/simulator/config.json
       # Named volume to preserve simulator node_modules from container build
       - simulator_node_modules:/app/simulator/node_modules
     environment:

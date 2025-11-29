@@ -5,6 +5,7 @@ import {
   chartData, CHART_MAX_POINTS, CHART_MIN_WINDOW,
   autoScrollEnabled, setAutoScrollEnabled,
   programProfile, programProfileLocked, ws,
+  simulatedNow, isSimulator,
 } from '../state.js';
 import { formatTimeLabel, getErrorMessage } from '../utils.js';
 import { buildProfileChartData } from './profile.js';
@@ -16,13 +17,23 @@ import {
 
 declare const uPlot: typeof import('../types/uplot');
 
+/**
+ * Get current time in seconds - uses simulated time when connected to simulator
+ */
+export function getNowSeconds(): number {
+  if (isSimulator && simulatedNow !== null) {
+    return simulatedNow / 1000;
+  }
+  return Date.now() / 1000;
+}
+
 function nowLinePlugin() {
   return {
     hooks: {
       draw: [
         (u: any) => {
           const ctx = u.ctx;
-          const now = Date.now() / 1000;
+          const now = getNowSeconds();
           const xMin = u.scales.x.min;
           const xMax = u.scales.x.max;
 
@@ -81,7 +92,7 @@ export function initChart() {
 
   setChartInitializing(true);
 
-  const now = Date.now() / 1000;
+  const now = getNowSeconds();
   const data = [
     [now - 60, now],
     [25, 25],
@@ -315,7 +326,7 @@ export function addChartPoint(kilnTemp: number, setTemp: number, envTemp: number
     return;
   }
 
-  const now = Date.now() / 1000;
+  const now = getNowSeconds();
 
   chartData.timestamps.push(now);
   chartData.kilnTemps.push(Number(kilnTemp));
@@ -343,7 +354,7 @@ export function updateChartData() {
   while (chartData.envTemps.length < len) chartData.envTemps.push(22);
   while (chartData.caseTemps.length < len) chartData.caseTemps.push(28);
 
-  const now = Date.now() / 1000;
+  const now = getNowSeconds();
   let timestamps = [...chartData.timestamps];
   let kilnTemps = [...chartData.kilnTemps];
   let setTemps = [...chartData.setTemps];
@@ -384,7 +395,7 @@ export function updateChartData() {
   ], false);
 
   if (autoScrollEnabled) {
-    const nowSec = Date.now() / 1000;
+    const nowSec = getNowSeconds();
     const newMin = nowSec - currentRange * 0.67;
     const newMax = nowSec + currentRange * 0.33;
     chart.setScale('x', { min: newMin, max: newMax });
@@ -396,7 +407,7 @@ export function updateChartData() {
 }
 
 export function getChartMaxRange(): number {
-  const now = Date.now() / 1000;
+  const now = getNowSeconds();
   const oldest = chartData.timestamps.length > 0 ? chartData.timestamps[0] : now - 3600;
   const programEnd = getProgramEndTime();
   const rightEdge = Math.max(now + 6 * 3600, programEnd);
@@ -404,8 +415,8 @@ export function getChartMaxRange(): number {
 }
 
 export function getProgramEndTime(): number {
-  if (!programProfile) return Date.now() / 1000;
-  const startTime = programProfile.startTime || Date.now() / 1000;
+  if (!programProfile) return getNowSeconds();
+  const startTime = programProfile.startTime || getNowSeconds();
   return startTime + programProfile.durationMinutes * 60;
 }
 
@@ -420,7 +431,7 @@ export function resetZoom() {
 
 export function setDefaultView() {
   if (!chart) return;
-  const now = Date.now() / 1000;
+  const now = getNowSeconds();
   const windowSize = 60 * 60;
   const min = now - windowSize * 0.67;
   const max = now + windowSize * 0.33;
@@ -434,7 +445,7 @@ export function toggleAutoScroll() {
 
   if (autoScrollEnabled) {
     const currentRange = chart.scales.x.max - chart.scales.x.min;
-    const now = Date.now() / 1000;
+    const now = getNowSeconds();
     const min = now - currentRange * 0.67;
     const max = now + currentRange * 0.33;
     chart.setScale('x', { min, max });
@@ -511,7 +522,7 @@ function setupOverviewBar() {
     const overviewWidth = overview.clientWidth;
     const dPct = (dx / overviewWidth) * 100;
 
-    const now = Date.now() / 1000;
+    const now = getNowSeconds();
     const oldest = chartData.timestamps[0] || now - 3600;
     const programEnd = getProgramEndTime();
     const rightEdge = Math.max(now + 6 * 3600, programEnd);
@@ -539,7 +550,7 @@ function setupOverviewBar() {
     const rect = overview.getBoundingClientRect();
     const clickPct = (e.clientX - rect.left) / rect.width;
 
-    const now = Date.now() / 1000;
+    const now = getNowSeconds();
     const oldest = chartData.timestamps[0] || now - 3600;
     const programEnd = getProgramEndTime();
     const rightEdge = Math.max(now + 6 * 3600, programEnd);
@@ -561,7 +572,7 @@ function updateOverviewBar() {
   const viewport = overview.querySelector<HTMLElement>('.overview-viewport');
   if (!viewport) return;
 
-  const now = Date.now() / 1000;
+  const now = getNowSeconds();
   const oldest = chartData.timestamps.length > 0 ? chartData.timestamps[0] : now - 3600;
   const programEnd = getProgramEndTime();
   const rightEdge = Math.max(now + 6 * 3600, programEnd);

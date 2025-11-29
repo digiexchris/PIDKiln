@@ -110,6 +110,37 @@ See [API.md](../API.md) for complete documentation.
 | `PORT` | 3000 | HTTP server port |
 | `DATA_DIR` | `../data` | Path to frontend files |
 
+## Simulator Configuration
+
+The simulator can be configured via `config.json` in the simulator directory:
+
+```json
+{
+  "time": {
+    "timeScale": 1.0,      // Simulation speed multiplier (1.0 = real-time, up to 25x)
+    "tickIntervalMs": 1000 // Real-world ms between simulation ticks
+  },
+  "thermal": {
+    "heaterPower": 0.5,        // Max heating rate at full power (°C/second simulated)
+    "coolingCoefficient": 0.0001, // Newton's cooling coefficient
+    "thermalMass": 100,        // Thermal inertia (higher = slower response)
+    "ambientTemp": 20.0,       // Environment temperature (°C)
+    "ambientVariation": 0.5,   // Random variation in ambient temp (°C)
+    "caseHeatTransfer": 0.03,  // How much kiln temp affects case temp
+    "caseBaseTemp": 25.0       // Base case temperature (°C)
+  }
+}
+```
+
+### Time Acceleration
+
+When connected to the simulator, the frontend shows a "SIMULATED" badge and a time scale slider (1x-25x). This allows testing long programs quickly:
+
+- The simulator maintains its own "simulated clock" that advances faster than real time
+- All timestamps in state updates use simulated time
+- The frontend chart uses simulated time for the "Now" marker
+- History data uses simulated timestamps for correct chart alignment
+
 ## Notes
 
 - File uploads are limited to 10KB (same as ESP32)

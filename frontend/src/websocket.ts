@@ -5,8 +5,10 @@ import {
   reconnectTimeout, setReconnectTimeout, reconnectStartTime, setReconnectStartTime,
   RECONNECT_TIMEOUT_MS, RECONNECT_INTERVAL_MS, resetChartData,
   setProgramProfile, setProgramProfileLocked, state,
+  setIsSimulator, setTimeScale, setSimulatedNow, isSimulator, timeScale,
 } from './state.js';
 import type { FurnaceState, ProgramStatusCode, IncomingMessage } from './types/state.js';
+import { encodeSetTimeScaleCommand, encodeClearErrorCommand } from './flatbuffers.js';
 import { getErrorMessage } from './utils.js';
 import { log } from './views/debug.js';
 import { updateUI } from './ui/statusbar.js';
@@ -167,6 +169,53 @@ function handleMessage(msg: IncomingMessage) {
   }
 }
 
+function updateSimulatorUI() {
+  const container = document.getElementById('simulatorControls');
+  const slider = document.getElementById('timeScaleSlider') as HTMLInputElement | null;
+  const label = document.getElementById('timeScaleLabel');
+  const badge = document.getElementById('simulatorBadge');
+  
+  if (container) {
+    container.style.display = isSimulator ? 'flex' : 'none';
+  }
+  if (slider && Math.abs(slider.valueAsNumber - timeScale) > 0.1) {
+    slider.value = String(timeScale);
+  }
+  if (label) {
+    label.textContent = `${timeScale.toFixed(1)}x`;
+  }
+  if (badge) {
+    badge.style.display = isSimulator ? 'inline' : 'none';
+  }
+}
+
+export function sendTimeScale(scale: number) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(encodeSetTimeScaleCommand(scale));
+  }
+}
+
+export function clearError() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(encodeClearErrorCommand());
+  }
+}
+
+function updateErrorOverlay(s: FurnaceState) {
+  const overlay = document.getElementById('errorOverlay');
+  const messageEl = document.getElementById('errorMessage');
+  
+  if (!overlay) return;
+  
+  // Show overlay when in ERROR state (status code 5)
+  if (s.program_status === 5 && s.error_message) {
+    if (messageEl) messageEl.textContent = s.error_message;
+    overlay.style.display = 'flex';
+  } else {
+    overlay.style.display = 'none';
+  }
+}
+
 function handleFlatBuffersMessage(msg: DecodedServerMessage) {
   if ('requestId' in msg && msg.requestId > 0) {
     if (resolvePendingRequest(msg.requestId, msg)) {
@@ -190,8 +239,21 @@ function handleFlatBuffersMessage(msg: DecodedServerMessage) {
         prog_start: s.progStartMs ? new Date(Number(s.progStartMs)).toISOString() : null,
         prog_end: s.progEndMs ? new Date(Number(s.progEndMs)).toISOString() : null,
         curr_time: new Date(Number(s.currTimeMs)).toISOString(),
+        error_message: s.errorMessage,
       };
       setState(newState);
+      
+      // Update simulator state
+      setIsSimulator(s.isSimulator);
+      setTimeScale(s.timeScale);
+      if (s.isSimulator && s.currTimeMs) {
+        setSimulatedNow(Number(s.currTimeMs));
+      } else {
+        setSimulatedNow(null);
+      }
+      updateSimulatorUI();
+      updateErrorOverlay(newState);
+      
       updateUI();
       if (newState.kiln_temp !== undefined && newState.set_temp !== undefined) {
         addChartPoint(newState.kiln_temp, newState.set_temp, newState.env_temp, newState.case_temp);

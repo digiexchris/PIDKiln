@@ -14,6 +14,8 @@ import { ServerMessage } from './generated/furnace/server-message.js';
 import { StartCommand } from './generated/furnace/start-command.js';
 import { LoadCommand } from './generated/furnace/load-command.js';
 import { SetTempCommand } from './generated/furnace/set-temp-command.js';
+import { SetTimeScaleCommand } from './generated/furnace/set-time-scale-command.js';
+// ClearErrorCommand is an empty command - no class import needed, just the enum value
 
 // Requests (for decoding client messages)
 import { HistoryRequest } from './generated/furnace/history-request.js';
@@ -87,6 +89,17 @@ export interface DecodedSetTempCommand {
   temperature: number;
 }
 
+export interface DecodedSetTimeScaleCommand {
+  type: 'set_time_scale';
+  requestId: number;
+  timeScale: number;
+}
+
+export interface DecodedClearErrorCommand {
+  type: 'clear_error';
+  requestId: number;
+}
+
 export interface DecodedHistoryRequest {
   type: 'history';
   requestId: number;
@@ -153,6 +166,8 @@ export type DecodedClientMessage =
   | DecodedLoadCommand
   | DecodedUnloadCommand
   | DecodedSetTempCommand
+  | DecodedClearErrorCommand
+  | DecodedSetTimeScaleCommand
   | DecodedHistoryRequest
   | DecodedListProgramsRequest
   | DecodedGetProgramRequest
@@ -223,6 +238,20 @@ export function decodeClientMessage(data: Buffer): DecodedClientMessage | null {
         };
       }
       break;
+    }
+    case ClientMessage.SetTimeScaleCommand: {
+      const cmd = envelope.message(new SetTimeScaleCommand());
+      if (cmd) {
+        return {
+          type: 'set_time_scale',
+          requestId,
+          timeScale: cmd.timeScale(),
+        };
+      }
+      break;
+    }
+    case ClientMessage.ClearErrorCommand: {
+      return { type: 'clear_error', requestId };
     }
     case ClientMessage.HistoryRequest: {
       const req = envelope.message(new HistoryRequest());
@@ -344,6 +373,10 @@ export interface StateData {
   progStartMs: number;
   progEndMs: number;
   currTimeMs: number;
+  errorMessage?: string | null;
+  // Simulator-specific fields
+  isSimulator?: boolean;
+  timeScale?: number;
 }
 
 export function encodeState(data: StateData): Uint8Array {
@@ -351,6 +384,7 @@ export function encodeState(data: StateData): Uint8Array {
   
   const programNameOffset = data.programName ? builder.createString(data.programName) : 0;
   const stepOffset = data.step ? builder.createString(data.step) : 0;
+  const errorMessageOffset = data.errorMessage ? builder.createString(data.errorMessage) : 0;
   
   State.startState(builder);
   State.addProgramStatus(builder, data.programStatus);
@@ -365,6 +399,10 @@ export function encodeState(data: StateData): Uint8Array {
   State.addProgStartMs(builder, BigInt(data.progStartMs));
   State.addProgEndMs(builder, BigInt(data.progEndMs));
   State.addCurrTimeMs(builder, BigInt(data.currTimeMs));
+  if (errorMessageOffset) State.addErrorMessage(builder, errorMessageOffset);
+  // Simulator-specific fields
+  if (data.isSimulator !== undefined) State.addIsSimulator(builder, data.isSimulator);
+  if (data.timeScale !== undefined) State.addTimeScale(builder, data.timeScale);
   const stateOffset = State.endState(builder);
   
   return createEnvelope(builder, 0, ServerMessage.State, stateOffset);

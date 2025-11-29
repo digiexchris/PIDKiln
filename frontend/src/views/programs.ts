@@ -118,6 +118,45 @@ export async function editProgram(name: string, isNew = false) {
   textarea.focus();
 }
 
+function validateProgramJson(content: string): { valid: boolean; error?: string } {
+  try {
+    const program = JSON.parse(content);
+    
+    if (typeof program !== 'object' || program === null) {
+      return { valid: false, error: 'Program must be a JSON object' };
+    }
+    
+    if (!Array.isArray(program.segments)) {
+      return { valid: false, error: 'Program must have a "segments" array' };
+    }
+    
+    if (program.segments.length === 0) {
+      return { valid: false, error: 'Program must have at least one segment' };
+    }
+    
+    for (let i = 0; i < program.segments.length; i++) {
+      const seg = program.segments[i];
+      const segNum = i + 1;
+      
+      if (typeof seg.target !== 'number') {
+        return { valid: false, error: `Segment ${segNum}: "target" must be a number` };
+      }
+      
+      if (!seg.ramp_time || typeof seg.ramp_time !== 'object') {
+        return { valid: false, error: `Segment ${segNum}: "ramp_time" must be an object` };
+      }
+      
+      if (!seg.dwell_time || typeof seg.dwell_time !== 'object') {
+        return { valid: false, error: `Segment ${segNum}: "dwell_time" must be an object` };
+      }
+    }
+    
+    return { valid: true };
+  } catch (e) {
+    return { valid: false, error: `Invalid JSON: ${e instanceof Error ? e.message : 'parse error'}` };
+  }
+}
+
 export async function saveProgram() {
   const textarea = document.getElementById('editorContent') as HTMLTextAreaElement | null;
   if (!textarea) return;
@@ -131,6 +170,13 @@ export async function saveProgram() {
 
   if (content.length > 10240) {
     window.alert('File too large (max 10KB)');
+    return;
+  }
+
+  // Validate JSON structure
+  const validation = validateProgramJson(content);
+  if (!validation.valid) {
+    window.alert(`Invalid program: ${validation.error}`);
     return;
   }
 

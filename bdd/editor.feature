@@ -77,7 +77,11 @@ Feature: Program Editor
   Scenario: Create a new program
     Given I am on the Programs view
     When I click the "New Program" button
+    Then a prompt should ask for the program filename
+    When I enter "my_program.json" as the filename
     Then I should be on the Editor view
-    And the editor should be empty
-    And I should be prompted for a filename when saving
+    And the editor should contain a template JSON structure with:
+      | field       | value                           |
+      | description | "Program description"           |
+      | segments    | Array with one sample segment   |
 

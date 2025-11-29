@@ -74,6 +74,16 @@ export const RECONNECT_INTERVAL_MS = 3000;
 export let wsLogEnabled = false;
 export function setWsLogEnabled(v: boolean) { wsLogEnabled = v; }
 
+// Simulator state
+export let isSimulator = false;
+export function setIsSimulator(v: boolean) { isSimulator = v; }
+
+export let timeScale = 1.0;
+export function setTimeScale(v: number) { timeScale = v; }
+
+export let simulatedNow: number | null = null;
+export function setSimulatedNow(v: number | null) { simulatedNow = v; }
+
 // Reset chart data for fresh start
 export function resetChartData() {
   chartData.timestamps = [];
