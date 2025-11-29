@@ -164,7 +164,580 @@ Enhanced the dashboard chart with:
 
 ---
 
-## Step 7d: Navigate to Dashboard on Load [PENDING]
+## Step 8: TypeScript Migration [PENDING]
+
+Convert the frontend from vanilla JavaScript to TypeScript with a proper build toolchain.
+
+**Rationale:**
+- Type safety catches errors at compile time
+- Better IDE support (autocomplete, refactoring)
+- Required foundation for protobuf code generation (Step 9)
+- Modern development practices
+
+**Build Toolchain:**
+- esbuild for bundling and TypeScript transpilation (single dependency, ~9MB)
+- TypeScript for type checking only (`tsc --noEmit`)
+- npm scripts for build/watch
+
+**Project Structure (after migration):**
+```
+frontend/
+├── src/
+│   ├── main.ts              # Entry point
+│   ├── types/
+│   │   ├── api.ts           # API response types
+│   │   ├── state.ts         # Application state types
+│   │   └── program.ts       # Program/segment types
+│   ├── services/
+│   │   ├── websocket.ts     # WebSocket connection management
+│   │   ├── api.ts           # HTTP API calls
+│   │   └── chart.ts         # uPlot chart management
+│   ├── views/
+│   │   ├── dashboard.ts     # Dashboard view logic
+│   │   ├── programs.ts      # Programs list/preview
+│   │   ├── editor.ts        # Program editor
+│   │   ├── preferences.ts   # Preferences form
+│   │   ├── logs.ts          # Logs viewer
+│   │   ├── debug.ts         # Debug page
+│   │   └── about.ts         # About page
+│   ├── components/
+│   │   ├── statusBar.ts     # Top status bar
+│   │   ├── sidebar.ts       # Navigation sidebar
+│   │   └── controls.ts      # Program control buttons
+│   ├── router.ts            # Hash-based router
+│   ├── store.ts             # Application state management
+│   └── utils.ts             # Utility functions
+├── public/                  # Static assets (copied to dist/)
+│   ├── icons/
+│   ├── uPlot.iife.min.js
+│   └── uPlot.min.css
+├── dist/                    # Build output (generated, served by simulator)
+│   ├── index.html
+│   ├── app.js
+│   ├── app.js.map
+│   └── (static assets)
+├── index.html               # HTML template
+├── tsconfig.json
+├── package.json
+├── programs/                # Program files (served separately)
+│   └── *.json
+├── etc/
+│   └── pidkiln.conf
+└── PLAN_SPA.md
+```
+
+**Decisions Made:**
+- **Bundler:** esbuild (minimal dependencies, fast)
+- **CSS handling:** Keep CSS in HTML or separate file, no CSS-in-JS
+- **uPlot:** Keep as external script (not bundled) - already minified, avoid duplicate
+- **Source maps:** Enabled for development debugging
+- **Watch mode:** esbuild's built-in `--watch` flag
+
+**Tasks:**
+- [ ] Rename `data/` to `frontend/`
+- [ ] Move simulator to reference `frontend/` instead of `data/`
+- [ ] Initialize npm project in `frontend/`
+- [ ] Install esbuild and TypeScript as dev dependencies
+- [ ] Create `tsconfig.json` with strict mode (for type checking only)
+- [ ] Create `build.js` script for esbuild configuration
+- [ ] Extract JavaScript from `index.html` into `src/main.ts`
+- [ ] Extract CSS from `index.html` into `src/styles.css` (or keep inline)
+- [ ] Update `index.html` to reference `dist/app.js`
+- [ ] Define types for API responses and state
+- [ ] Convert functions to typed TypeScript incrementally
+- [ ] Add npm scripts: `build`, `watch`, `typecheck`
+- [ ] Update Docker container to run `npm run watch` on startup
+- [ ] Update simulator `server.js` to serve from `frontend/dist/`
+- [ ] Verify all functionality works after migration
+- [ ] Update `.gitignore` for `dist/` and `node_modules/`
+
+**Docker Container Changes:**
+```dockerfile
+# In simulator/Dockerfile
+WORKDIR /app/frontend
+RUN npm install
+RUN npm run build
+
+# Start both watch and server
+CMD npm run watch & node /app/simulator/server.js
+```
+
+**package.json:**
+```json
+{
+  "name": "pidkiln-frontend",
+  "private": true,
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node build.js --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.0"
+  }
+}
+```
+
+**build.js:**
+```javascript
+const esbuild = require('esbuild');
+const watch = process.argv.includes('--watch');
+
+const config = {
+  entryPoints: ['src/main.ts'],
+  bundle: true,
+  outfile: 'dist/app.js',
+  sourcemap: true,
+  minify: !watch,
+  target: ['es2020'],
+};
+
+if (watch) {
+  esbuild.context(config).then(ctx => {
+    ctx.watch();
+    console.log('Watching for changes...');
+  });
+} else {
+  esbuild.build(config);
+}
+```
+
+**Type Definitions (examples):**
+
+```typescript
+// types/state.ts
+interface FurnaceState {
+  programStatus: ProgramStatus;
+  programName: string | null;
+  kilnTemp: number;
+  setTemp: number;
+  envTemp: number;
+  caseTemp: number;
+  heatPercent: number;
+  tempChange: number;
+  step: string;
+  progStart: string | null;
+  progEnd: string | null;
+  currTime: string;
+}
+
+enum ProgramStatus {
+  NONE = 0,
+  READY = 1,
+  RUNNING = 2,
+  PAUSED = 3,
+  STOPPED = 4,
+  ABORTED = 5,
+  WAITING_THRESHOLD = 6,
+  FINISHED = 7,
+  FAILED = 8,
+}
+
+// types/program.ts
+interface ProgramSegment {
+  target: number;
+  ramp_time: TimeValue;
+  dwell_time: TimeValue;
+}
+
+interface TimeValue {
+  hours?: number;
+  minutes?: number;
+  seconds?: number;
+}
+
+interface Program {
+  description?: string;
+  segments: ProgramSegment[];
+}
+
+// types/api.ts
+interface HistoryPoint {
+  t: number;  // timestamp ms
+  k: number;  // kiln temp
+  s: number;  // set temp
+  p: number;  // power %
+  e: number;  // env temp
+  c: number;  // case temp
+  m?: Marker;
+}
+
+interface Marker {
+  type: 'start' | 'stop' | 'finish' | 'pause' | 'resume' | 'target' | 'step';
+  value?: string | number;
+}
+```
+
+**Dev Workflow:**
+```bash
+# Development (hot reload)
+npm run dev
+
+# Production build
+npm run build
+
+# Type checking only
+npm run typecheck
+```
+
+---
+
+## Step 9: WebSocket + FlatBuffers API Migration [PENDING]
+
+**Note:** This step depends on Step 8 (TypeScript Migration) for proper type generation from `.fbs` files.
+
+Migrate the entire API from REST/WebSocket JSON to WebSocket with FlatBuffers for improved performance, type safety, and minimal ESP32 CPU overhead.
+
+**Rationale:**
+- **Zero-copy reads** - ESP32 reads fields directly from buffer, no deserialization
+- **Minimal encode overhead** - Builder pattern, predictable memory
+- **Smaller payloads** - Binary format, no field names
+- **Strong typing** - Code generation for TypeScript and C++
+- **Schema evolution** - Add fields without breaking compatibility
+- **Single transport** - Everything over WebSocket, no HTTP endpoints
+
+**Architecture:**
+```
+┌─────────────┐    WebSocket    ┌─────────────┐
+│   Browser   │ ◄────────────► │    ESP32    │
+│ flatbuffers │   FlatBuffer   │   flatcc/   │
+│     npm     │    messages    │  flatbuffers│
+└─────────────┘                └─────────────┘
+```
+
+**Dependencies:**
+- **Frontend:** `flatbuffers` npm package (~50KB)
+- **ESP32:** `flatcc` or `flatbuffers` C library (header-only, ~20KB)
+- **Build:** `flatc` compiler for code generation
+
+**FlatBuffers Schema:**
+
+```flatbuffers
+// pidkiln.fbs
+namespace PIDKiln;
+
+// ============================================
+// Enums
+// ============================================
+
+enum ProgramStatus : byte {
+  None = 0,
+  Ready = 1,
+  Running = 2,
+  Paused = 3,
+  Stopped = 4,
+  Aborted = 5,
+  WaitingThreshold = 6,
+  Finished = 7,
+  Failed = 8
+}
+
+enum MarkerType : byte {
+  Start = 0,
+  Stop = 1,
+  Finish = 2,
+  Pause = 3,
+  Resume = 4,
+  Target = 5,
+  Step = 6
+}
+
+// ============================================
+// Server → Client Messages
+// ============================================
+
+table State {
+  program_status: ProgramStatus;
+  program_name: string;
+  kiln_temp: float;
+  set_temp: float;
+  env_temp: float;
+  case_temp: float;
+  heat_percent: ubyte;
+  temp_change: float;
+  step: string;
+  prog_start_ms: long;
+  prog_end_ms: long;
+  curr_time_ms: long;
+}
+
+table Ack {
+  success: bool;
+  request_id: uint;
+  error: string;
+}
+
+table HistoryPoint {
+  timestamp_ms: long;
+  kiln_temp: float;
+  set_temp: float;
+  heat_percent: ubyte;
+  env_temp: float;
+  case_temp: float;
+  marker_type: MarkerType = null;
+  marker_value: string;
+}
+
+table HistoryResponse {
+  interval_ms: uint;
+  max_age_ms: uint;
+  data: [HistoryPoint];
+}
+
+table ProgramInfo {
+  name: string;
+  size: uint;
+  description: string;
+}
+
+table ProgramListResponse {
+  programs: [ProgramInfo];
+}
+
+table ProgramContentResponse {
+  name: string;
+  content: string;  // JSON program content
+}
+
+table PreferencesResponse {
+  json: string;  // Preferences as JSON string (flexible schema)
+}
+
+table DebugInfoResponse {
+  json: string;  // Debug info as JSON string
+}
+
+table LogInfo {
+  name: string;
+  size: uint;
+}
+
+table LogListResponse {
+  logs: [LogInfo];
+}
+
+table LogContentResponse {
+  name: string;
+  content: string;  // CSV log content
+}
+
+table Error {
+  code: int;
+  message: string;
+}
+
+// ============================================
+// Client → Server Messages
+// ============================================
+
+table StartCommand {
+  segment: int = 0;  // 0 = from beginning
+  minute: int = 0;   // 0 = from beginning
+}
+
+table PauseCommand {}
+table ResumeCommand {}
+table StopCommand {}
+table LoadCommand { program: string (required); }
+table UnloadCommand {}
+table SetTempCommand { temperature: float; }
+table RebootCommand {}
+
+table HistoryRequest {
+  since_ms: long = 0;
+  limit: int = 0;
+}
+
+table ListProgramsRequest {}
+table GetProgramRequest { name: string (required); }
+table SaveProgramRequest { 
+  name: string (required);
+  content: string (required);
+}
+table DeleteProgramRequest { name: string (required); }
+
+table GetPreferencesRequest {}
+table SavePreferencesRequest { json: string (required); }
+
+table GetDebugInfoRequest {}
+
+table ListLogsRequest {}
+table GetLogRequest { name: string (required); }
+
+table UploadFirmwareChunk {
+  offset: uint;
+  data: [ubyte];
+  is_last: bool;
+}
+
+// ============================================
+// Message Envelope (Union-based framing)
+// ============================================
+
+union ClientMessage {
+  // Commands
+  StartCommand,
+  PauseCommand,
+  ResumeCommand,
+  StopCommand,
+  LoadCommand,
+  UnloadCommand,
+  SetTempCommand,
+  RebootCommand,
+  // Requests
+  HistoryRequest,
+  ListProgramsRequest,
+  GetProgramRequest,
+  SaveProgramRequest,
+  DeleteProgramRequest,
+  GetPreferencesRequest,
+  SavePreferencesRequest,
+  GetDebugInfoRequest,
+  ListLogsRequest,
+  GetLogRequest,
+  UploadFirmwareChunk
+}
+
+union ServerMessage {
+  State,
+  Ack,
+  HistoryResponse,
+  ProgramListResponse,
+  ProgramContentResponse,
+  PreferencesResponse,
+  DebugInfoResponse,
+  LogListResponse,
+  LogContentResponse,
+  Error
+}
+
+table ClientEnvelope {
+  request_id: uint;  // For matching responses to requests
+  message: ClientMessage;
+}
+
+table ServerEnvelope {
+  request_id: uint;  // 0 for unsolicited (state broadcasts)
+  message: ServerMessage;
+}
+
+root_type ServerEnvelope;
+```
+
+**Message Flow:**
+
+```
+Client                                Server
+  │                                      │
+  │──── ClientEnvelope(StartCommand) ───►│
+  │◄─── ServerEnvelope(Ack) ─────────────│
+  │                                      │
+  │◄─── ServerEnvelope(State) ───────────│  (broadcast every 1s)
+  │◄─── ServerEnvelope(State) ───────────│
+  │                                      │
+  │──── ClientEnvelope(HistoryRequest) ─►│
+  │◄─── ServerEnvelope(HistoryResponse) ─│
+  │                                      │
+```
+
+**Request/Response Matching:**
+- Client sends `request_id` in ClientEnvelope
+- Server echoes `request_id` in ServerEnvelope response
+- State broadcasts use `request_id = 0`
+
+**Tasks:**
+
+*Schema & Code Generation:*
+- [ ] Create `proto/pidkiln.fbs` schema file
+- [ ] Add `flatc` to build toolchain (npm: `flatbuffers`)
+- [ ] Add code generation script to `package.json`
+- [ ] Generate TypeScript types from schema into `generated/`
+
+*Frontend Changes:*
+- [ ] Create `services/flatbuffers.ts` for encode/decode helpers
+- [ ] Update `services/websocket.ts` to send/receive binary frames
+- [ ] Update all views to use typed FlatBuffer messages
+- [ ] Implement request/response matching with `request_id`
+
+*Simulator Changes:*
+- [ ] Install `flatbuffers` npm package in simulator
+- [ ] Copy/share schema with frontend (`proto/pidkiln.fbs`)
+- [ ] Generate JavaScript code from schema
+- [ ] Create `simulator/flatbuffers.js` for encode/decode
+- [ ] Update `server.js` WebSocket handler for binary frames
+- [ ] Update `mock-data.js` to build FlatBuffer state messages
+- [ ] Implement all ClientMessage handlers (commands, requests)
+- [ ] Implement all ServerMessage builders (responses, broadcasts)
+- [ ] Implement chunked firmware upload simulation
+- [ ] Remove all HTTP endpoints (except static file serving)
+- [ ] Update simulator README with new protocol
+
+*Message Migration:*
+- [ ] Migrate state broadcasts
+- [ ] Migrate all commands (start, pause, stop, load, unload, set_temp, reboot)
+- [ ] Migrate history request/response
+- [ ] Migrate program management (list, get, save, delete)
+- [ ] Migrate preferences (get, save)
+- [ ] Migrate debug info
+- [ ] Migrate logs (list, get)
+- [ ] Implement firmware upload via chunks
+
+*Documentation:*
+- [ ] Update API.md with FlatBuffers schema documentation
+- [ ] Remove deprecated HTTP endpoint documentation
+- [ ] Document message flow and request_id matching
+
+*Testing:*
+- [ ] Test all functionality end-to-end
+- [ ] Verify binary frame handling in browser
+- [ ] Test reconnection with binary protocol
+
+**Frontend Code Example:**
+
+```typescript
+// services/flatbuffers.ts
+import * as flatbuffers from 'flatbuffers';
+import { PIDKiln } from '../generated/pidkiln';
+
+export function encodeStartCommand(segment?: number, minute?: number): Uint8Array {
+  const builder = new flatbuffers.Builder(64);
+  
+  PIDKiln.StartCommand.startStartCommand(builder);
+  if (segment) PIDKiln.StartCommand.addSegment(builder, segment);
+  if (minute) PIDKiln.StartCommand.addMinute(builder, minute);
+  const cmd = PIDKiln.StartCommand.endStartCommand(builder);
+  
+  PIDKiln.ClientEnvelope.startClientEnvelope(builder);
+  PIDKiln.ClientEnvelope.addRequestId(builder, nextRequestId());
+  PIDKiln.ClientEnvelope.addMessageType(builder, PIDKiln.ClientMessage.StartCommand);
+  PIDKiln.ClientEnvelope.addMessage(builder, cmd);
+  const envelope = PIDKiln.ClientEnvelope.endClientEnvelope(builder);
+  
+  builder.finish(envelope);
+  return builder.asUint8Array();
+}
+
+export function decodeServerMessage(data: ArrayBuffer): ServerMessage {
+  const buf = new flatbuffers.ByteBuffer(new Uint8Array(data));
+  const envelope = PIDKiln.ServerEnvelope.getRootAsServerEnvelope(buf);
+  
+  switch (envelope.messageType()) {
+    case PIDKiln.ServerMessage.State:
+      return { type: 'state', data: parseState(envelope.message(new PIDKiln.State())) };
+    case PIDKiln.ServerMessage.Ack:
+      return { type: 'ack', data: parseAck(envelope.message(new PIDKiln.Ack())) };
+    // ... etc
+  }
+}
+```
+
+**ESP32 Implementation:**
+See `src/PLAN_FLATBUFFERS.md` for backend implementation details.
+
+---
+
+## Step 10: Navigate to Dashboard on Load [PENDING]
 
 After loading a program, switch to Dashboard to monitor.
 
@@ -176,7 +749,7 @@ After loading a program, switch to Dashboard to monitor.
 
 ---
 
-## Step 7e: Start Program from Specific Point [PENDING]
+## Step 11: Start Program from Specific Point [PENDING]
 
 Allow starting a program from a specific segment or time offset.
 
@@ -195,7 +768,7 @@ Allow starting a program from a specific segment or time offset.
 
 ---
 
-## Step 7f: UI-Based Program Editor [PENDING]
+## Step 12: UI-Based Program Editor [PENDING]
 
 Replace text editor with a visual segment-based editor for JSON program format.
 
@@ -245,7 +818,7 @@ Replace text editor with a visual segment-based editor for JSON program format.
 
 ---
 
-## Step 8: Configurable State Broadcast Interval [PENDING]
+## Step 13: Configurable State Broadcast Interval [PENDING]
 
 Add a preference to control how often the backend sends state updates.
 
@@ -267,7 +840,7 @@ State Broadcast Interval: [1000] ms  (100-10000)
 
 ---
 
-## Step 9: Polish and Testing [PENDING]
+## Step 14: Polish and Testing [PENDING]
 
 Final refinements.
 
@@ -282,14 +855,14 @@ Final refinements.
 
 ---
 
-## Step 10: Configurable Backend URL [PENDING]
+## Step 15: Configurable Backend URL [PENDING]
 
 Allow the SPA to connect to a different backend host.
 
 **Use Case:** User hosts the GUI on a separate server (e.g., local dev machine, CDN) while connecting to the ESP32 backend on the network.
 
 **Tasks:**
-- [ ] Add "Backend URL" setting to Preferences or Debug page
+- [ ] Add "Backend URL" setting to Preferences in a new section dedicated to client side only settings.
 - [ ] Store in localStorage (not sent to backend)
 - [ ] Default: same origin (`location.host`)
 - [ ] Override WebSocket URL (`ws://custom-host/ws`)
@@ -308,16 +881,34 @@ Backend URL: [http://192.168.1.50______] [Save] [Reset]
 ## File Structure (Target)
 
 ```
-data/
-├── index.html          # SPA (single file)
-├── PLAN_SPA.md         # This file
-├── PIDKiln_vars.json   # Template for ESP32
-├── css/
-│   └── (can be removed or kept for ESP32 legacy)
-├── icons/              # Keep for now
+frontend/                   # Renamed from data/
+├── src/                    # TypeScript source (Step 8)
+│   ├── main.ts
+│   ├── types/
+│   ├── services/
+│   ├── views/
+│   ├── components/
+│   └── ...
+├── public/                 # Static assets
+│   ├── icons/
+│   ├── uPlot.iife.min.js
+│   └── uPlot.min.css
+├── dist/                   # Build output (generated, gitignored)
+│   ├── index.html
+│   ├── app.js
+│   └── app.js.map
+├── proto/                  # FlatBuffers schema (Step 9)
+│   └── pidkiln.fbs
+├── generated/              # Generated TypeScript (from flatc)
+├── index.html              # HTML template
+├── build.js                # esbuild configuration
+├── tsconfig.json
+├── package.json
+├── PLAN_SPA.md             # This file
+├── PIDKiln_vars.json       # Template for ESP32
 ├── etc/
 │   └── pidkiln.conf
 └── programs/
-    └── *.txt
+    └── *.json
 ```
 
