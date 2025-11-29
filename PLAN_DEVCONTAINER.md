@@ -81,7 +81,7 @@ None. This is the base layer.
 
 ## Downstream Dependents
 
-- [Simulator Plan](simulator/PLAN_SIMULATOR.md) - Mock API server
+- [Simulator](simulator/README.md) - Mock API server
 - [SPA Frontend](data/PLAN_SPA.md) - Web frontend
 
 ## Related Documentation

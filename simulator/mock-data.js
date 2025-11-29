@@ -23,8 +23,8 @@ const PROGRAM_STATUS = {
 
 // Simulator state
 const state = {
-  programStatus: PROGRAM_STATUS.READY,
-  loadedProgram: 'program1.txt',
+  programStatus: PROGRAM_STATUS.NONE,
+  loadedProgram: null,
   loadedProgramContent: null,  // Store program content when loaded
   kilnTemp: 25.5,
   setTemp: 0,
@@ -84,7 +84,9 @@ function recordHistoryPoint(marker = null) {
     t: Date.now(),
     k: parseFloat(state.kilnTemp.toFixed(1)),
     s: parseFloat(state.setTemp.toFixed(1)),
-    p: state.heatPercent
+    p: state.heatPercent,
+    e: parseFloat(state.envTemp.toFixed(1)),
+    c: parseFloat(state.caseTemp.toFixed(1))
   };
   
   if (marker) {
@@ -156,7 +158,9 @@ function generateInitialHistory() {
       t,
       k: parseFloat(temp.toFixed(1)),
       s: 0,
-      p: 0
+      p: 0,
+      e: parseFloat((22 + (Math.random() - 0.5) * 0.2).toFixed(1)),
+      c: parseFloat((28 + (Math.random() - 0.5) * 0.5).toFixed(1))
     });
   }
 }
@@ -546,6 +550,18 @@ function executeCommand(action, params = {}) {
       emitStateChange();
       return { success: true };
     }
+    
+    case 'unload':
+      if (state.programStatus === PROGRAM_STATUS.RUNNING) {
+        return { success: false, error: 'Cannot unload while program is running' };
+      }
+      state.loadedProgram = null;
+      state.loadedProgramContent = null;
+      state.programStatus = PROGRAM_STATUS.NONE;
+      state.currentStep = 0;
+      state.totalSteps = 0;
+      emitStateChange();
+      return { success: true };
       
     case 'set_temp':
     case 'setTemp':
@@ -765,6 +781,20 @@ const debugInfo = {
 // Initialize history recording and generate initial data
 generateInitialHistory();
 startHistoryRecording();
+
+// Start continuous state broadcast (simulates live sensor updates)
+setInterval(() => {
+  // Add small random variation to env temp (simulates real sensor noise)
+  state.envTemp = 22 + (Math.random() - 0.5) * 0.4;
+  
+  // If idle (not running/cooling), add tiny variation to kiln temp too
+  if (state.programStatus !== PROGRAM_STATUS.RUNNING && 
+      Math.abs(state.kilnTemp - state.envTemp) < 1) {
+    state.kilnTemp = state.envTemp + (Math.random() - 0.5) * 0.2;
+  }
+  
+  emitStateChange();
+}, 1000);
 
 module.exports = {
   PROGRAM_STATUS,

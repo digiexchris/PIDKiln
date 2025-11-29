@@ -652,6 +652,45 @@
       gap: 1.5rem;
     }
     
+    /* Chart Legend */
+    #chartLegend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      padding: 0.5rem 0;
+      font-size: 0.75rem;
+    }
+    
+    .chart-legend-item {
+      transition: opacity 0.15s;
+    }
+    
+    .chart-legend-item:hover {
+      opacity: 0.8;
+    }
+    
+    /* Chart Overview Bar */
+    #chartOverview {
+      background: var(--surface-2);
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+    }
+    
+    .overview-viewport {
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      background: rgba(255, 107, 74, 0.3);
+      border: 1px solid var(--accent);
+      border-radius: 2px;
+      cursor: grab;
+    }
+    
+    .overview-viewport:active {
+      cursor: grabbing;
+    }
+    
     /* Responsive */
     @media (max-width: 768px) {
       .status-bar .temps { display: none; }
@@ -742,12 +781,17 @@
         </div>
         <div class="control-input-group">
           <button class="control-btn load-btn" id="sidebarLoadBtn" onclick="loadProgram()">Load</button>
+          <button class="control-btn" id="sidebarClearBtn" onclick="clearProgram()">Clear</button>
         </div>
         <div class="control-input-group">
           <input type="number" id="tempInput" placeholder="Temp °C" min="0" max="1350">
           <button class="control-btn" onclick="setTemperature()">Set</button>
         </div>
         <div class="nav-divider"></div>
+        <div class="control-row">
+          <button class="control-btn" id="connectBtn" onclick="manualConnect()" disabled>🔌 Connect</button>
+          <button class="control-btn" id="disconnectBtn" onclick="disconnect()">⏹ Disconnect</button>
+        </div>
         <button class="control-btn danger" onclick="reboot()">🔄 Reboot</button>
       </div>
     </nav>
@@ -830,8 +874,23 @@
         </div>
         
         <div class="card" style="margin-top: 1rem;">
-          <div class="card-title">Temperature History</div>
-          <div id="chartContainer" style="width: 100%; height: 300px;"></div>
+          <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Temperature History</span>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn-small" id="autoScrollBtn" onclick="toggleAutoScroll()">⏸ Auto Scroll</button>
+              <button class="btn-small" onclick="resetZoom()">⟲ Reset Zoom</button>
+            </div>
+          </div>
+          <div id="chartLegend" style="display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; padding: 0.5rem 0; font-size: 0.75rem;"></div>
+          <div id="chartWrapper" style="width: 100%; position: relative;">
+            <div id="chartContainer" style="width: 100%; height: 300px;"></div>
+            <div id="chartConnectionLost" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 15, 20, 0.9); justify-content: center; align-items: center; flex-direction: column; gap: 0.5rem;">
+              <span style="font-size: 2rem;">⚠️</span>
+              <span style="font-size: 1.25rem; font-weight: 600; color: var(--error);">CONNECTION LOST</span>
+              <span style="font-size: 0.875rem; color: var(--text-muted);">Waiting for reconnection...</span>
+            </div>
+          </div>
+          <div id="chartOverview" style="width: 100%; height: 40px; margin-top: 8px;"></div>
         </div>
       </div>
 
@@ -1022,9 +1081,20 @@
       timestamps: [],  // Unix seconds
       kilnTemps: [],
       setTemps: [],
+      envTemps: [],
+      caseTemps: [],
       markers: []      // { x: timestamp, type: string, value?: any }
     };
     const CHART_MAX_POINTS = 8640; // 24h at 10s intervals
+    
+    // Chart zoom/pan state
+    const CHART_DEFAULT_WINDOW = 6 * 60 * 60;  // 6 hours in seconds
+    const CHART_MIN_WINDOW = 30 * 60;          // 30 minutes minimum zoom
+    let autoScrollEnabled = true;  // Auto-scroll to keep "now" visible
+    
+    // Program profile state
+    let programProfile = null;        // { name, startTime, durationMinutes, times, temps }
+    let programProfileLocked = false; // true when program is running/stopped
     
     const STATUS_NAMES = {
       0: 'NONE', 1: 'READY', 2: 'RUNNING', 3: 'PAUSED',
@@ -1098,22 +1168,60 @@
     // =========================================================================
     // WebSocket
     // =========================================================================
+    let manualDisconnect = false;  // Track if user manually disconnected
+    let reconnectTimeout = null;
+    let reconnectStartTime = null;
+    const RECONNECT_TIMEOUT_MS = 30000;  // Stop trying after 30 seconds
+    const RECONNECT_INTERVAL_MS = 3000;  // Try every 3 seconds
+    
     function connect() {
+      if (manualDisconnect) return;  // Don't auto-reconnect if manually disconnected
+      
+      // Check if we've exceeded the reconnect timeout
+      if (reconnectStartTime && Date.now() - reconnectStartTime > RECONNECT_TIMEOUT_MS) {
+        log('error', 'Reconnect timeout - giving up after 30s');
+        reconnectStartTime = null;
+        setConnected(false);  // Update UI to show final disconnected state
+        return;
+      }
+      
       const wsUrl = `ws://${location.host}/ws`;
       log('sent', `Connecting to ${wsUrl}...`);
       
       ws = new WebSocket(wsUrl);
       
       ws.onopen = () => {
+        reconnectStartTime = null;  // Reset timeout on successful connect
         setConnected(true);
         log('ack', 'Connected');
         loadProgramSelect();
+        // Clear and reload chart data from history
+        resetChartData();
+        loadChartHistory();
+        // Clear program profile - will be reloaded from backend state
+        programProfile = null;
+        programProfileLocked = false;
       };
       
       ws.onclose = () => {
         setConnected(false);
-        log('error', 'Disconnected - reconnecting in 3s...');
-        setTimeout(connect, 3000);
+        if (!manualDisconnect) {
+          // Start reconnect timer if not already started
+          if (!reconnectStartTime) {
+            reconnectStartTime = Date.now();
+          }
+          
+          // Check if we should keep trying
+          if (Date.now() - reconnectStartTime < RECONNECT_TIMEOUT_MS) {
+            const elapsed = Math.round((Date.now() - reconnectStartTime) / 1000);
+            log('error', `Disconnected - reconnecting in 3s... (${elapsed}s elapsed)`);
+            reconnectTimeout = setTimeout(connect, RECONNECT_INTERVAL_MS);
+          } else {
+            log('error', 'Reconnect timeout - giving up after 30s');
+            reconnectStartTime = null;
+            setConnected(false);  // Update UI to show final disconnected state
+          }
+        }
       };
       
       ws.onerror = () => log('error', 'WebSocket error');
@@ -1128,10 +1236,76 @@
       };
     }
     
+    function disconnect() {
+      manualDisconnect = true;
+      reconnectStartTime = null;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+      }
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+      setConnected(false);
+    }
+    
+    function manualConnect() {
+      manualDisconnect = false;
+      reconnectStartTime = null;
+      connect();
+    }
+    
+    function resetChartData() {
+      // Clear all chart data for a fresh start
+      chartData.timestamps = [];
+      chartData.kilnTemps = [];
+      chartData.setTemps = [];
+      chartData.envTemps = [];
+      chartData.caseTemps = [];
+      chartData.markers = [];
+    }
+    
     function setConnected(connected) {
       const el = document.getElementById('connection');
       el.classList.toggle('connected', connected);
-      el.querySelector('span').textContent = connected ? 'Connected' : 'Disconnected';
+      
+      // Show appropriate status text
+      let statusText = 'Disconnected';
+      if (connected) {
+        statusText = 'Connected';
+      } else if (!manualDisconnect && reconnectStartTime !== null) {
+        statusText = 'Reconnecting...';
+      }
+      el.querySelector('span').textContent = statusText;
+      
+      // Update connect/disconnect buttons
+      const connectBtn = document.getElementById('connectBtn');
+      const disconnectBtn = document.getElementById('disconnectBtn');
+      if (connectBtn) {
+        // Enable connect button only when disconnected AND not auto-reconnecting
+        connectBtn.disabled = connected || (!manualDisconnect && reconnectStartTime !== null);
+      }
+      if (disconnectBtn) {
+        // Enable disconnect button when connected OR when auto-reconnecting
+        disconnectBtn.disabled = !connected && (manualDisconnect || reconnectStartTime === null);
+      }
+      
+      // Show/hide connection lost overlay on chart
+      const chartOverlay = document.getElementById('chartConnectionLost');
+      if (chartOverlay) {
+        chartOverlay.style.display = connected ? 'none' : 'flex';
+      }
+      
+      // Update status bar temps
+      if (!connected) {
+        document.getElementById('statusKiln').textContent = 'N/A';
+        document.getElementById('statusTarget').textContent = 'N/A';
+        document.getElementById('statusEnv').textContent = 'N/A';
+        document.getElementById('statusHeat').textContent = 'N/A';
+        document.getElementById('statusBadge').textContent = 'OFFLINE';
+        document.getElementById('statusBadge').className = 'program-status error';
+      }
     }
     
     function handleMessage(msg) {
@@ -1145,8 +1319,10 @@
         updateUI();
         // Update chart with new data point
         if (state.kiln_temp !== undefined && state.set_temp !== undefined) {
-          addChartPoint(state.kiln_temp, state.set_temp);
+          addChartPoint(state.kiln_temp, state.set_temp, state.env_temp, state.case_temp);
         }
+        // Manage program profile
+        handleProgramProfileUpdate();
       }
     }
     
@@ -1169,6 +1345,8 @@
       if (select) select.disabled = running;
       const sidebarBtn = document.getElementById('sidebarLoadBtn');
       if (sidebarBtn) sidebarBtn.disabled = running;
+      const clearBtn = document.getElementById('sidebarClearBtn');
+      if (clearBtn) clearBtn.disabled = running;
       applyProgramLoadButtons();
     }
 
@@ -1233,6 +1411,22 @@
       const program = document.getElementById('programSelect').value;
       if (!program) return log('error', 'Select a program first');
       sendCommand('load', { program });
+    }
+    
+    function clearProgram() {
+      // Cannot unload while program is running
+      if (state.program_status === 2) {  // RUNNING
+        alert('Cannot unload while program is running. Stop the program first.');
+        return;
+      }
+      // Send unload command to backend
+      sendCommand('unload');
+      // Clear local state
+      programProfile = null;
+      programProfileLocked = false;
+      document.getElementById('programSelect').value = '';
+      updateChartData();
+      setDefaultView();
     }
     
     function setTemperature() {
@@ -1721,6 +1915,45 @@
     // Temperature Chart
     // =========================================================================
     
+    function nowLinePlugin() {
+      return {
+        hooks: {
+          draw: [
+            (u) => {
+              const ctx = u.ctx;
+              const now = Date.now() / 1000;
+              const xMin = u.scales.x.min;
+              const xMax = u.scales.x.max;
+              
+              // Only draw if "now" is visible
+              if (now < xMin || now > xMax) return;
+              
+              const x = u.valToPos(now, 'x', true);
+              const top = u.bbox.top;
+              const bottom = u.bbox.top + u.bbox.height;
+              
+              ctx.save();
+              ctx.strokeStyle = '#fbbf24';  // Warning yellow color
+              ctx.lineWidth = 1;
+              ctx.setLineDash([4, 4]);
+              ctx.beginPath();
+              ctx.moveTo(x, top);
+              ctx.lineTo(x, bottom);
+              ctx.stroke();
+              
+              // Draw "Now" label
+              ctx.fillStyle = '#fbbf24';
+              ctx.font = '10px Inter, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText('Now', x, top - 4);
+              
+              ctx.restore();
+            }
+          ]
+        }
+      };
+    }
+    
     function initChart() {
       if (chart || chartInitializing) return; // Already initialized or in progress
       
@@ -1765,12 +1998,18 @@
       const data = [
         [now - 60, now],  // timestamps
         [25, 25],         // Kiln temps
-        [0, 0]            // Set temps
+        [0, 0],           // Set temps
+        [22, 22],         // Env temps
+        [28, 28],         // Case temps
+        [null, null]      // Program profile
       ];
       
         const opts = {
           width: width,
-          height: height,
+          height: 300,
+          plugins: [
+            nowLinePlugin()
+          ],
           scales: {
             x: { time: true },
             y: { auto: true }
@@ -1788,6 +2027,25 @@
               stroke: '#4ade80',
               width: 2,
               points: { show: false }
+            },
+            {
+              label: 'Env',
+              stroke: '#888888',
+              width: 1,
+              points: { show: false }
+            },
+            {
+              label: 'Case',
+              stroke: '#666666',
+              width: 1,
+              points: { show: false }
+            },
+            {
+              label: 'Program',
+              stroke: '#22d3ee',
+              width: 2,
+              dash: [5, 5],
+              points: { show: false }
             }
           ],
           axes: [
@@ -1796,17 +2054,43 @@
               grid: { stroke: '#2d2d3a', width: 1 },
               ticks: { stroke: '#2d2d3a' },
               values: (_, vals) => vals.map(v => formatTimeLabel(v)),
-              label: 'Time (hh:mm)'
+              font: '11px Inter, sans-serif'
             },
             {
               stroke: '#888',
               grid: { stroke: '#2d2d3a', width: 1 },
               ticks: { stroke: '#2d2d3a' },
-              values: (u, vals) => vals.map(v => Math.round(v) + '°C')
+              values: (u, vals) => vals.map(v => Math.round(v) + '°C'),
+              font: '11px Inter, sans-serif',
+              size: 50
             }
           ],
-          legend: { show: true },
-          cursor: { show: true }
+          legend: { show: false },
+          cursor: {
+            show: true,
+            drag: { x: true, y: false }
+          },
+          hooks: {
+            setScale: [
+              (u, key) => {
+                if (key === 'x') {
+                  updateOverviewBar();
+                }
+              }
+            ],
+            ready: [
+              (u) => {
+                // Disable auto-scroll when user drags (pans) on chart
+                u.root.addEventListener('mousedown', (e) => {
+                  // Only disable auto-scroll for drag/pan, not for other clicks
+                  if (e.target.tagName === 'CANVAS') {
+                    autoScrollEnabled = false;
+                    updateAutoScrollButton();
+                  }
+                });
+              }
+            ]
+          }
         };
       
       // Use setTimeout to ensure DOM is fully rendered
@@ -1824,6 +2108,12 @@
           chartInitializing = false;
           console.log('Chart initialized successfully');
           
+          // Create custom legend
+          createChartLegend();
+          
+          // Set initial view
+          setDefaultView();
+          
           // Handle resize
           const resizeObserver = new ResizeObserver(() => {
             if (chart && el.clientWidth > 0) {
@@ -1831,6 +2121,88 @@
             }
           });
           resizeObserver.observe(el);
+          
+          // Wheel zoom - doesn't disable auto-scroll
+          el.addEventListener('wheel', (e) => {
+            if (!chart) return;
+            e.preventDefault();
+            
+            const rect = el.getBoundingClientRect();
+            const cursorX = e.clientX - rect.left;
+            const cursorPct = cursorX / el.clientWidth;
+            
+            const xMin = chart.scales.x.min;
+            const xMax = chart.scales.x.max;
+            const xRange = xMax - xMin;
+            
+            const factor = e.deltaY > 0 ? 1.2 : 0.8;
+            let newRange = xRange * factor;
+            
+            newRange = Math.max(CHART_MIN_WINDOW, newRange);
+            const maxRange = getChartMaxRange();
+            newRange = Math.min(maxRange, newRange);
+            
+            const cursorTime = xMin + xRange * cursorPct;
+            const newMin = cursorTime - newRange * cursorPct;
+            const newMax = cursorTime + newRange * (1 - cursorPct);
+            
+            chart.setScale('x', { min: newMin, max: newMax });
+          }, { passive: false });
+          
+          // Touch support
+          let touchStartX = null;
+          let touchStartScale = null;
+          let initialPinchDistance = null;
+          
+          el.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+              // Single touch = pan = disable auto-scroll
+              autoScrollEnabled = false;
+              updateAutoScrollButton();
+              touchStartX = e.touches[0].clientX;
+              touchStartScale = { min: chart.scales.x.min, max: chart.scales.x.max };
+            } else if (e.touches.length === 2) {
+              // Pinch = zoom = keep auto-scroll
+              initialPinchDistance = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+              );
+              touchStartScale = { min: chart.scales.x.min, max: chart.scales.x.max };
+            }
+          }, { passive: true });
+          
+          el.addEventListener('touchmove', (e) => {
+            if (!chart || !touchStartScale) return;
+            
+            if (e.touches.length === 1 && touchStartX !== null) {
+              e.preventDefault();
+              const dx = e.touches[0].clientX - touchStartX;
+              const pxPerSec = el.clientWidth / (touchStartScale.max - touchStartScale.min);
+              const dt = dx / pxPerSec;
+              chart.setScale('x', { min: touchStartScale.min - dt, max: touchStartScale.max - dt });
+            } else if (e.touches.length === 2 && initialPinchDistance !== null) {
+              e.preventDefault();
+              const currentDistance = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+              );
+              const scale = initialPinchDistance / currentDistance;
+              const range = (touchStartScale.max - touchStartScale.min) * scale;
+              const center = (touchStartScale.min + touchStartScale.max) / 2;
+              const clampedRange = Math.max(CHART_MIN_WINDOW, Math.min(getChartMaxRange(), range));
+              chart.setScale('x', { min: center - clampedRange / 2, max: center + clampedRange / 2 });
+            }
+          }, { passive: false });
+          
+          el.addEventListener('touchend', () => {
+            touchStartX = null;
+            touchStartScale = null;
+            initialPinchDistance = null;
+          }, { passive: true });
+          
+          // Initialize overview bar
+          setupOverviewBar();
+          updateOverviewBar();
         } catch (e) {
           console.error('Failed to initialize chart:', e);
           chart = null;
@@ -1860,6 +2232,8 @@
         chartData.timestamps = [];
         chartData.kilnTemps = [];
         chartData.setTemps = [];
+        chartData.envTemps = [];
+        chartData.caseTemps = [];
         chartData.markers = [];
         
         for (const point of data.data) {
@@ -1867,6 +2241,9 @@
             chartData.timestamps.push(point.t / 1000); // Convert ms to seconds
             chartData.kilnTemps.push(point.k);
             chartData.setTemps.push(point.s);
+            // Use actual values if available, otherwise use reasonable defaults
+            chartData.envTemps.push(point.e !== undefined ? point.e : 22);
+            chartData.caseTemps.push(point.c !== undefined ? point.c : 28);
             
             if (point.m) {
               chartData.markers.push({
@@ -1882,13 +2259,17 @@
         
         if (chart) {
           updateChartData();
+          // Set default view after loading history if auto-scroll is on
+          if (autoScrollEnabled) {
+            setDefaultView();
+          }
         }
       } catch (e) {
         console.warn('Failed to load chart history:', e.message);
       }
     }
     
-    function addChartPoint(kilnTemp, setTemp) {
+    function addChartPoint(kilnTemp, setTemp, envTemp, caseTemp) {
       // Validate inputs
       if (kilnTemp === undefined || setTemp === undefined || isNaN(kilnTemp) || isNaN(setTemp)) {
         return;
@@ -1899,12 +2280,16 @@
       chartData.timestamps.push(now);
       chartData.kilnTemps.push(parseFloat(kilnTemp));
       chartData.setTemps.push(parseFloat(setTemp));
+      chartData.envTemps.push(parseFloat(envTemp ?? 22));
+      chartData.caseTemps.push(parseFloat(caseTemp ?? 28));
       
       // Trim old data
       while (chartData.timestamps.length > CHART_MAX_POINTS) {
         chartData.timestamps.shift();
         chartData.kilnTemps.shift();
         chartData.setTemps.shift();
+        chartData.envTemps.shift();
+        chartData.caseTemps.shift();
       }
       
       updateChartData();
@@ -1913,20 +2298,398 @@
     function updateChartData() {
       if (!chart) return;
       
-      // Ensure all arrays have the same length
       const len = chartData.timestamps.length;
       if (len === 0) return;
       
-      // Trim arrays to same length
-      const timestamps = chartData.timestamps.slice(-len);
-      const kilnTemps = chartData.kilnTemps.slice(-len);
-      const setTemps = chartData.setTemps.slice(-len);
+      // Ensure all arrays have the same length
+      while (chartData.envTemps.length < len) chartData.envTemps.push(22);
+      while (chartData.caseTemps.length < len) chartData.caseTemps.push(28);
+      
+      // Build extended timestamps that include future points for program profile
+      const now = Date.now() / 1000;
+      let timestamps = [...chartData.timestamps];
+      let kilnTemps = [...chartData.kilnTemps];
+      let setTemps = [...chartData.setTemps];
+      let envTemps = [...chartData.envTemps];
+      let caseTemps = [...chartData.caseTemps];
+      
+      // If we have a program profile, extend data to cover its duration
+      if (programProfile && programProfile.durationMinutes > 0) {
+        const anchorTime = (programProfileLocked && programProfile.startTime) 
+          ? programProfile.startTime 
+          : now;
+        const profileEnd = anchorTime + programProfile.durationMinutes * 60;
+        const lastTimestamp = timestamps[timestamps.length - 1] || now;
+        
+        // Add future points at 1-minute intervals
+        if (profileEnd > lastTimestamp) {
+          for (let t = lastTimestamp + 60; t <= profileEnd; t += 60) {
+            timestamps.push(t);
+            kilnTemps.push(null);
+            setTemps.push(null);
+            envTemps.push(null);
+            caseTemps.push(null);
+          }
+        }
+      }
+      
+      // Build program profile data
+      const profileTemps = buildProfileChartData(timestamps);
+      
+      // Preserve current scale
+      const currentMin = chart.scales.x.min;
+      const currentMax = chart.scales.x.max;
+      const currentRange = currentMax - currentMin;
       
       chart.setData([
         timestamps,
         kilnTemps,
-        setTemps
-      ]);
+        setTemps,
+        envTemps,
+        caseTemps,
+        profileTemps
+      ], false);  // false = don't reset scales
+      
+      if (autoScrollEnabled) {
+        // Auto-scroll: keep same window size, but shift to keep "now" at 67% from left
+        const now = Date.now() / 1000;
+        const newMin = now - currentRange * 0.67;
+        const newMax = now + currentRange * 0.33;
+        chart.setScale('x', { min: newMin, max: newMax });
+      } else {
+        // User has panned - keep their exact view
+        chart.setScale('x', { min: currentMin, max: currentMax });
+      }
+      
+      updateOverviewBar();
+    }
+
+    // =========================================================================
+    // Chart Helper Functions
+    // =========================================================================
+    
+    function getChartMaxRange() {
+      const now = Date.now() / 1000;
+      const oldest = chartData.timestamps.length > 0 ? chartData.timestamps[0] : now - 3600;
+      const programEnd = getProgramEndTime();
+      const rightEdge = Math.max(now + 6 * 3600, programEnd);
+      return rightEdge - oldest;
+    }
+    
+    function getProgramEndTime() {
+      if (!programProfile) return Date.now() / 1000;
+      const startTime = programProfile.startTime || Date.now() / 1000;
+      return startTime + programProfile.durationMinutes * 60;
+    }
+    
+    function resetZoom() {
+      if (!chart) return;
+      // Reset to default 1h window, keeping current position
+      const currentCenter = (chart.scales.x.min + chart.scales.x.max) / 2;
+      const windowSize = 60 * 60;  // 1 hour
+      const min = currentCenter - windowSize / 2;
+      const max = currentCenter + windowSize / 2;
+      chart.setScale('x', { min, max });
+    }
+    
+    function setDefaultView() {
+      if (!chart) return;
+      // Default: 1h window with "now" at 67% from left (33% from right)
+      const now = Date.now() / 1000;
+      const windowSize = 60 * 60;  // 1 hour
+      const min = now - windowSize * 0.67;
+      const max = now + windowSize * 0.33;
+      chart.setScale('x', { min, max });
+    }
+    
+    function toggleAutoScroll() {
+      if (!chart) return;
+      autoScrollEnabled = !autoScrollEnabled;
+      updateAutoScrollButton();
+      
+      if (autoScrollEnabled) {
+        // Snap "now" to 67% from left, keeping current zoom level
+        const currentRange = chart.scales.x.max - chart.scales.x.min;
+        const now = Date.now() / 1000;
+        const min = now - currentRange * 0.67;
+        const max = now + currentRange * 0.33;
+        chart.setScale('x', { min, max });
+      }
+    }
+    
+    function updateAutoScrollButton() {
+      const btn = document.getElementById('autoScrollBtn');
+      if (!btn) return;
+      btn.textContent = autoScrollEnabled ? '⏸ Auto Scroll' : '▶ Auto Scroll';
+    }
+    
+    function centerOnProgram() {
+      // Same as default view - 1h window with now at 67% from left
+      setDefaultView();
+    }
+    
+    function createChartLegend() {
+      const legendEl = document.getElementById('chartLegend');
+      if (!legendEl || !chart) return;
+      
+      const series = [
+        { label: 'Kiln', color: '#ff6b4a' },
+        { label: 'Target', color: '#4ade80' },
+        { label: 'Env', color: '#888888' },
+        { label: 'Case', color: '#666666' },
+        { label: 'Program', color: '#22d3ee', dashed: true }
+      ];
+      
+      legendEl.innerHTML = series.map((s, i) => {
+        const idx = i + 1; // series index (0 is x-axis)
+        const dashStyle = s.dashed ? 'border-top: 2px dashed ' + s.color : 'background: ' + s.color;
+        return `<div class="chart-legend-item" data-series="${idx}" style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer;">
+          <span style="width: 16px; height: 3px; ${dashStyle};"></span>
+          <span style="color: var(--text);">${s.label}</span>
+        </div>`;
+      }).join('');
+      
+      // Add click handlers to toggle series visibility
+      legendEl.querySelectorAll('.chart-legend-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const idx = parseInt(item.dataset.series);
+          const isVisible = chart.series[idx].show;
+          chart.setSeries(idx, { show: !isVisible });
+          item.style.opacity = isVisible ? '0.4' : '1';
+        });
+      });
+    }
+    
+    // =========================================================================
+    // Program Profile
+    // =========================================================================
+    
+    async function loadProgramProfile(programName) {
+      if (!programName || programName === '(manual hold)') {
+        programProfile = null;
+        updateChartData();
+        return;
+      }
+      
+      try {
+        const res = await fetch(`/programs/${encodeURIComponent(programName)}`);
+        if (!res.ok) throw new Error('Failed to load program');
+        const content = await res.text();
+        
+        const program = JSON.parse(content);
+        const segments = program.segments || [];
+        
+        if (!segments.length) {
+          programProfile = null;
+          updateChartData();
+          return;
+        }
+        
+        const times = [0];
+        const temps = [segments[0].target ?? 0];
+        let elapsed = 0;
+        let currentTemp = temps[0];
+        
+        for (const segment of segments) {
+          const target = segment.target ?? currentTemp;
+          const rampSeconds = timeToSeconds(segment.ramp_time);
+          
+          if (rampSeconds > 0) {
+            elapsed += rampSeconds;
+            times.push(elapsed / 60);
+            temps.push(target);
+          } else if (target !== currentTemp) {
+            times.push(elapsed / 60);
+            temps.push(target);
+          }
+          
+          currentTemp = target;
+          const dwellSeconds = timeToSeconds(segment.dwell_time);
+          
+          if (dwellSeconds > 0) {
+            elapsed += dwellSeconds;
+            times.push(elapsed / 60);
+            temps.push(target);
+          }
+        }
+        
+        programProfile = {
+          name: programName,
+          startTime: null,
+          durationMinutes: elapsed / 60,
+          times,
+          temps
+        };
+        
+        console.log('Loaded program profile:', programName, 'duration:', elapsed / 60, 'min', 'points:', times.length);
+        updateChartData();
+      } catch (e) {
+        console.warn('Failed to load program profile:', e.message);
+        programProfile = null;
+      }
+    }
+    
+    function buildProfileChartData(targetTimestamps) {
+      if (!programProfile || !programProfile.times.length) {
+        return new Array(targetTimestamps.length).fill(null);
+      }
+      
+      // Determine anchor time
+      let anchorTime;
+      if (programProfileLocked && programProfile.startTime) {
+        anchorTime = programProfile.startTime;
+      } else {
+        anchorTime = Date.now() / 1000;
+      }
+      
+      // Convert profile minutes to absolute timestamps
+      const profileTimestamps = programProfile.times.map(m => anchorTime + m * 60);
+      const profileStart = profileTimestamps[0];
+      const profileEnd = profileTimestamps[profileTimestamps.length - 1];
+      
+      // Interpolate for each target timestamp
+      return targetTimestamps.map(t => {
+        if (t < profileStart || t > profileEnd) return null;
+        
+        for (let i = 0; i < profileTimestamps.length - 1; i++) {
+          if (t >= profileTimestamps[i] && t <= profileTimestamps[i + 1]) {
+            const t0 = profileTimestamps[i];
+            const t1 = profileTimestamps[i + 1];
+            const v0 = programProfile.temps[i];
+            const v1 = programProfile.temps[i + 1];
+            const pct = (t - t0) / (t1 - t0);
+            return v0 + (v1 - v0) * pct;
+          }
+        }
+        return null;
+      });
+    }
+    
+    function handleProgramProfileUpdate() {
+      const prevProgramName = programProfile?.name;
+      const currentProgramName = state.program_name;
+      
+      // Load profile when program changes
+      if (currentProgramName && currentProgramName !== prevProgramName) {
+        loadProgramProfile(currentProgramName);
+      }
+      
+      // Lock/unlock profile based on status
+      const wasLocked = programProfileLocked;
+      const isRunning = state.program_status === 2;
+      const isStopped = [4, 5, 7, 8].includes(state.program_status);
+      
+      if (isRunning && !wasLocked) {
+        programProfileLocked = true;
+        if (programProfile) {
+          programProfile.startTime = Date.now() / 1000;
+        }
+      } else if (isStopped) {
+        programProfileLocked = true;
+      }
+      
+      // Clear profile when no program loaded
+      if (!currentProgramName || state.program_status === 0) {
+        programProfile = null;
+        programProfileLocked = false;
+      }
+    }
+    
+    // =========================================================================
+    // Overview Bar
+    // =========================================================================
+    
+    function setupOverviewBar() {
+      const overview = document.getElementById('chartOverview');
+      if (!overview) return;
+      
+      let viewport = document.createElement('div');
+      viewport.className = 'overview-viewport';
+      overview.appendChild(viewport);
+      
+      let dragging = false;
+      let startX = 0;
+      let startLeft = 0;
+      
+      viewport.addEventListener('mousedown', (e) => {
+        dragging = true;
+        autoScrollEnabled = false;  // Dragging overview = panning = disable auto-scroll
+        updateAutoScrollButton();
+        startX = e.clientX;
+        startLeft = parseFloat(viewport.style.left) || 0;
+        e.preventDefault();
+      });
+      
+      document.addEventListener('mousemove', (e) => {
+        if (!dragging || !chart) return;
+        
+        const dx = e.clientX - startX;
+        const overviewWidth = overview.clientWidth;
+        const dPct = (dx / overviewWidth) * 100;
+        
+        const now = Date.now() / 1000;
+        const oldest = chartData.timestamps[0] || now - 3600;
+        const programEnd = getProgramEndTime();
+        const rightEdge = Math.max(now + 6 * 3600, programEnd);
+        const fullRange = rightEdge - oldest;
+        
+        const viewRange = chart.scales.x.max - chart.scales.x.min;
+        const newLeftPct = Math.max(0, Math.min(100 - (viewRange / fullRange * 100), startLeft + dPct));
+        const newMin = oldest + (newLeftPct / 100) * fullRange;
+        const newMax = newMin + viewRange;
+        
+        chart.setScale('x', { min: newMin, max: newMax });
+      });
+      
+      document.addEventListener('mouseup', () => {
+        dragging = false;
+      });
+      
+      // Click to jump
+      overview.addEventListener('click', (e) => {
+        if (e.target.classList.contains('overview-viewport')) return;
+        autoScrollEnabled = false;  // Clicking to jump = panning = disable auto-scroll
+        updateAutoScrollButton();
+        
+        const rect = overview.getBoundingClientRect();
+        const clickPct = (e.clientX - rect.left) / rect.width;
+        
+        const now = Date.now() / 1000;
+        const oldest = chartData.timestamps[0] || now - 3600;
+        const programEnd = getProgramEndTime();
+        const rightEdge = Math.max(now + 6 * 3600, programEnd);
+        const fullRange = rightEdge - oldest;
+        
+        const viewRange = chart.scales.x.max - chart.scales.x.min;
+        const centerTime = oldest + clickPct * fullRange;
+        const newMin = centerTime - viewRange / 2;
+        const newMax = centerTime + viewRange / 2;
+        
+        chart.setScale('x', { min: newMin, max: newMax });
+      });
+    }
+    
+    function updateOverviewBar() {
+      const overview = document.getElementById('chartOverview');
+      if (!overview || !chart) return;
+      
+      const viewport = overview.querySelector('.overview-viewport');
+      if (!viewport) return;
+      
+      const now = Date.now() / 1000;
+      const oldest = chartData.timestamps.length > 0 ? chartData.timestamps[0] : now - 3600;
+      const programEnd = getProgramEndTime();
+      const rightEdge = Math.max(now + 6 * 3600, programEnd);
+      const fullRange = rightEdge - oldest;
+      
+      const viewMin = chart.scales.x.min;
+      const viewMax = chart.scales.x.max;
+      
+      const leftPct = ((viewMin - oldest) / fullRange) * 100;
+      const widthPct = ((viewMax - viewMin) / fullRange) * 100;
+      
+      viewport.style.left = `${Math.max(0, leftPct)}%`;
+      viewport.style.width = `${Math.min(100 - Math.max(0, leftPct), widthPct)}%`;
     }
 
     // =========================================================================

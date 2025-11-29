@@ -7,7 +7,7 @@ Single-page application frontend for PIDKiln.
 ## Dependencies
 
 - [Dev Container](../PLAN_DEVCONTAINER.md) - For running the development server
-- [Simulator](../simulator/PLAN_SIMULATOR.md) - Mock API for development
+- [Simulator](../simulator/README.md) - Mock API for development
 
 ## Overview
 
@@ -31,9 +31,12 @@ Created the base SPA structure with navigation and views.
 **Completed features:**
 - [x] Status bar (connection, temps, program status)
 - [x] Sidebar navigation (Dashboard, Programs, Logs, Preferences, Debug, About)
-- [x] Controls section (Start/Pause/Stop/Abort, Load program, Set temp, Reboot)
+- [x] Controls section (Start/Pause/Stop, Load/Clear program, Set temp, Connect/Disconnect, Reboot)
 - [x] Hash-based routing
-- [x] Auto-reconnect WebSocket
+- [x] Auto-reconnect WebSocket with 30s timeout
+- [x] Connection lost overlay on chart
+- [x] N/A temps and OFFLINE status when disconnected
+- [x] Separate Connect/Disconnect buttons with proper state management
 - [x] Dashboard with stats cards
 - [x] Programs list with Load/Edit/Delete
 - [x] Logs list with View/Download
@@ -131,54 +134,49 @@ Added live temperature visualization to Dashboard using uPlot.
 
 ---
 
-## Step 7b: Program Preview Chart [PENDING]
+## Step 7b: Program Preview Chart [COMPLETE]
 
 Add program profile preview on Programs page.
 
-**Tasks:**
-- [ ] Add "Preview" button to each program row
-- [ ] When clicked, expand a chart row below that program
-- [ ] Parse program file and render target temperature curve
-- [ ] Show time on X axis, temperature on Y axis
-- [ ] Display total program duration
-- [ ] Collapse when clicked again or another preview opened
-
-**UI:**
-```
-┌──────────────────────────────────────────────────────────────┐
-│ Name           Size    Description              Actions      │
-├──────────────────────────────────────────────────────────────┤
-│ bisque.txt     124B    Cone 06 bisque    [Load][Preview][...]│
-├──────────────────────────────────────────────────────────────┤
-│ ┌────────────────────────────────────────────────────────┐   │
-│ │  1000°C ─────────────────────────╮                     │   │
-│ │                                   │                     │   │
-│ │  500°C ──────────────────╮       │                     │   │
-│ │                           │       │                     │   │
-│ │  0°C ───────────────────────────────────────────────── │   │
-│ │       0h        2h        4h        6h        8h       │   │
-│ │                                      Total: 8h 30m     │   │
-│ └────────────────────────────────────────────────────────┘   │
-├──────────────────────────────────────────────────────────────┤
-│ glaze.txt      98B     High fire         [Load][Preview][...]│
-└──────────────────────────────────────────────────────────────┘
-```
+**Completed:**
+- [x] Add "Preview" button to each program row
+- [x] When clicked, expand description row and chart row below that program
+- [x] Parse JSON program file and render target temperature curve with uPlot
+- [x] Show time on X axis (hh:mm format, offset from current time), temperature on Y axis
+- [x] Collapse when clicked again
+- [x] Cache fetched program content to avoid redundant requests
 
 ---
 
-## Step 7c: Navigate to Dashboard on Load [PENDING]
+## Step 7c: Dashboard Chart Enhancements [COMPLETE]
+
+Enhanced the dashboard chart with:
+- [x] Pan (drag) and zoom (scroll wheel / pinch-to-zoom)
+- [x] Environment and Case temperature series (gray `#888` and `#666`)
+- [x] Program profile overlay (cyan `#22d3ee` dashed line)
+- [x] Overview bar (minimap) for navigation
+- [x] Recenter button
+
+**Files modified:**
+- `simulator/mock-data.js` - Added `e` and `c` fields to history
+- `API.md` - Documented new history fields
+- `data/index.html` - All frontend chart enhancements
+
+---
+
+## Step 7d: Navigate to Dashboard on Load [PENDING]
 
 After loading a program, switch to Dashboard to monitor.
 
 **Tasks:**
 - [ ] When "Load" button clicked on Programs page, after successful load:
   - Navigate to `#/` (Dashboard)
-  - Dashboard chart shows the loaded program's target profile
+  - Dashboard chart shows the loaded program's target profile (via Step 7c)
 - [ ] Also applies to Load button in sidebar controls
 
 ---
 
-## Step 7d: Start Program from Specific Point [PENDING]
+## Step 7e: Start Program from Specific Point [PENDING]
 
 Allow starting a program from a specific segment or time offset.
 
@@ -197,7 +195,7 @@ Allow starting a program from a specific segment or time offset.
 
 ---
 
-## Step 7e: UI-Based Program Editor [PENDING]
+## Step 7f: UI-Based Program Editor [PENDING]
 
 Replace text editor with a visual segment-based editor for JSON program format.
 
@@ -247,7 +245,29 @@ Replace text editor with a visual segment-based editor for JSON program format.
 
 ---
 
-## Step 8: Polish and Testing [PENDING]
+## Step 8: Configurable State Broadcast Interval [PENDING]
+
+Add a preference to control how often the backend sends state updates.
+
+**Use Case:** Reduce network traffic and CPU usage on slower connections or when high-frequency updates aren't needed.
+
+**Tasks:**
+- [ ] Add "State Broadcast Interval" setting to Preferences page
+- [ ] Input field for interval in milliseconds (default: 1000ms)
+- [ ] Valid range: 100ms - 10000ms
+- [ ] Store in backend preferences (pidkiln.conf)
+- [ ] Backend reads this value and adjusts broadcast interval
+- [ ] Update simulator to support configurable interval
+- [ ] Document in API.md
+
+**UI (in Preferences):**
+```
+State Broadcast Interval: [1000] ms  (100-10000)
+```
+
+---
+
+## Step 9: Polish and Testing [PENDING]
 
 Final refinements.
 
@@ -262,7 +282,7 @@ Final refinements.
 
 ---
 
-## Step 9: Configurable Backend URL [PENDING]
+## Step 10: Configurable Backend URL [PENDING]
 
 Allow the SPA to connect to a different backend host.
 

@@ -129,12 +129,20 @@ Only one of `segment` or `minute` should be provided. If both are provided, `seg
 #### Load Program
 
 ```json
-{ "type": "command", "action": "load", "program": "program1.txt" }
+{ "type": "command", "action": "load", "program": "program1.json" }
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `program` | string | Yes | Filename of program to load |
+
+#### Unload Program
+
+```json
+{ "type": "command", "action": "unload" }
+```
+
+Clears the currently loaded program. Cannot be called while a program is running.
 
 #### Set Target Temperature
 
@@ -364,6 +372,8 @@ Returns up to 24 hours of temperature data at 10 second intervals, including eve
 | `k` | float | Kiln temperature (°C) |
 | `s` | float | Set/target temperature (°C) |
 | `p` | int | Heater power (0-100%) |
+| `e` | float | Environment temperature (°C) |
+| `c` | float | Case/housing temperature (°C) |
 | `m` | object | Event marker (optional) |
 
 **Marker Types:**
