@@ -1,4 +1,4 @@
-# PIDKiln Frontend Simulator
+# Furnace Frontend Simulator
 
 A mock server that simulates ESP32 API endpoints for frontend development.
 

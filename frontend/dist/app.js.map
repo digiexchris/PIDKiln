@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/main.ts"],
+  "sourcesContent": ["/**\n * Furnace Frontend - Main Entry Point\n * \n * This file will be the entry point for the TypeScript application.\n * The existing JavaScript from index.html will be migrated here.\n * \n * TODO: Extract and convert the following from index.html:\n * - WebSocket connection management\n * - State management (temps, program status, etc.)\n * - Chart initialization and updates (uPlot)\n * - Router and view management\n * - UI event handlers\n */\n\n// Placeholder - the actual code will be migrated from index.html\nconsole.log('Furnace frontend loaded');\n\n// Export for potential module usage\nexport {};\n\n"],
+  "mappings": ";;;AAeA,UAAQ,IAAI,yBAAyB;",
+  "names": []
+}

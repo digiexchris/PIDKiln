@@ -1,7 +1,7 @@
 {
-  "name": "pidkiln-simulator",
+  "name": "furnace-simulator",
   "version": "1.0.0",
-  "description": "Development simulator for PIDKiln frontend",
+  "description": "Development simulator for Furnace frontend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -1,5 +1,5 @@
-# pidkiln
-PIDKiln is PID temperature controller, for any task involving high temperatures - like burning ceramic, glass fusing, soft metal melting, burning lost wax casting forms - and probably much more.
+# furnace
+Furnace is PID temperature controller, for any task involving high temperatures - like burning ceramic, glass fusing, soft metal melting, burning lost wax casting forms - and probably much more.
 
 ## Key features:
 - Interface accessible both from LCD screen and WWW Webpage
@@ -9,7 +9,7 @@ PIDKiln is PID temperature controller, for any task involving high temperatures 
 - Online monitoring, program management, editing, graphs and kiln control
 - Build in clock synchronised with NTP servers (if Internet connected)
 - Safety features build in (temperature run out protection, probe failure, SSR failure, kiln insulation failure)
-- Online PIDKiln firmware upgrade with web interface
+- Online firmware upgrade with web interface
 - Syslog type, over the network (UDP) logging to remote server
 - ...simply cool and cheap (comparing to commercially available products) all in one solution
 

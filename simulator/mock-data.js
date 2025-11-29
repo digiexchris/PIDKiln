@@ -1,5 +1,5 @@
 /**
- * Mock data generators for PIDKiln simulator
+ * Mock data generators for Furnace simulator
  * Simulates ESP32 responses for frontend development
  */
 
@@ -775,7 +775,7 @@ const debugInfo = {
   LARGEST_HEAP: '170',
   TOTAL_KB: '1500',
   USED_KB: '450',
-  VERSION: 'PIDKiln v1.2.3 (Simulator)'
+  VERSION: 'Furnace v1.0.0 (Simulator)'
 };
 
 // Initialize history recording and generate initial data

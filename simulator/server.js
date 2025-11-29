@@ -1,5 +1,5 @@
 /**
- * PIDKiln Development Simulator
+ * Furnace Development Simulator
  * 
  * A mock server that simulates ESP32 API endpoints for frontend development.
  * Run with: npm start (or node server.js)
@@ -534,9 +534,11 @@ app.post('/programs/:filename', (req, res) => {
 // Static file serving (must be last)
 // =============================================================================
 
-// Data directory: use DATA_DIR env var (for Docker) or default to ../data/
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
-const PROGRAMS_DIR = path.join(DATA_DIR, 'programs');
+// Data directory: use DATA_DIR env var (for Docker) or default to ../frontend/dist/
+// In development, serve from dist/ which is built by esbuild
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'frontend', 'dist');
+const FRONTEND_DIR = process.env.FRONTEND_DIR || path.join(__dirname, '..', 'frontend');
+const PROGRAMS_DIR = path.join(FRONTEND_DIR, 'programs');
 
 // Serve files from data directory
 app.use(express.static(DATA_DIR));
@@ -582,10 +584,10 @@ function extractDescription(content) {
 server.listen(PORT, () => {
   console.log(`
 ╔════════════════════════════════════════════════════════════════════╗
-║                      PIDKiln Simulator                             ║
+║                      Furnace Simulator                             ║
 ╠════════════════════════════════════════════════════════════════════╣
 ║                                                                    ║
-║  Test Client:    http://localhost:${PORT}/test-client.html            ║
+║  Frontend:       http://localhost:${PORT}/                               ║
 ║  WebSocket:      ws://localhost:${PORT}/ws                            ║
 ║                                                                    ║
 ╠════════════════════════════════════════════════════════════════════╣

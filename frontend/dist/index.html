@@ -1,0 +1,2812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Furnace</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+  <link rel="stylesheet" href="/uPlot.min.css">
+  <style>
+    :root {
+      --bg: #0f0f14;
+      --surface: #1a1a24;
+      --surface-2: #252532;
+      --primary: #2d2d3a;
+      --accent: #ff6b4a;
+      --accent-dim: #cc5540;
+      --text: #eaeaea;
+      --text-muted: #888;
+      --success: #4ade80;
+      --warning: #fbbf24;
+      --error: #f87171;
+      --info: #60a5fa;
+      --nav-width: 200px;
+      --status-height: 48px;
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Status Bar */
+    .status-bar {
+      height: var(--status-height);
+      background: var(--surface);
+      border-bottom: 1px solid var(--primary);
+      display: flex;
+      align-items: center;
+      padding: 0 1rem;
+      gap: 1.5rem;
+      flex-shrink: 0;
+    }
+    
+    .status-bar .logo {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .status-bar .connection {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    
+    .status-bar .connection .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--error);
+    }
+    
+    .status-bar .connection.connected .dot {
+      background: var(--success);
+    }
+    
+    .status-bar .temps {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.85rem;
+    }
+    
+    .status-bar .temp-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    
+    .status-bar .temp-label {
+      color: var(--text-muted);
+    }
+    
+    .status-bar .temp-value {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    
+    .status-bar .temp-value.highlight {
+      color: var(--accent);
+      font-size: 1rem;
+    }
+    
+    .status-bar .program-status {
+      margin-left: auto;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: var(--primary);
+    }
+    
+    .status-bar .program-status.running { background: var(--success); color: #000; }
+    .status-bar .program-status.paused { background: var(--warning); color: #000; }
+    .status-bar .program-status.error { background: var(--error); }
+    
+    /* Main Layout */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    /* Navigation Sidebar */
+    .nav-sidebar {
+      width: var(--nav-width);
+      background: var(--surface);
+      border-right: 1px solid var(--primary);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    
+    .nav-section {
+      padding: 0.75rem;
+    }
+    
+    .nav-section-title {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      padding: 0.5rem 0.75rem;
+    }
+    
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+    
+    .nav-item:hover {
+      background: var(--primary);
+      color: var(--text);
+    }
+    
+    .nav-item.active {
+      background: var(--accent-dim);
+      color: white;
+    }
+    
+    .nav-item .icon {
+      width: 18px;
+      text-align: center;
+    }
+    
+    .nav-divider {
+      height: 1px;
+      background: var(--primary);
+      margin: 0.5rem 0.75rem;
+    }
+    
+    /* Controls Section in Sidebar */
+    .controls-section {
+      margin-top: auto;
+      padding: 0.75rem;
+      border-top: 1px solid var(--primary);
+    }
+    
+    .control-btn {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 0.4rem;
+      border: none;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--primary);
+      color: var(--text);
+      transition: background 0.15s;
+    }
+    
+    .control-btn:hover { background: var(--surface-2); }
+    .control-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .control-btn.primary { background: var(--success); color: #000; }
+    .control-btn.primary:hover { background: #22c55e; }
+    .control-btn.danger { background: var(--error); }
+    .control-btn.danger:hover { background: #dc2626; }
+    .control-btn.running-disabled,
+    .btn-small.running-disabled {
+      background: var(--primary);
+      color: var(--text);
+      cursor: not-allowed;
+    }
+    .control-btn.running-disabled:hover,
+    .btn-small.running-disabled:hover {
+      background: var(--surface-2);
+    }
+    
+    .control-row {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 0.4rem;
+    }
+    
+    .control-row .control-btn { margin-bottom: 0; }
+    
+    .control-input-group {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 0.4rem;
+    }
+    
+    .control-input-group input,
+    .control-input-group select {
+      flex: 1;
+      padding: 0.4rem 0.5rem;
+      border: 1px solid var(--primary);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.8rem;
+    }
+    
+    .control-input-group button {
+      padding: 0.4rem 0.6rem;
+      flex-shrink: 0;
+      width: auto;
+      min-width: 64px;
+    }
+    
+    /* Content Area */
+    .content {
+      flex: 1;
+      overflow: auto;
+      padding: 1.5rem;
+    }
+    
+    .view {
+      display: none;
+      height: 100%;
+    }
+    
+    .view.active {
+      display: block;
+    }
+    
+    .view-header {
+      margin-bottom: 1.5rem;
+    }
+    
+    .view-header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    
+    .view-header p {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+    
+    /* Dashboard View */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .card {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    
+    .card-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+    
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    
+    .stat-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    
+    .stat-value.accent { color: var(--accent); }
+    
+    /* Message Log */
+    .log-container {
+      background: var(--surface);
+      border-radius: 8px;
+      height: 400px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .log-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--primary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .log-header h3 {
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    
+    .log-content {
+      flex: 1;
+      overflow-y: auto;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.75rem;
+      line-height: 1.5;
+    }
+    
+    .log-entry {
+      padding: 0.25rem 1rem;
+      border-bottom: 1px solid var(--primary);
+      display: flex;
+      gap: 0.75rem;
+    }
+    
+    .log-entry:hover { background: var(--primary); }
+    
+    .log-time { color: var(--text-muted); flex-shrink: 0; }
+    .log-type { font-weight: 600; width: 45px; flex-shrink: 0; }
+    .log-type.state { color: var(--info); }
+    .log-type.log { color: var(--success); }
+    .log-type.ack { color: var(--text-muted); }
+    .log-type.error { color: var(--error); }
+    .log-type.sent { color: var(--warning); }
+    .log-message { flex: 1; word-break: break-all; white-space: pre-wrap; }
+    
+    /* Programs View */
+    .programs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    
+    .programs-table th,
+    .programs-table td {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--primary);
+    }
+    
+    .programs-table th {
+      background: var(--surface);
+      font-weight: 500;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+    
+    .programs-table tr:hover td {
+      background: var(--surface);
+    }
+    
+    .programs-table .actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .programs-table .actions button {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+    }
+
+    .program-description-row,
+    .program-preview-row {
+      display: none;
+    }
+
+    .program-description {
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+
+    .program-preview {
+      padding: 0.75rem;
+      background: var(--surface-2);
+      border-radius: 6px;
+      border: 1px solid var(--primary);
+      margin-top: 0.5rem;
+    }
+
+    .program-preview-header {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .program-preview-chart {
+      height: 160px;
+      min-height: 160px;
+      width: 100%;
+    }
+    .preview-loading,
+    .preview-error {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 160px;
+    }
+    
+    .btn-small {
+      padding: 0.25rem 0.5rem;
+      border: none;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.75rem;
+      cursor: pointer;
+      background: var(--primary);
+      color: var(--text);
+    }
+    
+    .btn-small:hover { background: var(--surface-2); }
+    .btn-small.primary { background: var(--accent); }
+    .btn-small.danger { background: var(--error); }
+    .btn-small.running-disabled { background: var(--primary); color: var(--text); }
+    
+    /* Preferences View */
+    .prefs-section {
+      background: var(--surface);
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    
+    .prefs-section-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--primary);
+      font-weight: 500;
+    }
+    
+    .prefs-section-content {
+      padding: 1rem;
+    }
+    
+    .pref-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    
+    .pref-row:last-child { margin-bottom: 0; }
+    
+    .pref-label {
+      width: 200px;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    
+    .pref-input {
+      flex: 1;
+      max-width: 300px;
+    }
+    
+    .pref-input input,
+    .pref-input select {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--primary);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.875rem;
+    }
+    
+    /* Debug View */
+    .debug-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    
+    .debug-table th,
+    .debug-table td {
+      text-align: left;
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--primary);
+    }
+    
+    .debug-table th {
+      background: var(--surface-2);
+      font-weight: 500;
+    }
+    
+    .debug-table td:first-child {
+      color: var(--text-muted);
+      width: 250px;
+    }
+    
+    /* About View */
+    .about-content {
+      max-width: 600px;
+    }
+    
+    .about-content h2 {
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    
+    .about-content p {
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+    
+    .about-content a {
+      color: var(--accent);
+    }
+    
+    /* Editor View */
+    .editor-container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - var(--status-height) - 3rem);
+      max-height: 100%;
+    }
+    
+    .editor-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--surface);
+      border-radius: 8px 8px 0 0;
+      border-bottom: 1px solid var(--primary);
+    }
+    
+    .editor-toolbar .filename {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    
+    .editor-toolbar .actions {
+      margin-left: auto;
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .editor-hint {
+      padding: 0.5rem 1rem;
+      background: var(--surface-2);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    
+    .editor-hint code {
+      background: var(--primary);
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+    
+    .editor-wrapper {
+      flex: 1;
+      display: flex;
+      background: var(--surface);
+      border-radius: 0 0 8px 8px;
+      overflow: hidden;
+    }
+    
+    .editor-lines {
+      padding: 1rem 0.75rem;
+      background: var(--surface-2);
+      color: var(--text-muted);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      text-align: right;
+      user-select: none;
+      min-width: 40px;
+    }
+    
+    .editor-textarea {
+      flex: 1;
+      padding: 1rem;
+      border: none;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      resize: none;
+      outline: none;
+    }
+    
+    .editor-textarea::placeholder {
+      color: var(--text-muted);
+    }
+    
+    .editor-status {
+      padding: 0.5rem 1rem;
+      background: var(--surface);
+      border-top: 1px solid var(--primary);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 1.5rem;
+    }
+    
+    /* Chart Legend */
+    #chartLegend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      padding: 0.5rem 0;
+      font-size: 0.75rem;
+    }
+    
+    .chart-legend-item {
+      transition: opacity 0.15s;
+    }
+    
+    .chart-legend-item:hover {
+      opacity: 0.8;
+    }
+    
+    /* Chart Overview Bar */
+    #chartOverview {
+      background: var(--surface-2);
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+    }
+    
+    .overview-viewport {
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      background: rgba(255, 107, 74, 0.3);
+      border: 1px solid var(--accent);
+      border-radius: 2px;
+      cursor: grab;
+    }
+    
+    .overview-viewport:active {
+      cursor: grabbing;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .status-bar .temps { display: none; }
+      .nav-sidebar { width: 60px; }
+      .nav-item span { display: none; }
+      .nav-section-title { display: none; }
+      .controls-section { padding: 0.5rem; }
+      .control-btn { font-size: 0.7rem; padding: 0.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Status Bar -->
+  <header class="status-bar">
+    <div class="logo">🔥 Furnace</div>
+    <div class="connection" id="connection">
+      <div class="dot"></div>
+      <span>Disconnected</span>
+    </div>
+    <div class="temps">
+      <div class="temp-item">
+        <span class="temp-label">Kiln</span>
+        <span class="temp-value highlight" id="statusKiln">--</span>
+      </div>
+      <div class="temp-item">
+        <span class="temp-label">→</span>
+        <span class="temp-value" id="statusTarget">--</span>
+      </div>
+      <div class="temp-item">
+        <span class="temp-label">Env</span>
+        <span class="temp-value" id="statusEnv">--</span>
+      </div>
+      <div class="temp-item">
+        <span class="temp-label">Heat</span>
+        <span class="temp-value" id="statusHeat">--%</span>
+      </div>
+    </div>
+    <div class="program-status" id="statusBadge">READY</div>
+  </header>
+
+  <div class="main-layout">
+    <!-- Navigation Sidebar -->
+    <nav class="nav-sidebar">
+      <div class="nav-section">
+        <div class="nav-section-title">Navigation</div>
+        <a class="nav-item active" href="#/" data-view="dashboard">
+          <span class="icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-item" href="#/programs" data-view="programs">
+          <span class="icon">📄</span>
+          <span>Programs</span>
+        </a>
+        <a class="nav-item" href="#/logs" data-view="logs">
+          <span class="icon">📋</span>
+          <span>Logs</span>
+        </a>
+        <a class="nav-item" href="#/preferences" data-view="preferences">
+          <span class="icon">⚙️</span>
+          <span>Preferences</span>
+        </a>
+        <div class="nav-divider"></div>
+        <a class="nav-item" href="#/debug" data-view="debug">
+          <span class="icon">🔧</span>
+          <span>Debug</span>
+        </a>
+        <a class="nav-item" href="#/about" data-view="about">
+          <span class="icon">ℹ️</span>
+          <span>About</span>
+        </a>
+      </div>
+      
+      <!-- Controls Section -->
+      <div class="controls-section">
+        <div class="nav-section-title">Controls</div>
+        <div class="control-row">
+          <button class="control-btn primary" id="startBtn" onclick="sendCommand('start')">▶ Start</button>
+          <button class="control-btn" onclick="sendCommand('pause')">⏸ Pause</button>
+        </div>
+        <div class="control-row">
+          <button class="control-btn danger" onclick="sendCommand('stop')">⛔ Stop</button>
+        </div>
+        <div class="nav-divider"></div>
+        <div class="control-input-group">
+          <select id="programSelect">
+            <option value="">Load program...</option>
+          </select>
+        </div>
+        <div class="control-input-group">
+          <button class="control-btn load-btn" id="sidebarLoadBtn" onclick="loadProgram()">Load</button>
+          <button class="control-btn" id="sidebarClearBtn" onclick="clearProgram()">Clear</button>
+        </div>
+        <div class="control-input-group">
+          <input type="number" id="tempInput" placeholder="Temp °C" min="0" max="1350">
+          <button class="control-btn" onclick="setTemperature()">Set</button>
+        </div>
+        <div class="nav-divider"></div>
+        <div class="control-row">
+          <button class="control-btn" id="connectBtn" onclick="manualConnect()" disabled>🔌 Connect</button>
+          <button class="control-btn" id="disconnectBtn" onclick="disconnect()">⏹ Disconnect</button>
+        </div>
+        <button class="control-btn danger" onclick="reboot()">🔄 Reboot</button>
+      </div>
+    </nav>
+
+    <!-- Content Area -->
+    <main class="content">
+      <!-- Dashboard View -->
+      <div class="view active" id="view-dashboard">
+        <div class="view-header">
+          <h1>Dashboard</h1>
+          <p>Real-time kiln status</p>
+        </div>
+        
+        <div class="dashboard-grid">
+          <div class="card">
+            <div class="card-title">Temperatures</div>
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-label">Kiln</span>
+                <span class="stat-value accent" id="dashKiln">--°C</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Target</span>
+                <span class="stat-value" id="dashTarget">--°C</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Environment</span>
+                <span class="stat-value" id="dashEnv">--°C</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Housing</span>
+                <span class="stat-value" id="dashCase">--°C</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card">
+            <div class="card-title">Program Status</div>
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-label">Status</span>
+                <span class="stat-value" id="dashStatus">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Program</span>
+                <span class="stat-value" id="dashProgram">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Step</span>
+                <span class="stat-value" id="dashStep">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Heat</span>
+                <span class="stat-value" id="dashHeat">--%</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card">
+            <div class="card-title">Timing</div>
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-label">Started</span>
+                <span class="stat-value" id="dashStart">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">ETA</span>
+                <span class="stat-value" id="dashEnd">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Current Time</span>
+                <span class="stat-value" id="dashTime">--</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Temp Change</span>
+                <span class="stat-value" id="dashChange">--°C/h</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top: 1rem;">
+          <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Temperature History</span>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn-small" id="autoScrollBtn" onclick="toggleAutoScroll()">⏸ Auto Scroll</button>
+              <button class="btn-small" onclick="resetZoom()">⟲ Reset Zoom</button>
+            </div>
+          </div>
+          <div id="chartLegend" style="display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; padding: 0.5rem 0; font-size: 0.75rem;"></div>
+          <div id="chartWrapper" style="width: 100%; position: relative;">
+            <div id="chartContainer" style="width: 100%; height: 300px;"></div>
+            <div id="chartConnectionLost" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 15, 20, 0.9); justify-content: center; align-items: center; flex-direction: column; gap: 0.5rem;">
+              <span style="font-size: 2rem;">⚠️</span>
+              <span style="font-size: 1.25rem; font-weight: 600; color: var(--error);">CONNECTION LOST</span>
+              <span style="font-size: 0.875rem; color: var(--text-muted);">Waiting for reconnection...</span>
+            </div>
+          </div>
+          <div id="chartOverview" style="width: 100%; height: 40px; margin-top: 8px;"></div>
+        </div>
+      </div>
+
+      <!-- Programs View -->
+      <div class="view" id="view-programs">
+        <div class="view-header">
+          <h1>Programs</h1>
+          <p>Manage firing programs</p>
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+          <button class="btn-small primary" onclick="createProgram()">+ New Program</button>
+          <button class="btn-small" onclick="loadProgramList()">↻ Refresh</button>
+        </div>
+        
+        <table class="programs-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Size</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="programsTableBody">
+            <tr><td colspan="3" style="color: var(--text-muted)">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Logs View -->
+      <div class="view" id="view-logs">
+        <div class="view-header">
+          <h1>Logs</h1>
+          <p>Program execution logs</p>
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+          <button class="btn-small" onclick="loadLogsList()">↻ Refresh</button>
+        </div>
+        
+        <table class="programs-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Size</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="logsTableBody">
+            <tr><td colspan="3" style="color: var(--text-muted)">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Preferences View -->
+      <div class="view" id="view-preferences">
+        <div class="view-header">
+          <h1>Preferences</h1>
+          <p>System configuration</p>
+        </div>
+        
+        <div id="prefsContent">
+          <p style="color: var(--text-muted)">Loading preferences...</p>
+        </div>
+        
+        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button class="btn-small primary" onclick="savePreferences()">Save Preferences</button>
+          <button class="btn-small" onclick="loadPreferences()">↻ Reload</button>
+          <a class="btn-small" href="/etc/pidkiln.conf" download="pidkiln.conf" style="text-decoration: none;">📥 Download Config</a>
+        </div>
+      </div>
+
+      <!-- Debug View -->
+      <div class="view" id="view-debug">
+        <div class="view-header">
+          <h1>Debug</h1>
+          <p>System information and diagnostics</p>
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+          <button class="btn-small" onclick="loadDebugInfo()">↻ Refresh</button>
+        </div>
+        
+        <table class="debug-table" id="debugTable">
+          <tbody>
+            <tr><td colspan="2" style="color: var(--text-muted)">Loading...</td></tr>
+          </tbody>
+        </table>
+        
+        <div class="card" style="margin-top: 2rem;">
+          <div class="card-title">Firmware Update</div>
+          <p style="font-size: 0.8rem; color: var(--warning); margin-bottom: 0.75rem;">
+            ⚠️ Device will restart after upload. Do not interrupt.
+          </p>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <input type="file" id="firmwareFile" accept=".bin" style="font-size: 0.8rem;">
+            <button class="btn-small primary" onclick="uploadFirmware()">Upload Firmware</button>
+          </div>
+          <div id="firmwareStatus" style="margin-top: 0.5rem; font-size: 0.8rem;"></div>
+        </div>
+        
+        <div style="margin-top: 2rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem;">
+            <input type="checkbox" id="wsLogEnabled" onchange="toggleWsLog()">
+            <span>Show WebSocket Messages</span>
+          </label>
+        </div>
+        
+        <div class="log-container" id="wsLogContainer" style="display: none; margin-top: 1rem;">
+          <div class="log-header">
+            <h3>WebSocket Messages</h3>
+            <button class="btn-small" onclick="clearLog()">Clear</button>
+          </div>
+          <div class="log-content" id="logContent"></div>
+        </div>
+      </div>
+
+      <!-- About View -->
+      <div class="view" id="view-about">
+        <div class="view-header">
+          <h1>About</h1>
+        </div>
+        
+        <div class="about-content">
+          <h2>Furnace</h2>
+          <p>Furnace is an ESP32-based kiln controller. It can be used to manage ceramic, glass or softer metals melting. Everything to temperature 1350°C.</p>
+          <p><strong>Version:</strong> <span id="aboutVersion">--</span></p>
+          <p>
+            <strong>Webpage:</strong> 
+            <a href="https://github.com/your-repo/furnace" target="_blank">GitHub</a>
+          </p>
+          <p>
+            <strong>Source:</strong> 
+            <a href="https://github.com/your-repo/furnace" target="_blank">Source Code</a>
+          </p>
+        </div>
+      </div>
+
+      <!-- Editor View -->
+      <div class="view" id="view-editor">
+        <div class="editor-container">
+          <div class="editor-toolbar">
+            <span class="filename" id="editorFilename">program.txt</span>
+            <div class="actions">
+              <button class="btn-small primary" onclick="saveProgram()">💾 Save</button>
+              <button class="btn-small" onclick="cancelEdit()">✕ Cancel</button>
+            </div>
+          </div>
+          <div class="editor-hint">
+            Format: <code>target_temp:ramp_minutes:dwell_minutes</code> &nbsp;|&nbsp; 
+            Lines starting with <code>#</code> are comments &nbsp;|&nbsp;
+            Max file size: 10KB
+          </div>
+          <div class="editor-wrapper">
+            <div class="editor-lines" id="editorLines">1</div>
+            <textarea class="editor-textarea" id="editorContent" placeholder="# My firing program
+# Bisque cone 06
+93:60:60
+260:120:0
+537:120:30
+1000:180:15" spellcheck="false"></textarea>
+          </div>
+          <div class="editor-status">
+            <span id="editorLineCount">0 lines</span>
+            <span id="editorByteCount">0 bytes</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/uPlot.iife.min.js"></script>
+  <script>
+    // =========================================================================
+    // State
+    // =========================================================================
+    let ws = null;
+    let state = {};
+    let preferences = {};
+    let editorState = { filename: '', isNew: false };
+    
+    // Chart state
+    let chart = null;
+    let chartInitializing = false;
+    let chartData = {
+      timestamps: [],  // Unix seconds
+      kilnTemps: [],
+      setTemps: [],
+      envTemps: [],
+      caseTemps: [],
+      markers: []      // { x: timestamp, type: string, value?: any }
+    };
+    const CHART_MAX_POINTS = 8640; // 24h at 10s intervals
+    
+    // Chart zoom/pan state
+    const CHART_DEFAULT_WINDOW = 6 * 60 * 60;  // 6 hours in seconds
+    const CHART_MIN_WINDOW = 30 * 60;          // 30 minutes minimum zoom
+    let autoScrollEnabled = true;  // Auto-scroll to keep "now" visible
+    
+    // Program profile state
+    let programProfile = null;        // { name, startTime, durationMinutes, times, temps }
+    let programProfileLocked = false; // true when program is running/stopped
+    
+    const STATUS_NAMES = {
+      0: 'NONE', 1: 'READY', 2: 'RUNNING', 3: 'PAUSED',
+      4: 'STOPPED', 5: 'ABORTED', 6: 'WAITING', 7: 'FINISHED', 8: 'FAILED'
+    };
+    
+    const STATUS_CLASSES = {
+      2: 'running', 3: 'paused', 5: 'error', 8: 'error'
+    };
+
+    const previewCharts = new Map();
+    const previewCache = new Map();
+
+    function formatMinutesLabel(value) {
+      const totalSeconds = Math.round(value * 60);
+      const hh = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+      const mm = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+      return `${hh}:${mm}`;
+    }
+
+    function formatTimeLabel(value) {
+      const date = new Date(value * 1000);
+      return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatPreviewTimeLabel(baseMs, offsetMinutes) {
+      const ms = baseMs + Math.round(offsetMinutes * 60 * 1000);
+      const date = new Date(ms);
+      return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // =========================================================================
+    // Router
+    // =========================================================================
+    function navigate() {
+      const hash = location.hash.slice(2) || '';
+      const viewId = hash.split('/')[0] || 'dashboard';
+      
+      // Update views
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      const view = document.getElementById(`view-${viewId}`);
+      if (view) view.classList.add('active');
+      
+      // Update nav (don't highlight for editor)
+      document.querySelectorAll('.nav-item').forEach(n => {
+        const href = n.getAttribute('href');
+        n.classList.toggle('active', 
+          href === `#/${hash}` || 
+          (hash === '' && href === '#/') ||
+          (viewId === 'editor' && href === '#/programs')
+        );
+      });
+      
+      // Load data for view
+      if (viewId === 'programs') loadProgramList();
+      if (viewId === 'logs') loadLogsList();
+      if (viewId === 'preferences') loadPreferences();
+      if (viewId === 'debug') loadDebugInfo();
+      if (viewId === 'about') loadAboutInfo();
+      if (viewId === 'dashboard' || viewId === '') {
+        // Initialize chart if not already done (dashboard is now visible)
+        // Use delay to ensure DOM is fully rendered
+        if (!chart) {
+          setTimeout(initChart, 100);
+        }
+      }
+    }
+    
+    window.addEventListener('hashchange', navigate);
+
+    // =========================================================================
+    // WebSocket
+    // =========================================================================
+    let manualDisconnect = false;  // Track if user manually disconnected
+    let reconnectTimeout = null;
+    let reconnectStartTime = null;
+    const RECONNECT_TIMEOUT_MS = 30000;  // Stop trying after 30 seconds
+    const RECONNECT_INTERVAL_MS = 3000;  // Try every 3 seconds
+    
+    function connect() {
+      if (manualDisconnect) return;  // Don't auto-reconnect if manually disconnected
+      
+      // Check if we've exceeded the reconnect timeout
+      if (reconnectStartTime && Date.now() - reconnectStartTime > RECONNECT_TIMEOUT_MS) {
+        log('error', 'Reconnect timeout - giving up after 30s');
+        reconnectStartTime = null;
+        setConnected(false);  // Update UI to show final disconnected state
+        return;
+      }
+      
+      const wsUrl = `ws://${location.host}/ws`;
+      log('sent', `Connecting to ${wsUrl}...`);
+      
+      ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        reconnectStartTime = null;  // Reset timeout on successful connect
+        setConnected(true);
+        log('ack', 'Connected');
+        loadProgramSelect();
+        // Clear and reload chart data from history
+        resetChartData();
+        loadChartHistory();
+        // Clear program profile - will be reloaded from backend state
+        programProfile = null;
+        programProfileLocked = false;
+      };
+      
+      ws.onclose = () => {
+        setConnected(false);
+        if (!manualDisconnect) {
+          // Start reconnect timer if not already started
+          if (!reconnectStartTime) {
+            reconnectStartTime = Date.now();
+          }
+          
+          // Check if we should keep trying
+          if (Date.now() - reconnectStartTime < RECONNECT_TIMEOUT_MS) {
+            const elapsed = Math.round((Date.now() - reconnectStartTime) / 1000);
+            log('error', `Disconnected - reconnecting in 3s... (${elapsed}s elapsed)`);
+            reconnectTimeout = setTimeout(connect, RECONNECT_INTERVAL_MS);
+          } else {
+            log('error', 'Reconnect timeout - giving up after 30s');
+            reconnectStartTime = null;
+            setConnected(false);  // Update UI to show final disconnected state
+          }
+        }
+      };
+      
+      ws.onerror = () => log('error', 'WebSocket error');
+      
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          handleMessage(msg);
+        } catch (err) {
+          log('error', `Parse error: ${e.data}`);
+        }
+      };
+    }
+    
+    function disconnect() {
+      manualDisconnect = true;
+      reconnectStartTime = null;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+      }
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+      setConnected(false);
+    }
+    
+    function manualConnect() {
+      manualDisconnect = false;
+      reconnectStartTime = null;
+      connect();
+    }
+    
+    function resetChartData() {
+      // Clear all chart data for a fresh start
+      chartData.timestamps = [];
+      chartData.kilnTemps = [];
+      chartData.setTemps = [];
+      chartData.envTemps = [];
+      chartData.caseTemps = [];
+      chartData.markers = [];
+    }
+    
+    function setConnected(connected) {
+      const el = document.getElementById('connection');
+      el.classList.toggle('connected', connected);
+      
+      // Show appropriate status text
+      let statusText = 'Disconnected';
+      if (connected) {
+        statusText = 'Connected';
+      } else if (!manualDisconnect && reconnectStartTime !== null) {
+        statusText = 'Reconnecting...';
+      }
+      el.querySelector('span').textContent = statusText;
+      
+      // Update connect/disconnect buttons
+      const connectBtn = document.getElementById('connectBtn');
+      const disconnectBtn = document.getElementById('disconnectBtn');
+      if (connectBtn) {
+        // Enable connect button only when disconnected AND not auto-reconnecting
+        connectBtn.disabled = connected || (!manualDisconnect && reconnectStartTime !== null);
+      }
+      if (disconnectBtn) {
+        // Enable disconnect button when connected OR when auto-reconnecting
+        disconnectBtn.disabled = !connected && (manualDisconnect || reconnectStartTime === null);
+      }
+      
+      // Show/hide connection lost overlay on chart
+      const chartOverlay = document.getElementById('chartConnectionLost');
+      if (chartOverlay) {
+        chartOverlay.style.display = connected ? 'none' : 'flex';
+      }
+      
+      // Update status bar temps
+      if (!connected) {
+        document.getElementById('statusKiln').textContent = 'N/A';
+        document.getElementById('statusTarget').textContent = 'N/A';
+        document.getElementById('statusEnv').textContent = 'N/A';
+        document.getElementById('statusHeat').textContent = 'N/A';
+        document.getElementById('statusBadge').textContent = 'OFFLINE';
+        document.getElementById('statusBadge').className = 'program-status error';
+      }
+    }
+    
+    function handleMessage(msg) {
+      // Only log non-state messages or log state occasionally
+      if (msg.type !== 'state') {
+        log(msg.type, JSON.stringify(msg.data || msg));
+      }
+      
+      if (msg.type === 'state') {
+        state = msg.data;
+        updateUI();
+        // Update chart with new data point
+        if (state.kiln_temp !== undefined && state.set_temp !== undefined) {
+          addChartPoint(state.kiln_temp, state.set_temp, state.env_temp, state.case_temp);
+        }
+        // Manage program profile
+        handleProgramProfileUpdate();
+      }
+    }
+    
+    function sendCommand(action, params = {}) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        log('error', 'Not connected');
+        return;
+      }
+      const msg = { type: 'command', action, ...params };
+      log('sent', JSON.stringify(msg));
+      ws.send(JSON.stringify(msg));
+    }
+
+    let isProgramRunning = false;
+
+    function updateLoadControls(status) {
+      const running = status === 2;
+      isProgramRunning = running;
+      const select = document.getElementById('programSelect');
+      if (select) select.disabled = running;
+      const sidebarBtn = document.getElementById('sidebarLoadBtn');
+      if (sidebarBtn) sidebarBtn.disabled = running;
+      const clearBtn = document.getElementById('sidebarClearBtn');
+      if (clearBtn) clearBtn.disabled = running;
+      applyProgramLoadButtons();
+    }
+
+    function applyProgramLoadButtons() {
+      document.querySelectorAll('.program-load-btn').forEach(btn => {
+        btn.disabled = isProgramRunning;
+        btn.classList.toggle('primary', !isProgramRunning);
+        btn.classList.toggle('running-disabled', isProgramRunning);
+      });
+    }
+
+    function updateStartButton(status) {
+      const btn = document.getElementById('startBtn');
+      const running = status === 2;
+      if (!btn) return;
+      btn.disabled = running;
+      btn.classList.toggle('primary', !running);
+      btn.classList.toggle('running-disabled', running);
+    }
+
+    // =========================================================================
+    // UI Updates
+    // =========================================================================
+    function updateUI() {
+      const s = state;
+      
+      // Status bar
+      document.getElementById('statusKiln').textContent = formatTemp(s.kiln_temp);
+      document.getElementById('statusTarget').textContent = formatTemp(s.set_temp);
+      document.getElementById('statusEnv').textContent = formatTemp(s.env_temp);
+      document.getElementById('statusHeat').textContent = `${s.heat_percent || 0}%`;
+      
+      const badge = document.getElementById('statusBadge');
+      badge.textContent = STATUS_NAMES[s.program_status] || 'UNKNOWN';
+      badge.className = 'program-status ' + (STATUS_CLASSES[s.program_status] || '');
+      
+      // Dashboard
+      document.getElementById('dashKiln').textContent = formatTemp(s.kiln_temp);
+      document.getElementById('dashTarget').textContent = formatTemp(s.set_temp);
+      document.getElementById('dashEnv').textContent = formatTemp(s.env_temp);
+      document.getElementById('dashCase').textContent = formatTemp(s.case_temp);
+      document.getElementById('dashStatus').textContent = STATUS_NAMES[s.program_status] || '--';
+      document.getElementById('dashProgram').textContent = s.program_name || '--';
+      document.getElementById('dashStep').textContent = s.step || '--';
+      document.getElementById('dashHeat').textContent = `${s.heat_percent || 0}%`;
+      document.getElementById('dashStart').textContent = s.prog_start || '--';
+      document.getElementById('dashEnd').textContent = s.prog_end || '--';
+      document.getElementById('dashTime').textContent = s.curr_time || '--';
+      document.getElementById('dashChange').textContent = `${s.temp_change || 0}°C/h`;
+      updateLoadControls(s.program_status);
+      updateStartButton(s.program_status);
+    }
+    
+    function formatTemp(val) {
+      return val !== undefined ? `${val.toFixed(1)}°C` : '--';
+    }
+
+    // =========================================================================
+    // Controls
+    // =========================================================================
+    function loadProgram() {
+      const program = document.getElementById('programSelect').value;
+      if (!program) return log('error', 'Select a program first');
+      sendCommand('load', { program });
+    }
+    
+    function clearProgram() {
+      // Cannot unload while program is running
+      if (state.program_status === 2) {  // RUNNING
+        alert('Cannot unload while program is running. Stop the program first.');
+        return;
+      }
+      // Send unload command to backend
+      sendCommand('unload');
+      // Clear local state
+      programProfile = null;
+      programProfileLocked = false;
+      document.getElementById('programSelect').value = '';
+      updateChartData();
+      setDefaultView();
+    }
+    
+    function setTemperature() {
+      const temp = parseFloat(document.getElementById('tempInput').value);
+      if (isNaN(temp)) return log('error', 'Invalid temperature');
+      sendCommand('set_temp', { temperature: temp });
+    }
+    
+    async function reboot() {
+      if (!confirm('Reboot the device?')) return;
+      log('sent', 'POST /api/reboot');
+      try {
+        const res = await fetch('/api/reboot', { method: 'POST' });
+        const data = await res.json();
+        log('ack', JSON.stringify(data));
+      } catch (e) {
+        log('error', e.message);
+      }
+    }
+    
+    async function loadProgramSelect() {
+      try {
+        const res = await fetch('/programs/');
+        const data = await res.json();
+        const select = document.getElementById('programSelect');
+        select.innerHTML = '<option value="">Load program...</option>';
+        data.files.forEach(f => {
+          const opt = document.createElement('option');
+          opt.value = f.name;
+          opt.textContent = f.name;
+          select.appendChild(opt);
+        });
+      } catch (e) {
+        log('error', `Failed to load programs: ${e.message}`);
+      }
+    }
+
+    // =========================================================================
+    // Programs View
+    // =========================================================================
+    async function loadProgramList() {
+      const tbody = document.getElementById('programsTableBody');
+      try {
+        const res = await fetch('/programs/');
+        const data = await res.json();
+        const disableAttr = isProgramRunning ? ' disabled' : '';
+        tbody.innerHTML = data.files.map(f => {
+          const attrName = escapeAttr(f.name);
+          const jsName = escapeJs(f.name);
+          const description = escapeHtml(f.description || 'No description provided.');
+          return `
+            <tr>
+              <td>${escapeHtml(f.name)}</td>
+              <td>${f.size} B</td>
+              <td class="actions">
+                <button class="btn-small primary program-load-btn"${disableAttr} onclick="sendCommand('load', {program:'${jsName}'})">Load</button>
+                <button class="btn-small" onclick="editProgram('${jsName}')">Edit</button>
+                <button class="btn-small danger" onclick="deleteProgram('${jsName}')">Delete</button>
+                <button class="btn-small" data-program="${attrName}" data-preview-action="toggle" onclick="togglePreview(this)">Preview</button>
+              </td>
+            </tr>
+            <tr class="program-description-row" data-description="${attrName}">
+              <td colspan="3">
+                <div class="program-description">${description}</div>
+              </td>
+            </tr>
+            <tr class="program-preview-row" data-preview="${attrName}">
+              <td colspan="3">
+                <div class="program-preview">
+                  <div class="program-preview-header">
+                    <span>Program Preview</span>
+                    <button class="btn-small" data-program="${attrName}" data-preview-action="close" onclick="togglePreview(this)">Close</button>
+                  </div>
+                  <div class="program-preview-chart" id="preview-chart-${attrName}"></div>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+        applyProgramLoadButtons();
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4" style="color:var(--error)">${e.message}</td></tr>`;
+      }
+    }
+    
+    async function togglePreview(button) {
+      if (!button) return;
+      const name = button.dataset.program;
+      if (!name) return;
+      const selector = `tr[data-preview="${cssEscape(name)}"]`;
+      const row = document.querySelector(selector);
+      if (!row) return;
+      const descRow = document.querySelector(`tr[data-description="${cssEscape(name)}"]`);
+      const isOpen = row.dataset.open === 'true';
+      if (isOpen) {
+        row.dataset.open = 'false';
+        row.style.display = 'none';
+        if (descRow) {
+          descRow.style.display = 'none';
+        }
+        updatePreviewButtonLabels(name, false);
+        return;
+      }
+      row.dataset.open = 'true';
+      row.style.display = 'table-row';
+      if (descRow) {
+        descRow.style.display = 'table-row';
+      }
+      updatePreviewButtonLabels(name, true);
+      const container = row.querySelector('.program-preview-chart');
+      await showProgramPreview(name, container);
+    }
+
+    function updatePreviewButtonLabels(name, open) {
+      document.querySelectorAll(`button[data-program="${cssEscape(name)}"]`).forEach(btn => {
+        const action = btn.dataset.previewAction;
+        if (action === 'toggle') {
+          btn.textContent = open ? 'Hide Preview' : 'Preview';
+        } else if (action === 'close') {
+          btn.textContent = 'Close';
+        }
+      });
+    }
+
+    async function showProgramPreview(name, container) {
+      if (!container) return;
+      container.innerHTML = '<div class="preview-loading">Loading preview…</div>';
+      const width = container.clientWidth || 320;
+      try {
+        const content = await fetchProgramContent(name);
+        const data = buildProgramPreviewData(content);
+        if (!data) {
+          container.innerHTML = '<div class="preview-error">Unable to render preview</div>';
+          return;
+        }
+        container.innerHTML = '';
+        const baseMs = Date.now();
+        const opts = {
+          width,
+          height: 160,
+          scales: {
+            x: { time: false },
+            y: { auto: true }
+          },
+          axes: [
+            {
+              stroke: '#888',
+              grid: { stroke: '#2d2d3a', width: 1 },
+              ticks: { stroke: '#2d2d3a' },
+              values: (_, vals) => vals.map(v => formatPreviewTimeLabel(baseMs, v)),
+              label: 'Time (hh:mm)'
+            },
+            {
+              stroke: '#888',
+              grid: { stroke: '#2d2d3a', width: 1 },
+              ticks: { stroke: '#2d2d3a' },
+              values: (_, vals) => vals.map(v => `${Math.round(v)}°C`),
+              label: 'Temperature (°C)'
+            }
+          ],
+          series: [
+            {},
+            {
+              label: 'Target',
+              stroke: '#4ade80',
+              width: 2,
+              points: { show: false }
+            }
+          ],
+          cursor: { show: false },
+        };
+        if (previewCharts.has(name)) {
+          previewCharts.get(name).destroy();
+        }
+        const chart = new uPlot(opts, data, container);
+        previewCharts.set(name, chart);
+      } catch (err) {
+        container.innerHTML = `<div class="preview-error">${err.message}</div>`;
+      }
+    }
+
+    async function fetchProgramContent(name) {
+      if (previewCache.has(name)) {
+        return previewCache.get(name);
+      }
+      const res = await fetch(`/programs/${encodeURIComponent(name)}`);
+      if (!res.ok) {
+        throw new Error('Failed to load program');
+      }
+      const text = await res.text();
+      previewCache.set(name, text);
+      return text;
+    }
+
+    function buildProgramPreviewData(content) {
+      try {
+        const program = JSON.parse(content);
+        const segments = Array.isArray(program.segments) ? program.segments : [];
+        if (!segments.length) return null;
+        const minutes = [0];
+        const temps = [(segments[0].target ?? 0)];
+        let elapsed = 0;
+        let currentTemp = temps[0];
+        segments.forEach(segment => {
+          const target = typeof segment.target === 'number' ? segment.target : currentTemp;
+          const rampSeconds = timeToSeconds(segment.ramp_time);
+          if (rampSeconds > 0) {
+            elapsed += rampSeconds;
+            minutes.push(elapsed / 60);
+            temps.push(target);
+          } else if (target !== currentTemp) {
+            minutes.push(elapsed / 60);
+            temps.push(target);
+          }
+          currentTemp = target;
+          const dwellSeconds = timeToSeconds(segment.dwell_time);
+          if (dwellSeconds > 0) {
+            elapsed += dwellSeconds;
+            minutes.push(elapsed / 60);
+            temps.push(target);
+          }
+        });
+        return [minutes, temps];
+      } catch (err) {
+        return null;
+      }
+    }
+
+    function timeToSeconds(field) {
+      if (!field) return 0;
+      const hours = Number(field.hours) || 0;
+      const minutes = Number(field.minutes) || 0;
+      const seconds = Number(field.seconds) || 0;
+      return hours * 3600 + minutes * 60 + seconds;
+    }
+    function createProgram() {
+      const name = prompt('Program name (e.g., my_program.txt):');
+      if (!name) return;
+      editProgram(name, true);
+    }
+    
+    async function editProgram(name, isNew = false) {
+      editorState.filename = name;
+      editorState.isNew = isNew;
+      
+      const textarea = document.getElementById('editorContent');
+      document.getElementById('editorFilename').textContent = isNew ? `New: ${name}` : name;
+      
+      if (isNew) {
+        textarea.value = '# Program description\n# Format: target_temp:ramp_minutes:dwell_minutes\n\n';
+      } else {
+        try {
+          const res = await fetch(`/programs/${encodeURIComponent(name)}`);
+          if (!res.ok) throw new Error('Failed to load');
+          textarea.value = await res.text();
+        } catch (e) {
+          alert('Error loading program: ' + e.message);
+          return;
+        }
+      }
+      
+      updateEditorStatus();
+      location.hash = '#/editor';
+      textarea.focus();
+    }
+    
+    async function saveProgram() {
+      const content = document.getElementById('editorContent').value;
+      const name = editorState.filename;
+      
+      if (!name) {
+        alert('No filename set');
+        return;
+      }
+      
+      if (content.length > 10240) {
+        alert('File too large (max 10KB)');
+        return;
+      }
+      
+      try {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const fd = new FormData();
+        fd.append('upload', blob, name);
+        const res = await fetch('/upload', { method: 'POST', body: fd });
+        if (!res.ok) throw new Error('Upload failed');
+        loadProgramSelect();
+        location.hash = '#/programs';
+      } catch (e) {
+        alert('Error saving: ' + e.message);
+      }
+    }
+    
+    function cancelEdit() {
+      const content = document.getElementById('editorContent').value;
+      if (content && !confirm('Discard changes?')) return;
+      location.hash = '#/programs';
+    }
+    
+    function updateEditorStatus() {
+      const textarea = document.getElementById('editorContent');
+      const content = textarea.value;
+      const lines = content.split('\n');
+      
+      document.getElementById('editorLineCount').textContent = `${lines.length} lines`;
+      document.getElementById('editorByteCount').textContent = `${new Blob([content]).size} bytes`;
+      
+      // Update line numbers
+      const lineNumbers = document.getElementById('editorLines');
+      lineNumbers.textContent = lines.map((_, i) => i + 1).join('\n');
+    }
+    
+    // Set up editor event listener after DOM loads
+    document.addEventListener('DOMContentLoaded', () => {
+      const textarea = document.getElementById('editorContent');
+      if (textarea) {
+        textarea.addEventListener('input', updateEditorStatus);
+        textarea.addEventListener('scroll', () => {
+          document.getElementById('editorLines').scrollTop = textarea.scrollTop;
+        });
+      }
+    });
+    
+    async function deleteProgram(name) {
+      if (!confirm(`Delete program "${name}"?`)) return;
+      try {
+        const res = await fetch('/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file: name })
+        });
+        if (!res.ok) throw new Error('Delete failed');
+        loadProgramList();
+        loadProgramSelect();
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    // =========================================================================
+    // Logs View
+    // =========================================================================
+    async function loadLogsList() {
+      const tbody = document.getElementById('logsTableBody');
+      try {
+        const res = await fetch('/logs/');
+        const data = await res.json();
+        if (!data.files.length) {
+          tbody.innerHTML = '<tr><td colspan="3" style="color:var(--text-muted)">No logs yet</td></tr>';
+          return;
+        }
+        tbody.innerHTML = data.files.map(f => `
+          <tr>
+            <td>${escapeHtml(f.name)}</td>
+            <td>${f.size} B</td>
+            <td class="actions">
+              <button class="btn-small" onclick="viewLog('${f.name}')">View</button>
+              <button class="btn-small" onclick="downloadLog('${f.name}')">Download</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="3" style="color:var(--error)">${e.message}</td></tr>`;
+      }
+    }
+    
+    async function viewLog(name) {
+      try {
+        const res = await fetch(`/logs/${encodeURIComponent(name)}`);
+        const content = await res.text();
+        alert(content.slice(0, 2000) + (content.length > 2000 ? '\n...(truncated)' : ''));
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+    
+    function downloadLog(name) {
+      window.open(`/logs/${encodeURIComponent(name)}`, '_blank');
+    }
+
+    // =========================================================================
+    // Preferences View
+    // =========================================================================
+    async function loadPreferences() {
+      const container = document.getElementById('prefsContent');
+      try {
+        const res = await fetch('/api/preferences');
+        preferences = await res.json();
+        
+        const sections = {
+          'WiFi': ['WiFi_SSID', 'WiFi_Password', 'WiFi_Mode', 'WiFi_Retry_cnt'],
+          'HTTP Server': ['Auth_Username', 'Auth_Password', 'HTTP_Local_JS'],
+          'Time': ['NTP_Server1', 'NTP_Server2', 'NTP_Server3', 'GMT_Offset_sec', 'Daylight_Offset_sec'],
+          'PID': ['PID_Window', 'PID_Kp', 'PID_Ki', 'PID_Kd', 'PID_POE', 'PID_Temp_Threshold'],
+          'Logging': ['LOG_Window', 'LOG_Files_Limit'],
+          'Safety': ['MIN_Temperature', 'MAX_Temperature', 'MAX_Housing_Temperature', 'Thermal_Runaway', 'Alarm_Timeout', 'MAX31855_Error_Grace_Count'],
+          'Debug': ['DBG_Serial', 'DBG_Syslog', 'DBG_Syslog_Srv', 'DBG_Syslog_Port']
+        };
+        
+        let html = '';
+        for (const [section, keys] of Object.entries(sections)) {
+          html += `<div class="prefs-section"><div class="prefs-section-header">${section}</div><div class="prefs-section-content">`;
+          for (const key of keys) {
+            if (preferences[key] !== undefined) {
+              const type = key.includes('Password') ? 'password' : 'text';
+              html += `<div class="pref-row">
+                <label class="pref-label">${key}</label>
+                <div class="pref-input"><input type="${type}" id="pref_${key}" value="${escapeHtml(String(preferences[key]))}"></div>
+              </div>`;
+            }
+          }
+          html += '</div></div>';
+        }
+        container.innerHTML = html;
+      } catch (e) {
+        container.innerHTML = `<p style="color:var(--error)">${e.message}</p>`;
+      }
+    }
+    
+    async function savePreferences() {
+      const data = {};
+      document.querySelectorAll('[id^="pref_"]').forEach(el => {
+        const key = el.id.replace('pref_', '');
+        data[key] = el.value;
+      });
+      
+      try {
+        const res = await fetch('/api/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Save failed');
+        alert('Preferences saved!');
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    // =========================================================================
+    // Debug View
+    // =========================================================================
+    async function loadDebugInfo() {
+      const table = document.getElementById('debugTable');
+      try {
+        const res = await fetch('/api/debug');
+        const data = await res.json();
+        
+        const sections = {
+          'Chip Information': ['CHIP_ID', 'CHIP_REV', 'CHIP_MODEL', 'CHIP_CORES', 'CPU_FREQ', 'SDK_VERSION', 'MAC_ADDRESS'],
+          'Flash': ['SFLASH_RAM', 'FLASH_FREQ', 'FLASH_MODE', 'SKETCH_SIZE', 'SKETCH_TOTAL'],
+          'PSRAM': ['TOTAL_PSRAM', 'FREE_PSRAM', 'SMALEST_PSRAM', 'LARGEST_PSRAM'],
+          'Heap': ['TOTAL_HEAP', 'FREE_HEAP', 'SMALEST_HEAP', 'LARGEST_HEAP'],
+          'Filesystem': ['TOTAL_KB', 'USED_KB']
+        };
+        
+        let html = '';
+        for (const [section, keys] of Object.entries(sections)) {
+          html += `<tr><th colspan="2">${section}</th></tr>`;
+          for (const key of keys) {
+            if (data[key] !== undefined) {
+              html += `<tr><td>${key}</td><td>${escapeHtml(String(data[key]))}</td></tr>`;
+            }
+          }
+        }
+        table.innerHTML = html;
+      } catch (e) {
+        table.innerHTML = `<tr><td colspan="2" style="color:var(--error)">${e.message}</td></tr>`;
+      }
+    }
+
+    // =========================================================================
+    // About View
+    // =========================================================================
+    async function loadAboutInfo() {
+      try {
+        const res = await fetch('/api/debug');
+        const data = await res.json();
+        document.getElementById('aboutVersion').textContent = data.VERSION || 'Unknown';
+      } catch (e) {
+        document.getElementById('aboutVersion').textContent = 'Error loading';
+      }
+    }
+
+    // =========================================================================
+    // Temperature Chart
+    // =========================================================================
+    
+    function nowLinePlugin() {
+      return {
+        hooks: {
+          draw: [
+            (u) => {
+              const ctx = u.ctx;
+              const now = Date.now() / 1000;
+              const xMin = u.scales.x.min;
+              const xMax = u.scales.x.max;
+              
+              // Only draw if "now" is visible
+              if (now < xMin || now > xMax) return;
+              
+              const x = u.valToPos(now, 'x', true);
+              const top = u.bbox.top;
+              const bottom = u.bbox.top + u.bbox.height;
+              
+              ctx.save();
+              ctx.strokeStyle = '#fbbf24';  // Warning yellow color
+              ctx.lineWidth = 1;
+              ctx.setLineDash([4, 4]);
+              ctx.beginPath();
+              ctx.moveTo(x, top);
+              ctx.lineTo(x, bottom);
+              ctx.stroke();
+              
+              // Draw "Now" label
+              ctx.fillStyle = '#fbbf24';
+              ctx.font = '10px Inter, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText('Now', x, top - 4);
+              
+              ctx.restore();
+            }
+          ]
+        }
+      };
+    }
+    
+    function initChart() {
+      if (chart || chartInitializing) return; // Already initialized or in progress
+      
+      // Check if uPlot is loaded
+      if (typeof uPlot === 'undefined') {
+        console.warn('uPlot not loaded');
+        return;
+      }
+      
+      const container = document.getElementById('chartContainer');
+      if (!container) {
+        console.warn('Chart container not found');
+        return;
+      }
+      
+      // Check if dashboard view is active (visible)
+      const dashboardView = document.getElementById('view-dashboard');
+      if (!dashboardView || !dashboardView.classList.contains('active')) {
+        // Dashboard not visible, skip initialization
+        return;
+      }
+      
+      // Ensure element is actually in the rendered DOM (not display:none)
+      if (!container.offsetParent && getComputedStyle(container).display === 'none') {
+        return;
+      }
+      
+      // Get container dimensions - use clientWidth which is more reliable
+      const width = container.clientWidth || 400;
+      const height = 300;
+      
+      if (width < 100) {
+        // Container too small, try again later
+        return;
+      }
+      
+      // Mark that initialization is in progress
+      chartInitializing = true;
+      
+      // Initial data (will be replaced by history)
+      const now = Date.now() / 1000;
+      const data = [
+        [now - 60, now],  // timestamps
+        [25, 25],         // Kiln temps
+        [0, 0],           // Set temps
+        [22, 22],         // Env temps
+        [28, 28],         // Case temps
+        [null, null]      // Program profile
+      ];
+      
+        const opts = {
+          width: width,
+          height: 300,
+          plugins: [
+            nowLinePlugin()
+          ],
+          scales: {
+            x: { time: true },
+            y: { auto: true }
+          },
+          series: [
+            {},
+            {
+              label: 'Kiln',
+              stroke: '#ff6b4a',
+              width: 2,
+              points: { show: false }
+            },
+            {
+              label: 'Target',
+              stroke: '#4ade80',
+              width: 2,
+              points: { show: false }
+            },
+            {
+              label: 'Env',
+              stroke: '#888888',
+              width: 1,
+              points: { show: false }
+            },
+            {
+              label: 'Case',
+              stroke: '#666666',
+              width: 1,
+              points: { show: false }
+            },
+            {
+              label: 'Program',
+              stroke: '#22d3ee',
+              width: 2,
+              dash: [5, 5],
+              points: { show: false }
+            }
+          ],
+          axes: [
+            {
+              stroke: '#888',
+              grid: { stroke: '#2d2d3a', width: 1 },
+              ticks: { stroke: '#2d2d3a' },
+              values: (_, vals) => vals.map(v => formatTimeLabel(v)),
+              font: '11px Inter, sans-serif'
+            },
+            {
+              stroke: '#888',
+              grid: { stroke: '#2d2d3a', width: 1 },
+              ticks: { stroke: '#2d2d3a' },
+              values: (u, vals) => vals.map(v => Math.round(v) + '°C'),
+              font: '11px Inter, sans-serif',
+              size: 50
+            }
+          ],
+          legend: { show: false },
+          cursor: {
+            show: true,
+            drag: { x: true, y: false }
+          },
+          hooks: {
+            setScale: [
+              (u, key) => {
+                if (key === 'x') {
+                  updateOverviewBar();
+                }
+              }
+            ],
+            ready: [
+              (u) => {
+                // Disable auto-scroll when user drags (pans) on chart
+                u.root.addEventListener('mousedown', (e) => {
+                  // Only disable auto-scroll for drag/pan, not for other clicks
+                  if (e.target.tagName === 'CANVAS') {
+                    autoScrollEnabled = false;
+                    updateAutoScrollButton();
+                  }
+                });
+              }
+            ]
+          }
+        };
+      
+      // Use setTimeout to ensure DOM is fully rendered
+      setTimeout(() => {
+        try {
+          const el = document.getElementById('chartContainer');
+          if (!el) {
+            console.warn('Chart container not found');
+            chartInitializing = false;
+            return;
+          }
+          
+          el.innerHTML = '';
+          chart = new uPlot(opts, data, el);
+          chartInitializing = false;
+          console.log('Chart initialized successfully');
+          
+          // Create custom legend
+          createChartLegend();
+          
+          // Set initial view
+          setDefaultView();
+          
+          // Handle resize
+          const resizeObserver = new ResizeObserver(() => {
+            if (chart && el.clientWidth > 0) {
+              chart.setSize({ width: el.clientWidth, height: 300 });
+            }
+          });
+          resizeObserver.observe(el);
+          
+          // Wheel zoom - doesn't disable auto-scroll
+          el.addEventListener('wheel', (e) => {
+            if (!chart) return;
+            e.preventDefault();
+            
+            const rect = el.getBoundingClientRect();
+            const cursorX = e.clientX - rect.left;
+            const cursorPct = cursorX / el.clientWidth;
+            
+            const xMin = chart.scales.x.min;
+            const xMax = chart.scales.x.max;
+            const xRange = xMax - xMin;
+            
+            const factor = e.deltaY > 0 ? 1.2 : 0.8;
+            let newRange = xRange * factor;
+            
+            newRange = Math.max(CHART_MIN_WINDOW, newRange);
+            const maxRange = getChartMaxRange();
+            newRange = Math.min(maxRange, newRange);
+            
+            const cursorTime = xMin + xRange * cursorPct;
+            const newMin = cursorTime - newRange * cursorPct;
+            const newMax = cursorTime + newRange * (1 - cursorPct);
+            
+            chart.setScale('x', { min: newMin, max: newMax });
+          }, { passive: false });
+          
+          // Touch support
+          let touchStartX = null;
+          let touchStartScale = null;
+          let initialPinchDistance = null;
+          
+          el.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+              // Single touch = pan = disable auto-scroll
+              autoScrollEnabled = false;
+              updateAutoScrollButton();
+              touchStartX = e.touches[0].clientX;
+              touchStartScale = { min: chart.scales.x.min, max: chart.scales.x.max };
+            } else if (e.touches.length === 2) {
+              // Pinch = zoom = keep auto-scroll
+              initialPinchDistance = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+              );
+              touchStartScale = { min: chart.scales.x.min, max: chart.scales.x.max };
+            }
+          }, { passive: true });
+          
+          el.addEventListener('touchmove', (e) => {
+            if (!chart || !touchStartScale) return;
+            
+            if (e.touches.length === 1 && touchStartX !== null) {
+              e.preventDefault();
+              const dx = e.touches[0].clientX - touchStartX;
+              const pxPerSec = el.clientWidth / (touchStartScale.max - touchStartScale.min);
+              const dt = dx / pxPerSec;
+              chart.setScale('x', { min: touchStartScale.min - dt, max: touchStartScale.max - dt });
+            } else if (e.touches.length === 2 && initialPinchDistance !== null) {
+              e.preventDefault();
+              const currentDistance = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+              );
+              const scale = initialPinchDistance / currentDistance;
+              const range = (touchStartScale.max - touchStartScale.min) * scale;
+              const center = (touchStartScale.min + touchStartScale.max) / 2;
+              const clampedRange = Math.max(CHART_MIN_WINDOW, Math.min(getChartMaxRange(), range));
+              chart.setScale('x', { min: center - clampedRange / 2, max: center + clampedRange / 2 });
+            }
+          }, { passive: false });
+          
+          el.addEventListener('touchend', () => {
+            touchStartX = null;
+            touchStartScale = null;
+            initialPinchDistance = null;
+          }, { passive: true });
+          
+          // Initialize overview bar
+          setupOverviewBar();
+          updateOverviewBar();
+        } catch (e) {
+          console.error('Failed to initialize chart:', e);
+          chart = null;
+          chartInitializing = false;
+        }
+      }, 100);
+    }
+    
+    async function loadChartHistory() {
+      try {
+        const res = await fetch('/api/history');
+        
+        // Handle non-OK responses
+        if (!res.ok) {
+          console.warn('History API not available (status:', res.status, ')');
+          return;
+        }
+        
+        const data = await res.json();
+        
+        if (!data.data || !data.data.length) {
+          console.log('No history data available');
+          return;
+        }
+        
+        // Convert history to chart format
+        chartData.timestamps = [];
+        chartData.kilnTemps = [];
+        chartData.setTemps = [];
+        chartData.envTemps = [];
+        chartData.caseTemps = [];
+        chartData.markers = [];
+        
+        for (const point of data.data) {
+          if (point.t && point.k !== undefined && point.s !== undefined) {
+            chartData.timestamps.push(point.t / 1000); // Convert ms to seconds
+            chartData.kilnTemps.push(point.k);
+            chartData.setTemps.push(point.s);
+            // Use actual values if available, otherwise use reasonable defaults
+            chartData.envTemps.push(point.e !== undefined ? point.e : 22);
+            chartData.caseTemps.push(point.c !== undefined ? point.c : 28);
+            
+            if (point.m) {
+              chartData.markers.push({
+                x: point.t / 1000,
+                type: point.m.type,
+                value: point.m.value
+              });
+            }
+          }
+        }
+        
+        console.log('Loaded', chartData.timestamps.length, 'history points');
+        
+        if (chart) {
+          updateChartData();
+          // Set default view after loading history if auto-scroll is on
+          if (autoScrollEnabled) {
+            setDefaultView();
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load chart history:', e.message);
+      }
+    }
+    
+    function addChartPoint(kilnTemp, setTemp, envTemp, caseTemp) {
+      // Validate inputs
+      if (kilnTemp === undefined || setTemp === undefined || isNaN(kilnTemp) || isNaN(setTemp)) {
+        return;
+      }
+      
+      const now = Date.now() / 1000;
+      
+      chartData.timestamps.push(now);
+      chartData.kilnTemps.push(parseFloat(kilnTemp));
+      chartData.setTemps.push(parseFloat(setTemp));
+      chartData.envTemps.push(parseFloat(envTemp ?? 22));
+      chartData.caseTemps.push(parseFloat(caseTemp ?? 28));
+      
+      // Trim old data
+      while (chartData.timestamps.length > CHART_MAX_POINTS) {
+        chartData.timestamps.shift();
+        chartData.kilnTemps.shift();
+        chartData.setTemps.shift();
+        chartData.envTemps.shift();
+        chartData.caseTemps.shift();
+      }
+      
+      updateChartData();
+    }
+    
+    function updateChartData() {
+      if (!chart) return;
+      
+      const len = chartData.timestamps.length;
+      if (len === 0) return;
+      
+      // Ensure all arrays have the same length
+      while (chartData.envTemps.length < len) chartData.envTemps.push(22);
+      while (chartData.caseTemps.length < len) chartData.caseTemps.push(28);
+      
+      // Build extended timestamps that include future points for program profile
+      const now = Date.now() / 1000;
+      let timestamps = [...chartData.timestamps];
+      let kilnTemps = [...chartData.kilnTemps];
+      let setTemps = [...chartData.setTemps];
+      let envTemps = [...chartData.envTemps];
+      let caseTemps = [...chartData.caseTemps];
+      
+      // If we have a program profile, extend data to cover its duration
+      if (programProfile && programProfile.durationMinutes > 0) {
+        const anchorTime = (programProfileLocked && programProfile.startTime) 
+          ? programProfile.startTime 
+          : now;
+        const profileEnd = anchorTime + programProfile.durationMinutes * 60;
+        const lastTimestamp = timestamps[timestamps.length - 1] || now;
+        
+        // Add future points at 1-minute intervals
+        if (profileEnd > lastTimestamp) {
+          for (let t = lastTimestamp + 60; t <= profileEnd; t += 60) {
+            timestamps.push(t);
+            kilnTemps.push(null);
+            setTemps.push(null);
+            envTemps.push(null);
+            caseTemps.push(null);
+          }
+        }
+      }
+      
+      // Build program profile data
+      const profileTemps = buildProfileChartData(timestamps);
+      
+      // Preserve current scale
+      const currentMin = chart.scales.x.min;
+      const currentMax = chart.scales.x.max;
+      const currentRange = currentMax - currentMin;
+      
+      chart.setData([
+        timestamps,
+        kilnTemps,
+        setTemps,
+        envTemps,
+        caseTemps,
+        profileTemps
+      ], false);  // false = don't reset scales
+      
+      if (autoScrollEnabled) {
+        // Auto-scroll: keep same window size, but shift to keep "now" at 67% from left
+        const now = Date.now() / 1000;
+        const newMin = now - currentRange * 0.67;
+        const newMax = now + currentRange * 0.33;
+        chart.setScale('x', { min: newMin, max: newMax });
+      } else {
+        // User has panned - keep their exact view
+        chart.setScale('x', { min: currentMin, max: currentMax });
+      }
+      
+      updateOverviewBar();
+    }
+
+    // =========================================================================
+    // Chart Helper Functions
+    // =========================================================================
+    
+    function getChartMaxRange() {
+      const now = Date.now() / 1000;
+      const oldest = chartData.timestamps.length > 0 ? chartData.timestamps[0] : now - 3600;
+      const programEnd = getProgramEndTime();
+      const rightEdge = Math.max(now + 6 * 3600, programEnd);
+      return rightEdge - oldest;
+    }
+    
+    function getProgramEndTime() {
+      if (!programProfile) return Date.now() / 1000;
+      const startTime = programProfile.startTime || Date.now() / 1000;
+      return startTime + programProfile.durationMinutes * 60;
+    }
+    
+    function resetZoom() {
+      if (!chart) return;
+      // Reset to default 1h window, keeping current position
+      const currentCenter = (chart.scales.x.min + chart.scales.x.max) / 2;
+      const windowSize = 60 * 60;  // 1 hour
+      const min = currentCenter - windowSize / 2;
+      const max = currentCenter + windowSize / 2;
+      chart.setScale('x', { min, max });
+    }
+    
+    function setDefaultView() {
+      if (!chart) return;
+      // Default: 1h window with "now" at 67% from left (33% from right)
+      const now = Date.now() / 1000;
+      const windowSize = 60 * 60;  // 1 hour
+      const min = now - windowSize * 0.67;
+      const max = now + windowSize * 0.33;
+      chart.setScale('x', { min, max });
+    }
+    
+    function toggleAutoScroll() {
+      if (!chart) return;
+      autoScrollEnabled = !autoScrollEnabled;
+      updateAutoScrollButton();
+      
+      if (autoScrollEnabled) {
+        // Snap "now" to 67% from left, keeping current zoom level
+        const currentRange = chart.scales.x.max - chart.scales.x.min;
+        const now = Date.now() / 1000;
+        const min = now - currentRange * 0.67;
+        const max = now + currentRange * 0.33;
+        chart.setScale('x', { min, max });
+      }
+    }
+    
+    function updateAutoScrollButton() {
+      const btn = document.getElementById('autoScrollBtn');
+      if (!btn) return;
+      btn.textContent = autoScrollEnabled ? '⏸ Auto Scroll' : '▶ Auto Scroll';
+    }
+    
+    function centerOnProgram() {
+      // Same as default view - 1h window with now at 67% from left
+      setDefaultView();
+    }
+    
+    function createChartLegend() {
+      const legendEl = document.getElementById('chartLegend');
+      if (!legendEl || !chart) return;
+      
+      const series = [
+        { label: 'Kiln', color: '#ff6b4a' },
+        { label: 'Target', color: '#4ade80' },
+        { label: 'Env', color: '#888888' },
+        { label: 'Case', color: '#666666' },
+        { label: 'Program', color: '#22d3ee', dashed: true }
+      ];
+      
+      legendEl.innerHTML = series.map((s, i) => {
+        const idx = i + 1; // series index (0 is x-axis)
+        const dashStyle = s.dashed ? 'border-top: 2px dashed ' + s.color : 'background: ' + s.color;
+        return `<div class="chart-legend-item" data-series="${idx}" style="display: flex; align-items: center; gap: 0.25rem; cursor: pointer;">
+          <span style="width: 16px; height: 3px; ${dashStyle};"></span>
+          <span style="color: var(--text);">${s.label}</span>
+        </div>`;
+      }).join('');
+      
+      // Add click handlers to toggle series visibility
+      legendEl.querySelectorAll('.chart-legend-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const idx = parseInt(item.dataset.series);
+          const isVisible = chart.series[idx].show;
+          chart.setSeries(idx, { show: !isVisible });
+          item.style.opacity = isVisible ? '0.4' : '1';
+        });
+      });
+    }
+    
+    // =========================================================================
+    // Program Profile
+    // =========================================================================
+    
+    async function loadProgramProfile(programName) {
+      if (!programName || programName === '(manual hold)') {
+        programProfile = null;
+        updateChartData();
+        return;
+      }
+      
+      try {
+        const res = await fetch(`/programs/${encodeURIComponent(programName)}`);
+        if (!res.ok) throw new Error('Failed to load program');
+        const content = await res.text();
+        
+        const program = JSON.parse(content);
+        const segments = program.segments || [];
+        
+        if (!segments.length) {
+          programProfile = null;
+          updateChartData();
+          return;
+        }
+        
+        const times = [0];
+        const temps = [segments[0].target ?? 0];
+        let elapsed = 0;
+        let currentTemp = temps[0];
+        
+        for (const segment of segments) {
+          const target = segment.target ?? currentTemp;
+          const rampSeconds = timeToSeconds(segment.ramp_time);
+          
+          if (rampSeconds > 0) {
+            elapsed += rampSeconds;
+            times.push(elapsed / 60);
+            temps.push(target);
+          } else if (target !== currentTemp) {
+            times.push(elapsed / 60);
+            temps.push(target);
+          }
+          
+          currentTemp = target;
+          const dwellSeconds = timeToSeconds(segment.dwell_time);
+          
+          if (dwellSeconds > 0) {
+            elapsed += dwellSeconds;
+            times.push(elapsed / 60);
+            temps.push(target);
+          }
+        }
+        
+        programProfile = {
+          name: programName,
+          startTime: null,
+          durationMinutes: elapsed / 60,
+          times,
+          temps
+        };
+        
+        console.log('Loaded program profile:', programName, 'duration:', elapsed / 60, 'min', 'points:', times.length);
+        updateChartData();
+      } catch (e) {
+        console.warn('Failed to load program profile:', e.message);
+        programProfile = null;
+      }
+    }
+    
+    function buildProfileChartData(targetTimestamps) {
+      if (!programProfile || !programProfile.times.length) {
+        return new Array(targetTimestamps.length).fill(null);
+      }
+      
+      // Determine anchor time
+      let anchorTime;
+      if (programProfileLocked && programProfile.startTime) {
+        anchorTime = programProfile.startTime;
+      } else {
+        anchorTime = Date.now() / 1000;
+      }
+      
+      // Convert profile minutes to absolute timestamps
+      const profileTimestamps = programProfile.times.map(m => anchorTime + m * 60);
+      const profileStart = profileTimestamps[0];
+      const profileEnd = profileTimestamps[profileTimestamps.length - 1];
+      
+      // Interpolate for each target timestamp
+      return targetTimestamps.map(t => {
+        if (t < profileStart || t > profileEnd) return null;
+        
+        for (let i = 0; i < profileTimestamps.length - 1; i++) {
+          if (t >= profileTimestamps[i] && t <= profileTimestamps[i + 1]) {
+            const t0 = profileTimestamps[i];
+            const t1 = profileTimestamps[i + 1];
+            const v0 = programProfile.temps[i];
+            const v1 = programProfile.temps[i + 1];
+            const pct = (t - t0) / (t1 - t0);
+            return v0 + (v1 - v0) * pct;
+          }
+        }
+        return null;
+      });
+    }
+    
+    function handleProgramProfileUpdate() {
+      const prevProgramName = programProfile?.name;
+      const currentProgramName = state.program_name;
+      
+      // Load profile when program changes
+      if (currentProgramName && currentProgramName !== prevProgramName) {
+        loadProgramProfile(currentProgramName);
+      }
+      
+      // Lock/unlock profile based on status
+      const wasLocked = programProfileLocked;
+      const isRunning = state.program_status === 2;
+      const isStopped = [4, 5, 7, 8].includes(state.program_status);
+      
+      if (isRunning && !wasLocked) {
+        programProfileLocked = true;
+        if (programProfile) {
+          programProfile.startTime = Date.now() / 1000;
+        }
+      } else if (isStopped) {
+        programProfileLocked = true;
+      }
+      
+      // Clear profile when no program loaded
+      if (!currentProgramName || state.program_status === 0) {
+        programProfile = null;
+        programProfileLocked = false;
+      }
+    }
+    
+    // =========================================================================
+    // Overview Bar
+    // =========================================================================
+    
+    function setupOverviewBar() {
+      const overview = document.getElementById('chartOverview');
+      if (!overview) return;
+      
+      let viewport = document.createElement('div');
+      viewport.className = 'overview-viewport';
+      overview.appendChild(viewport);
+      
+      let dragging = false;
+      let startX = 0;
+      let startLeft = 0;
+      
+      viewport.addEventListener('mousedown', (e) => {
+        dragging = true;
+        autoScrollEnabled = false;  // Dragging overview = panning = disable auto-scroll
+        updateAutoScrollButton();
+        startX = e.clientX;
+        startLeft = parseFloat(viewport.style.left) || 0;
+        e.preventDefault();
+      });
+      
+      document.addEventListener('mousemove', (e) => {
+        if (!dragging || !chart) return;
+        
+        const dx = e.clientX - startX;
+        const overviewWidth = overview.clientWidth;
+        const dPct = (dx / overviewWidth) * 100;
+        
+        const now = Date.now() / 1000;
+        const oldest = chartData.timestamps[0] || now - 3600;
+        const programEnd = getProgramEndTime();
+        const rightEdge = Math.max(now + 6 * 3600, programEnd);
+        const fullRange = rightEdge - oldest;
+        
+        const viewRange = chart.scales.x.max - chart.scales.x.min;
+        const newLeftPct = Math.max(0, Math.min(100 - (viewRange / fullRange * 100), startLeft + dPct));
+        const newMin = oldest + (newLeftPct / 100) * fullRange;
+        const newMax = newMin + viewRange;
+        
+        chart.setScale('x', { min: newMin, max: newMax });
+      });
+      
+      document.addEventListener('mouseup', () => {
+        dragging = false;
+      });
+      
+      // Click to jump
+      overview.addEventListener('click', (e) => {
+        if (e.target.classList.contains('overview-viewport')) return;
+        autoScrollEnabled = false;  // Clicking to jump = panning = disable auto-scroll
+        updateAutoScrollButton();
+        
+        const rect = overview.getBoundingClientRect();
+        const clickPct = (e.clientX - rect.left) / rect.width;
+        
+        const now = Date.now() / 1000;
+        const oldest = chartData.timestamps[0] || now - 3600;
+        const programEnd = getProgramEndTime();
+        const rightEdge = Math.max(now + 6 * 3600, programEnd);
+        const fullRange = rightEdge - oldest;
+        
+        const viewRange = chart.scales.x.max - chart.scales.x.min;
+        const centerTime = oldest + clickPct * fullRange;
+        const newMin = centerTime - viewRange / 2;
+        const newMax = centerTime + viewRange / 2;
+        
+        chart.setScale('x', { min: newMin, max: newMax });
+      });
+    }
+    
+    function updateOverviewBar() {
+      const overview = document.getElementById('chartOverview');
+      if (!overview || !chart) return;
+      
+      const viewport = overview.querySelector('.overview-viewport');
+      if (!viewport) return;
+      
+      const now = Date.now() / 1000;
+      const oldest = chartData.timestamps.length > 0 ? chartData.timestamps[0] : now - 3600;
+      const programEnd = getProgramEndTime();
+      const rightEdge = Math.max(now + 6 * 3600, programEnd);
+      const fullRange = rightEdge - oldest;
+      
+      const viewMin = chart.scales.x.min;
+      const viewMax = chart.scales.x.max;
+      
+      const leftPct = ((viewMin - oldest) / fullRange) * 100;
+      const widthPct = ((viewMax - viewMin) / fullRange) * 100;
+      
+      viewport.style.left = `${Math.max(0, leftPct)}%`;
+      viewport.style.width = `${Math.min(100 - Math.max(0, leftPct), widthPct)}%`;
+    }
+
+    // =========================================================================
+    // Firmware Upload
+    // =========================================================================
+    async function uploadFirmware() {
+      const fileInput = document.getElementById('firmwareFile');
+      const status = document.getElementById('firmwareStatus');
+      
+      if (!fileInput.files.length) {
+        status.innerHTML = '<span style="color: var(--error)">Please select a .bin file</span>';
+        return;
+      }
+      
+      const file = fileInput.files[0];
+      if (!file.name.endsWith('.bin')) {
+        status.innerHTML = '<span style="color: var(--error)">File must be a .bin file</span>';
+        return;
+      }
+      
+      if (!confirm(`Upload firmware "${file.name}" (${(file.size / 1024).toFixed(1)} KB)?\n\nThe device will restart after upload.`)) {
+        return;
+      }
+      
+      status.innerHTML = '<span style="color: var(--info)">Uploading...</span>';
+      
+      try {
+        const fd = new FormData();
+        fd.append('update', file);
+        
+        const res = await fetch('/update-firmware', { method: 'POST', body: fd });
+        
+        if (res.ok) {
+          status.innerHTML = '<span style="color: var(--success)">Upload complete! Device restarting...</span>';
+          setTimeout(() => {
+            status.innerHTML += '<br><span style="color: var(--text-muted)">Refresh page in a few seconds.</span>';
+          }, 2000);
+        } else {
+          throw new Error(`Upload failed: ${res.status}`);
+        }
+      } catch (e) {
+        status.innerHTML = `<span style="color: var(--error)">Error: ${e.message}</span>`;
+      }
+    }
+
+    // =========================================================================
+    // WebSocket Log
+    // =========================================================================
+    let wsLogEnabled = false;
+    
+    function toggleWsLog() {
+      wsLogEnabled = document.getElementById('wsLogEnabled').checked;
+      document.getElementById('wsLogContainer').style.display = wsLogEnabled ? 'flex' : 'none';
+      localStorage.setItem('wsLogEnabled', wsLogEnabled);
+    }
+    
+    function initWsLogState() {
+      wsLogEnabled = localStorage.getItem('wsLogEnabled') === 'true';
+      const checkbox = document.getElementById('wsLogEnabled');
+      if (checkbox) {
+        checkbox.checked = wsLogEnabled;
+        document.getElementById('wsLogContainer').style.display = wsLogEnabled ? 'flex' : 'none';
+      }
+    }
+    
+    function log(type, message) {
+      if (!wsLogEnabled) return;
+      
+      const container = document.getElementById('logContent');
+      if (!container) return;
+      
+      const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+      
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `
+        <span class="log-time">${time}</span>
+        <span class="log-type ${type}">${type.toUpperCase()}</span>
+        <span class="log-message">${escapeHtml(message)}</span>
+      `;
+      
+      container.insertBefore(entry, container.firstChild);
+      while (container.children.length > 200) container.removeChild(container.lastChild);
+    }
+    
+    function clearLog() {
+      document.getElementById('logContent').innerHTML = '';
+    }
+    
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function escapeAttr(value) {
+      return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function escapeJs(value) {
+      return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    }
+
+    function cssEscape(value) {
+      if (window.CSS && CSS.escape) {
+        return CSS.escape(value);
+      }
+      return String(value).replace(/[^a-zA-Z0-9_-]/g, match => `\\${match}`);
+    }
+
+    // =========================================================================
+    // Init
+    // =========================================================================
+    window.addEventListener('load', () => {
+      initWsLogState();
+      navigate();  // This will call initChart() when dashboard is shown
+      connect();
+      // Load history after a short delay to ensure everything is ready
+      setTimeout(loadChartHistory, 500);
+    });
+  </script>
+</body>
+</html>
+

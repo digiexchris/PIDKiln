@@ -1,6 +1,6 @@
 # SPA Frontend Plan
 
-Single-page application frontend for PIDKiln.
+Single-page application frontend for Furnace.
 
 ## Status: IN PROGRESS
 
@@ -11,7 +11,7 @@ Single-page application frontend for PIDKiln.
 
 ## Overview
 
-A zero-dependency vanilla JavaScript SPA that provides the complete PIDKiln user interface.
+A zero-dependency vanilla JavaScript SPA that provides the complete Furnace user interface.
 
 **Architecture:**
 - Single HTML file with embedded CSS and JS
@@ -26,7 +26,7 @@ A zero-dependency vanilla JavaScript SPA that provides the complete PIDKiln user
 
 Created the base SPA structure with navigation and views.
 
-**File:** `test-client.html` (to be renamed to `index.html`)
+**File:** `index.html`
 
 **Completed features:**
 - [x] Status bar (connection, temps, program status)
@@ -51,7 +51,7 @@ Created the base SPA structure with navigation and views.
 Renamed test client to become the main frontend.
 
 **Completed:**
-- [x] Renamed `test-client.html` → `index.html`
+- [x] Created `index.html` as main SPA entry point
 - [x] Removed legacy HTML files
 - [x] Removed legacy JS files and `js/` directory
 
@@ -164,9 +164,24 @@ Enhanced the dashboard chart with:
 
 ---
 
-## Step 8: TypeScript Migration [PENDING]
+## Step 8: TypeScript Migration [IN PROGRESS]
 
 Convert the frontend from vanilla JavaScript to TypeScript with a proper build toolchain.
+
+### Scaffolding [COMPLETE]
+
+The build toolchain is set up:
+- `frontend/package.json` - npm project with esbuild and TypeScript
+- `frontend/tsconfig.json` - TypeScript config (strict mode, noEmit for type checking)
+- `frontend/build.js` - esbuild configuration with watch mode
+- `frontend/src/main.ts` - Entry point placeholder
+- `simulator/Dockerfile` - Updated to build frontend and run watch
+- `simulator/docker-compose.yml` - Updated with volume mounts for live development
+- `simulator/server.js` - Updated to serve from `frontend/dist/`
+
+### Remaining Work [PENDING - Use cheaper model]
+
+Extract JavaScript from `index.html` into TypeScript modules:
 
 **Rationale:**
 - Type safety catches errors at compile time
@@ -222,7 +237,7 @@ frontend/
 ├── programs/                # Program files (served separately)
 │   └── *.json
 ├── etc/
-│   └── pidkiln.conf
+│   └── furnace.conf
 └── PLAN_SPA.md
 ```
 
@@ -233,23 +248,27 @@ frontend/
 - **Source maps:** Enabled for development debugging
 - **Watch mode:** esbuild's built-in `--watch` flag
 
-**Tasks:**
-- [ ] Rename `data/` to `frontend/`
-- [ ] Move simulator to reference `frontend/` instead of `data/`
-- [ ] Initialize npm project in `frontend/`
-- [ ] Install esbuild and TypeScript as dev dependencies
-- [ ] Create `tsconfig.json` with strict mode (for type checking only)
-- [ ] Create `build.js` script for esbuild configuration
+**Scaffolding Tasks:** [COMPLETE]
+- [x] Rename `data/` to `frontend/`
+- [x] Initialize npm project in `frontend/` with `package.json`
+- [x] Install esbuild and TypeScript as dev dependencies
+- [x] Create `tsconfig.json` with strict mode (for type checking only)
+- [x] Create `build.js` script for esbuild configuration
+- [x] Create `src/main.ts` entry point placeholder
+- [x] Add npm scripts: `build`, `watch`, `typecheck`
+- [x] Update Docker container to run `npm run watch` on startup
+- [x] Update simulator `server.js` to serve from `frontend/dist/`
+- [x] Update `docker-compose.yml` with correct volume mounts
+
+**Conversion Tasks:** [PENDING - Cheaper model can do this]
 - [ ] Extract JavaScript from `index.html` into `src/main.ts`
-- [ ] Extract CSS from `index.html` into `src/styles.css` (or keep inline)
-- [ ] Update `index.html` to reference `dist/app.js`
-- [ ] Define types for API responses and state
+- [ ] Extract CSS from `index.html` into separate file (or keep inline)
+- [ ] Update `index.html` to reference `dist/app.js` instead of inline script
+- [ ] Define types for API responses and state in `src/types/`
 - [ ] Convert functions to typed TypeScript incrementally
-- [ ] Add npm scripts: `build`, `watch`, `typecheck`
-- [ ] Update Docker container to run `npm run watch` on startup
-- [ ] Update simulator `server.js` to serve from `frontend/dist/`
 - [ ] Verify all functionality works after migration
 - [ ] Update `.gitignore` for `dist/` and `node_modules/`
+- [ ] Run `npm run typecheck` with no errors
 
 **Docker Container Changes:**
 ```dockerfile
@@ -414,8 +433,8 @@ Migrate the entire API from REST/WebSocket JSON to WebSocket with FlatBuffers fo
 **FlatBuffers Schema:**
 
 ```flatbuffers
-// pidkiln.fbs
-namespace PIDKiln;
+// furnace.fbs
+namespace Furnace;
 
 // ============================================
 // Enums
@@ -649,7 +668,7 @@ Client                                Server
 **Tasks:**
 
 *Schema & Code Generation:*
-- [ ] Create `proto/pidkiln.fbs` schema file
+- [ ] Create `proto/furnace.fbs` schema file
 - [ ] Add `flatc` to build toolchain (npm: `flatbuffers`)
 - [ ] Add code generation script to `package.json`
 - [ ] Generate TypeScript types from schema into `generated/`
@@ -662,7 +681,7 @@ Client                                Server
 
 *Simulator Changes:*
 - [ ] Install `flatbuffers` npm package in simulator
-- [ ] Copy/share schema with frontend (`proto/pidkiln.fbs`)
+- [ ] Copy/share schema with frontend (`proto/furnace.fbs`)
 - [ ] Generate JavaScript code from schema
 - [ ] Create `simulator/flatbuffers.js` for encode/decode
 - [ ] Update `server.js` WebSocket handler for binary frames
@@ -698,21 +717,21 @@ Client                                Server
 ```typescript
 // services/flatbuffers.ts
 import * as flatbuffers from 'flatbuffers';
-import { PIDKiln } from '../generated/pidkiln';
+import { Furnace } from '../generated/furnace';
 
 export function encodeStartCommand(segment?: number, minute?: number): Uint8Array {
   const builder = new flatbuffers.Builder(64);
   
-  PIDKiln.StartCommand.startStartCommand(builder);
-  if (segment) PIDKiln.StartCommand.addSegment(builder, segment);
-  if (minute) PIDKiln.StartCommand.addMinute(builder, minute);
-  const cmd = PIDKiln.StartCommand.endStartCommand(builder);
+  Furnace.StartCommand.startStartCommand(builder);
+  if (segment) Furnace.StartCommand.addSegment(builder, segment);
+  if (minute) Furnace.StartCommand.addMinute(builder, minute);
+  const cmd = Furnace.StartCommand.endStartCommand(builder);
   
-  PIDKiln.ClientEnvelope.startClientEnvelope(builder);
-  PIDKiln.ClientEnvelope.addRequestId(builder, nextRequestId());
-  PIDKiln.ClientEnvelope.addMessageType(builder, PIDKiln.ClientMessage.StartCommand);
-  PIDKiln.ClientEnvelope.addMessage(builder, cmd);
-  const envelope = PIDKiln.ClientEnvelope.endClientEnvelope(builder);
+  Furnace.ClientEnvelope.startClientEnvelope(builder);
+  Furnace.ClientEnvelope.addRequestId(builder, nextRequestId());
+  Furnace.ClientEnvelope.addMessageType(builder, Furnace.ClientMessage.StartCommand);
+  Furnace.ClientEnvelope.addMessage(builder, cmd);
+  const envelope = Furnace.ClientEnvelope.endClientEnvelope(builder);
   
   builder.finish(envelope);
   return builder.asUint8Array();
@@ -720,13 +739,13 @@ export function encodeStartCommand(segment?: number, minute?: number): Uint8Arra
 
 export function decodeServerMessage(data: ArrayBuffer): ServerMessage {
   const buf = new flatbuffers.ByteBuffer(new Uint8Array(data));
-  const envelope = PIDKiln.ServerEnvelope.getRootAsServerEnvelope(buf);
+  const envelope = Furnace.ServerEnvelope.getRootAsServerEnvelope(buf);
   
   switch (envelope.messageType()) {
-    case PIDKiln.ServerMessage.State:
-      return { type: 'state', data: parseState(envelope.message(new PIDKiln.State())) };
-    case PIDKiln.ServerMessage.Ack:
-      return { type: 'ack', data: parseAck(envelope.message(new PIDKiln.Ack())) };
+    case Furnace.ServerMessage.State:
+      return { type: 'state', data: parseState(envelope.message(new Furnace.State())) };
+    case Furnace.ServerMessage.Ack:
+      return { type: 'ack', data: parseAck(envelope.message(new Furnace.Ack())) };
     // ... etc
   }
 }
@@ -828,7 +847,7 @@ Add a preference to control how often the backend sends state updates.
 - [ ] Add "State Broadcast Interval" setting to Preferences page
 - [ ] Input field for interval in milliseconds (default: 1000ms)
 - [ ] Valid range: 100ms - 10000ms
-- [ ] Store in backend preferences (pidkiln.conf)
+- [ ] Store in backend preferences (furnace.conf)
 - [ ] Backend reads this value and adjusts broadcast interval
 - [ ] Update simulator to support configurable interval
 - [ ] Document in API.md
@@ -898,7 +917,7 @@ frontend/                   # Renamed from data/
 │   ├── app.js
 │   └── app.js.map
 ├── proto/                  # FlatBuffers schema (Step 9)
-│   └── pidkiln.fbs
+│   └── furnace.fbs
 ├── generated/              # Generated TypeScript (from flatc)
 ├── index.html              # HTML template
 ├── build.js                # esbuild configuration
@@ -907,7 +926,7 @@ frontend/                   # Renamed from data/
 ├── PLAN_SPA.md             # This file
 ├── PIDKiln_vars.json       # Template for ESP32
 ├── etc/
-│   └── pidkiln.conf
+│   └── furnace.conf
 └── programs/
     └── *.json
 ```

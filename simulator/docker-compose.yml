@@ -1,28 +1,33 @@
-# PIDKiln Simulator Docker Compose
+# Furnace Simulator Docker Compose
 #
 # Usage:
 #   docker-compose up --build      # Build and start simulator (first time)
 #   docker-compose up              # Start simulator
 #   docker-compose down            # Stop simulator
-#   docker-compose run --rm sim npm <command>  # Run npm commands
 #
-# Both frontend (../data/) and backend (server.js, mock-data.js) files are
-# mounted as volumes. Changes are reflected immediately - just restart the
-# container (Ctrl+C, then docker-compose up) for backend changes.
-# Frontend changes (HTML/CSS/JS) are live without restart.
+# Frontend TypeScript is compiled by esbuild in watch mode.
+# Changes to src/*.ts files trigger automatic rebuild.
+# Backend changes require container restart (Ctrl+C, then docker-compose up).
 
 services:
   sim:
-    build: .
+    build:
+      context: ..
+      dockerfile: simulator/Dockerfile
     ports:
       - "3000:3000"
     volumes:
-      # Mount the data directory for live frontend development
-      - ../data:/frontend:ro
-      # Mount simulator source for live backend development (no rebuild needed)
-      - ./server.js:/app/server.js:ro
-      - ./mock-data.js:/app/mock-data.js:ro
+      # Mount entire frontend directory for live development
+      - ../frontend:/app/frontend
+      # Named volume to preserve node_modules from container build
+      - frontend_node_modules:/app/frontend/node_modules
+      # Mount simulator source for live backend development
+      - ./server.js:/app/simulator/server.js:ro
+      - ./mock-data.js:/app/simulator/mock-data.js:ro
     environment:
       - NODE_ENV=development
-      - DATA_DIR=/frontend
+      - DATA_DIR=/app/frontend/dist
+      - FRONTEND_DIR=/app/frontend
 
+volumes:
+  frontend_node_modules:
