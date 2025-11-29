@@ -183,7 +183,7 @@ app.get('/programs/', (req, res) => {
     // Read from filesystem
     if (fs.existsSync(PROGRAMS_DIR)) {
       const filenames = fs.readdirSync(PROGRAMS_DIR)
-        .filter(f => f.endsWith('.json') || f.endsWith('.txt'));
+        .filter(f => f.endsWith('.json'));
       
       for (const filename of filenames) {
         try {
@@ -258,8 +258,8 @@ app.post('/upload', upload.single('upload'), (req, res) => {
   if (filename.length > 20) {
     return res.status(400).send('Filename too long (max 20 chars)');
   }
-  if (!/^[A-Za-z0-9._]+\.(json|txt)$/i.test(filename)) {
-    return res.status(400).send('Invalid filename (must end with .json or .txt)');
+  if (!/^[A-Za-z0-9._]+\.json$/i.test(filename)) {
+    return res.status(400).send('Invalid filename (must end with .json)');
   }
   
   // Validate JSON if .json file
@@ -626,7 +626,7 @@ server.listen(PORT, () => {
 ║    { "type": "command", "action": "pause" }                        ║
 ║    { "type": "command", "action": "resume" }                       ║
 ║    { "type": "command", "action": "stop" }                         ║
-║    { "type": "command", "action": "load", "program": "file.txt" }  ║
+║    { "type": "command", "action": "load", "program": "file.json" } ║
 ║    { "type": "command", "action": "set_temp", "temperature": 500 } ║
 ║                                                                    ║
 ╠════════════════════════════════════════════════════════════════════╣

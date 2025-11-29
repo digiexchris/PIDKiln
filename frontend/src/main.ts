@@ -2,44 +2,109 @@
 // TypeScript will gradually be added; for now this is mostly plain JS.
 
 // uPlot is loaded as an external script via <script src="/uPlot.iife.min.js"> in index.html
-// and exposed as a global.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare const uPlot: any;
+// and exposed as a global. Types are in src/types/uplot.d.ts
+declare const uPlot: typeof import('./types/uplot');
+
+// =========================================================================
+// Types
+// =========================================================================
+
+type ProgramStatusCode =
+  | 0 // NONE
+  | 1 // READY
+  | 2 // RUNNING
+  | 3 // PAUSED
+  | 4 // STOPPED
+  | 5 // ABORTED
+  | 6 // WAITING_THRESHOLD
+  | 7 // FINISHED
+  | 8; // FAILED
+
+interface FurnaceState {
+  program_status: ProgramStatusCode;
+  program_name: string | null;
+  kiln_temp: number;
+  set_temp: number;
+  env_temp: number;
+  case_temp: number;
+  heat_percent: number;
+  temp_change: number;
+  step: string;
+  prog_start: string | null;
+  prog_end: string | null;
+  curr_time: string;
+}
+
+interface EditorState {
+  filename: string;
+  isNew: boolean;
+}
+
+interface ChartMarker {
+  x: number;
+  type: string;
+  value?: string | number;
+}
+
+interface ProgramProfile {
+  name: string;
+  startTime: number | null;
+  durationMinutes: number;
+  times: number[];
+  temps: number[];
+}
+
+interface ChartData {
+  timestamps: number[]; // Unix seconds
+  kilnTemps: number[];
+  setTemps: number[];
+  envTemps: number[];
+  caseTemps: number[];
+  markers: ChartMarker[];
+}
+
+type PreferencesMap = Record<string, string>;
+
+interface StateMessage {
+  type: 'state';
+  data: FurnaceState;
+}
+
+interface GenericMessage {
+  type: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: any;
+}
+
+type IncomingMessage = StateMessage | GenericMessage;
 
 // =========================================================================
 // State
 // =========================================================================
 let ws: WebSocket | null = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let state: any = {};
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let preferences: any = {};
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let editorState: any = { filename: '', isNew: false };
+let state = {} as FurnaceState;
+let preferences: PreferencesMap = {};
+let editorState: EditorState = { filename: '', isNew: false };
 
 // Chart state
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let chart: any = null;
+let chart: InstanceType<typeof uPlot> | null = null;
 let chartInitializing = false;
-const chartData = {
-  timestamps: [] as number[],  // Unix seconds
-  kilnTemps: [] as number[],
-  setTemps: [] as number[],
-  envTemps: [] as number[],
-  caseTemps: [] as number[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  markers: [] as any[],      // { x: timestamp, type: string, value?: any }
+const chartData: ChartData = {
+  timestamps: [],
+  kilnTemps: [],
+  setTemps: [],
+  envTemps: [],
+  caseTemps: [],
+  markers: [],
 };
 const CHART_MAX_POINTS = 8640; // 24h at 10s intervals
 
 // Chart zoom/pan state
-const CHART_DEFAULT_WINDOW = 6 * 60 * 60;  // 6 hours in seconds
 const CHART_MIN_WINDOW = 30 * 60;          // 30 minutes minimum zoom
 let autoScrollEnabled = true;  // Auto-scroll to keep "now" visible
 
 // Program profile state
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let programProfile: any = null;        // { name, startTime, durationMinutes, times, temps }
+let programProfile: ProgramProfile | null = null;
 let programProfileLocked = false; // true when program is running/stopped
 
 const STATUS_NAMES: Record<number, string> = {
@@ -51,16 +116,8 @@ const STATUS_CLASSES: Record<number, string> = {
   2: 'running', 3: 'paused', 5: 'error', 8: 'error',
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const previewCharts = new Map<string, any>();
+const previewCharts = new Map<string, InstanceType<typeof uPlot>>();
 const previewCache = new Map<string, string>();
-
-function formatMinutesLabel(value: number): string {
-  const totalSeconds = Math.round(value * 60);
-  const hh = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
-  const mm = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
-  return `${hh}:${mm}`;
-}
 
 function formatTimeLabel(value: number): string {
   const date = new Date(value * 1000);
@@ -71,6 +128,11 @@ function formatPreviewTimeLabel(baseMs: number, offsetMinutes: number): string {
   const ms = baseMs + Math.round(offsetMinutes * 60 * 1000);
   const date = new Date(ms);
   return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return String(err);
 }
 
 // =========================================================================
@@ -264,10 +326,10 @@ function setConnected(connected: boolean) {
   }
 }
 
-function handleMessage(msg: any) {
+function handleMessage(msg: IncomingMessage) {
   // Only log non-state messages or log state occasionally
   if (msg.type !== 'state') {
-    log(msg.type, JSON.stringify(msg.data || msg));
+    log(msg.type, JSON.stringify('data' in msg ? msg.data : msg));
   }
 
   if (msg.type === 'state') {
@@ -431,8 +493,8 @@ async function reboot() {
     const res = await window.fetch('/api/reboot', { method: 'POST' });
     const data = await res.json();
     log('ack', JSON.stringify(data));
-  } catch (e: any) {
-    log('error', e.message);
+  } catch (err) {
+    log('error', getErrorMessage(err));
   }
 }
 
@@ -449,8 +511,8 @@ async function loadProgramSelect() {
       opt.textContent = f.name;
       select.appendChild(opt);
     });
-  } catch (e: any) {
-    log('error', `Failed to load programs: ${e.message}`);
+  } catch (err) {
+    log('error', `Failed to load programs: ${getErrorMessage(err)}`);
   }
 }
 
@@ -498,8 +560,8 @@ async function loadProgramList() {
           `;
     }).join('');
     applyProgramLoadButtons();
-  } catch (e: any) {
-    tbody.innerHTML = `<tr><td colspan=\"4\" style=\"color:var(--error)\">${e.message}</td></tr>`;
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan=\"4\" style=\"color:var(--error)\">${getErrorMessage(err)}</td></tr>`;
   }
 }
 
@@ -589,13 +651,14 @@ async function showProgramPreview(name: string, container?: HTMLElement) {
       ],
       cursor: { show: false },
     };
-    if (previewCharts.has(name)) {
-      previewCharts.get(name).destroy();
+    const existingChart = previewCharts.get(name);
+    if (existingChart) {
+      existingChart.destroy();
     }
     const chartInstance = new uPlot(opts, data, container);
     previewCharts.set(name, chartInstance);
-  } catch (err: any) {
-    container.innerHTML = `<div class=\"preview-error\">${err.message}</div>`;
+  } catch (err) {
+    container.innerHTML = `<div class=\"preview-error\">${getErrorMessage(err)}</div>`;
   }
 }
 
@@ -676,8 +739,8 @@ async function editProgram(name: string, isNew = false) {
       const res = await window.fetch(`/programs/${encodeURIComponent(name)}`);
       if (!res.ok) throw new Error('Failed to load');
       textarea.value = await res.text();
-    } catch (e: any) {
-      window.alert('Error loading program: ' + e.message);
+    } catch (err) {
+      window.alert('Error loading program: ' + getErrorMessage(err));
       return;
     }
   }
@@ -711,8 +774,8 @@ async function saveProgram() {
     if (!res.ok) throw new Error('Upload failed');
     void loadProgramSelect();
     window.location.hash = '#/programs';
-  } catch (e: any) {
-    window.alert('Error saving: ' + e.message);
+  } catch (err) {
+    window.alert('Error saving: ' + getErrorMessage(err));
   }
 }
 
@@ -765,8 +828,8 @@ async function deleteProgram(name: string) {
     if (!res.ok) throw new Error('Delete failed');
     void loadProgramList();
     void loadProgramSelect();
-  } catch (e: any) {
-    window.alert('Error: ' + e.message);
+  } catch (err) {
+    window.alert('Error: ' + getErrorMessage(err));
   }
 }
 
@@ -793,8 +856,8 @@ async function loadLogsList() {
             </td>
           </tr>
         `).join('');
-  } catch (e: any) {
-    tbody.innerHTML = `<tr><td colspan=\"3\" style=\"color:var(--error)\">${e.message}</td></tr>`;
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan=\"3\" style=\"color:var(--error)\">${getErrorMessage(err)}</td></tr>`;
   }
 }
 
@@ -803,8 +866,8 @@ async function viewLog(name: string) {
     const res = await window.fetch(`/logs/${encodeURIComponent(name)}`);
     const content = await res.text();
     window.alert(content.slice(0, 2000) + (content.length > 2000 ? '\n...(truncated)' : ''));
-  } catch (e: any) {
-    window.alert('Error: ' + e.message);
+  } catch (err) {
+    window.alert('Error: ' + getErrorMessage(err));
   }
 }
 
@@ -847,8 +910,8 @@ async function loadPreferences() {
       html += '</div></div>';
     }
     container.innerHTML = html;
-  } catch (e: any) {
-    container.innerHTML = `<p style=\"color:var(--error)\">${e.message}</p>`;
+  } catch (err) {
+    container.innerHTML = `<p style=\"color:var(--error)\">${getErrorMessage(err)}</p>`;
   }
 }
 
@@ -867,8 +930,8 @@ async function savePreferences() {
     });
     if (!res.ok) throw new Error('Save failed');
     window.alert('Preferences saved!');
-  } catch (e: any) {
-    window.alert('Error: ' + e.message);
+  } catch (err) {
+    window.alert('Error: ' + getErrorMessage(err));
   }
 }
 
@@ -900,8 +963,8 @@ async function loadDebugInfo() {
       }
     }
     table.innerHTML = html;
-  } catch (e: any) {
-    table.innerHTML = `<tr><td colspan=\"2\" style=\"color:var(--error)\">${e.message}</td></tr>`;
+  } catch (err) {
+    table.innerHTML = `<tr><td colspan=\"2\" style=\"color:var(--error)\">${getErrorMessage(err)}</td></tr>`;
   }
 }
 
@@ -1086,7 +1149,7 @@ function initChart() {
     },
     hooks: {
       setScale: [
-        (u: any, key: string) => {
+        (_u: any, key: string) => {
           if (key === 'x') {
             updateOverviewBar();
           }
@@ -1172,6 +1235,7 @@ function initChart() {
       let initialPinchDistance: number | null = null;
 
       el.addEventListener('touchstart', (e: TouchEvent) => {
+        if (!chart) return;
         if (e.touches.length === 1) {
           // Single touch = pan = disable auto-scroll
           autoScrollEnabled = false;
@@ -1285,9 +1349,9 @@ async function loadChartHistory() {
         setDefaultView();
       }
     }
-  } catch (e: any) {
+  } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn('Failed to load chart history:', e.message);
+    console.warn('Failed to load chart history:', getErrorMessage(err));
   }
 }
 
@@ -1474,8 +1538,9 @@ function createChartLegend() {
   // Add click handlers to toggle series visibility
   legendEl.querySelectorAll<HTMLElement>('.chart-legend-item').forEach(item => {
     item.addEventListener('click', () => {
+      if (!chart) return;
       const idx = parseInt(item.dataset.series || '0', 10);
-      const isVisible = chart.series[idx].show;
+      const isVisible = chart.series[idx]?.show;
       chart.setSeries(idx, { show: !isVisible });
       item.style.opacity = isVisible ? '0.4' : '1';
     });
@@ -1546,9 +1611,9 @@ async function loadProgramProfile(programName: string | null) {
     // eslint-disable-next-line no-console
     console.log('Loaded program profile:', programName, 'duration:', elapsed / 60, 'min', 'points:', times.length);
     updateChartData();
-  } catch (e: any) {
+  } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn('Failed to load program profile:', e.message);
+    console.warn('Failed to load program profile:', getErrorMessage(err));
     programProfile = null;
   }
 }
@@ -1566,8 +1631,12 @@ function buildProfileChartData(targetTimestamps: number[]): (number | null)[] {
     anchorTime = Date.now() / 1000;
   }
 
+  // Store local references to avoid null checks in loop
+  const profileTimes = programProfile.times;
+  const profileTemps = programProfile.temps;
+
   // Convert profile minutes to absolute timestamps
-  const profileTimestamps = programProfile.times.map((m: number) => anchorTime + m * 60);
+  const profileTimestamps = profileTimes.map((m: number) => anchorTime + m * 60);
   const profileStart = profileTimestamps[0];
   const profileEnd = profileTimestamps[profileTimestamps.length - 1];
 
@@ -1579,8 +1648,8 @@ function buildProfileChartData(targetTimestamps: number[]): (number | null)[] {
       if (t >= profileTimestamps[i] && t <= profileTimestamps[i + 1]) {
         const t0 = profileTimestamps[i];
         const t1 = profileTimestamps[i + 1];
-        const v0 = programProfile.temps[i];
-        const v1 = programProfile.temps[i + 1];
+        const v0 = profileTemps[i];
+        const v1 = profileTemps[i + 1];
         const pct = (t - t0) / (t1 - t0);
         return v0 + (v1 - v0) * pct;
       }
@@ -1671,6 +1740,7 @@ function setupOverviewBar() {
 
   // Click to jump
   overview.addEventListener('click', (e: MouseEvent) => {
+    if (!chart) return;
     const target = e.target as HTMLElement;
     if (target.classList.contains('overview-viewport')) return;
     autoScrollEnabled = false;  // Clicking to jump = panning = disable auto-scroll
@@ -1757,8 +1827,8 @@ async function uploadFirmware() {
     } else {
       throw new Error(`Upload failed: ${res.status}`);
     }
-  } catch (e: any) {
-    status.innerHTML = `<span style=\"color: var(--error)\">Error: ${e.message}</span>`;
+  } catch (err) {
+    status.innerHTML = `<span style=\"color: var(--error)\">Error: ${getErrorMessage(err)}</span>`;
   }
 }
 
@@ -1847,61 +1917,68 @@ window.addEventListener('load', () => {
   window.setTimeout(() => { void loadChartHistory(); }, 500);
 });
 
-// Expose handlers used by HTML attributes to the global scope
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).sendCommand = sendCommand;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).manualConnect = manualConnect;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).disconnect = disconnect;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).loadProgram = loadProgram;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).clearProgram = clearProgram;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).setTemperature = setTemperature;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).reboot = reboot;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).createProgram = createProgram;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).editProgram = editProgram;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).saveProgram = saveProgram;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).cancelEdit = cancelEdit;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).deleteProgram = deleteProgram;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).loadProgramList = loadProgramList;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).togglePreview = togglePreview;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).loadLogsList = loadLogsList;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).viewLog = viewLog;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).downloadLog = downloadLog;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).loadPreferences = loadPreferences;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).savePreferences = savePreferences;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).loadDebugInfo = loadDebugInfo;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).loadAboutInfo = loadAboutInfo;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).resetZoom = resetZoom;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).toggleAutoScroll = toggleAutoScroll;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).centerOnProgram = centerOnProgram;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).uploadFirmware = uploadFirmware;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).toggleWsLog = toggleWsLog;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).clearLog = clearLog;
+// Expose handlers used by HTML onclick attributes to the global scope
+declare global {
+  interface Window {
+    sendCommand: typeof sendCommand;
+    manualConnect: typeof manualConnect;
+    disconnect: typeof disconnect;
+    loadProgram: typeof loadProgram;
+    clearProgram: typeof clearProgram;
+    setTemperature: typeof setTemperature;
+    reboot: typeof reboot;
+    createProgram: typeof createProgram;
+    editProgram: typeof editProgram;
+    saveProgram: typeof saveProgram;
+    cancelEdit: typeof cancelEdit;
+    deleteProgram: typeof deleteProgram;
+    loadProgramList: typeof loadProgramList;
+    togglePreview: typeof togglePreview;
+    loadLogsList: typeof loadLogsList;
+    viewLog: typeof viewLog;
+    downloadLog: typeof downloadLog;
+    loadPreferences: typeof loadPreferences;
+    savePreferences: typeof savePreferences;
+    loadDebugInfo: typeof loadDebugInfo;
+    loadAboutInfo: typeof loadAboutInfo;
+    resetZoom: typeof resetZoom;
+    toggleAutoScroll: typeof toggleAutoScroll;
+    centerOnProgram: typeof centerOnProgram;
+    uploadFirmware: typeof uploadFirmware;
+    toggleWsLog: typeof toggleWsLog;
+    clearLog: typeof clearLog;
+  }
+}
+
+Object.assign(window, {
+  sendCommand,
+  manualConnect,
+  disconnect,
+  loadProgram,
+  clearProgram,
+  setTemperature,
+  reboot,
+  createProgram,
+  editProgram,
+  saveProgram,
+  cancelEdit,
+  deleteProgram,
+  loadProgramList,
+  togglePreview,
+  loadLogsList,
+  viewLog,
+  downloadLog,
+  loadPreferences,
+  savePreferences,
+  loadDebugInfo,
+  loadAboutInfo,
+  resetZoom,
+  toggleAutoScroll,
+  centerOnProgram,
+  uploadFirmware,
+  toggleWsLog,
+  clearLog,
+});
 
 export {};
 

@@ -617,7 +617,7 @@ function getVarsJson() {
   const s = getState();
   return {
     program_status: s.program_status,
-    log_file: s.program_status >= PROGRAM_STATUS.RUNNING ? `/logs/${new Date().toISOString().slice(0,10)}_${state.loadedProgram.replace('.txt', '')}.csv` : '',
+    log_file: s.program_status >= PROGRAM_STATUS.RUNNING ? `/logs/${new Date().toISOString().slice(0,10)}_${state.loadedProgram.replace('.json', '')}.csv` : '',
     pidkiln: [
       { html_id: '#kiln_temp', value: s.kiln_temp.toString() },
       { html_id: '#set_temp', value: s.set_temp.toString() },
@@ -634,59 +634,10 @@ function getVarsJson() {
 }
 
 /**
- * Sample program files (stored in memory)
+ * Sample program files (stored in memory as fallback)
+ * Note: Programs are now JSON format and primarily loaded from filesystem
  */
-const programs = {
-  'program1.txt': `# Short, clear description of the program.
-# Full description on as many lines you wish -
-#   just remember about default program limit - 10KiB
-# Program parameters target temperature in Celcius:minutes to achieve this temperature:dwelling time in minutes
-95:30:20
-134:20:30
-# You can add as many comments as you wish
-97:80:30
-360:180:20
-600:100:30 # You can even comment each line
-970:120:50
-600:90:0 # But in program you can use only numbers and : sign. Max value for temperature is 1350C`,
-
-  'program2.txt': `# Test program 2
-# Simple two-step program
-100:30:10
-200:60:30`,
-
-  '500c_10m_2h.txt': `# Reach 500C in 10 minutes, hold for 2 hours
-500:10:120`,
-
-  'test_lowtemp.txt': `# Low temperature test
-# For testing at safe temperatures
-50:10:5
-75:10:5
-100:15:10
-75:15:0`,
-
-  'test_up_down.txt': `# Up and down test
-100:20:10
-200:20:10
-100:30:10
-200:20:10
-50:60:0`,
-
-  'pristige_optima.txt': `# Prestige Optima firing schedule
-# Standard cone 06 bisque
-93:60:60
-260:120:0
-537:120:30
-1000:180:15`,
-
-  'vfail1.txt': `# Validation fail test 1
-# Invalid: temperature too high
-1500:60:30`,
-
-  'vfail2.txt': `# Validation fail test 2
-# Invalid format test
-abc:60:30`
-};
+const programs = {};
 
 /**
  * Sample log files

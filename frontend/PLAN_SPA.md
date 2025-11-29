@@ -164,7 +164,7 @@ Enhanced the dashboard chart with:
 
 ---
 
-## Step 8: TypeScript Migration [IN PROGRESS]
+## Step 8: TypeScript Migration [COMPLETE]
 
 Convert the frontend from vanilla JavaScript to TypeScript with a proper build toolchain.
 
@@ -172,16 +172,28 @@ Convert the frontend from vanilla JavaScript to TypeScript with a proper build t
 
 The build toolchain is set up:
 - `frontend/package.json` - npm project with esbuild and TypeScript
-- `frontend/tsconfig.json` - TypeScript config (strict mode, noEmit for type checking)
+- `frontend/tsconfig.json` - TypeScript config (strict mode enabled)
 - `frontend/build.js` - esbuild configuration with watch mode
-- `frontend/src/main.ts` - Entry point placeholder
+- `frontend/src/main.ts` - Main application code
+- `frontend/src/types/uplot.d.ts` - Local uPlot type declarations
+- `frontend/src/types/api.ts` - API response types
 - `simulator/Dockerfile` - Updated to build frontend and run watch
 - `simulator/docker-compose.yml` - Updated with volume mounts for live development
 - `simulator/server.js` - Updated to serve from `frontend/dist/`
 
-### Remaining Work [PENDING - Use cheaper model]
+### TypeScript Conversion [COMPLETE]
 
-Extract JavaScript from `index.html` into TypeScript modules:
+- [x] Extracted inline JavaScript from `index.html` to `src/main.ts`
+- [x] Created type definitions for application state (`FurnaceState`, `EditorState`, etc.)
+- [x] Created `ProgramProfile` interface
+- [x] Created API response types (`HistoryResponse`, `ProgramsResponse`, etc.)
+- [x] Created local uPlot type declarations (no `@types/uplot` on npm)
+- [x] Fixed all strict null checks
+- [x] Fixed error handling (proper `catch (err)` with `getErrorMessage()` helper)
+- [x] Consolidated window exports with proper `declare global` typing
+- [x] All strict TypeScript checks pass (`npm run typecheck`)
+
+**Note:** The code remains in a single `main.ts` file. Future refactoring into modules (services/, views/, etc.) can be done incrementally as needed.
 
 **Rationale:**
 - Type safety catches errors at compile time

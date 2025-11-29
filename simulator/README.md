@@ -114,6 +114,6 @@ See [API.md](../API.md) for complete documentation.
 ## Notes
 
 - File uploads are limited to 10KB (same as ESP32)
-- Filenames must be max 20 characters, alphanumeric with `.json` or `.txt` extension
+- Filenames must be max 20 characters, alphanumeric with `.json` extension
 - Programs are stored on the filesystem in `../data/programs/`
 - Logs and preferences are stored in memory; restarting resets them to defaults

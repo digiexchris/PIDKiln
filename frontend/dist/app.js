@@ -9,17 +9,13 @@
   var chartInitializing = false;
   var chartData = {
     timestamps: [],
-    // Unix seconds
     kilnTemps: [],
     setTemps: [],
     envTemps: [],
     caseTemps: [],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     markers: []
-    // { x: timestamp, type: string, value?: any }
   };
   var CHART_MAX_POINTS = 8640;
-  var CHART_DEFAULT_WINDOW = 6 * 60 * 60;
   var CHART_MIN_WINDOW = 30 * 60;
   var autoScrollEnabled = true;
   var programProfile = null;
@@ -51,6 +47,11 @@
     const ms = baseMs + Math.round(offsetMinutes * 60 * 1e3);
     const date = new Date(ms);
     return date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  }
+  function getErrorMessage(err) {
+    if (err instanceof Error)
+      return err.message;
+    return String(err);
   }
   function navigate() {
     const hash = window.location.hash.slice(2) || "";
@@ -211,7 +212,7 @@
   }
   function handleMessage(msg) {
     if (msg.type !== "state") {
-      log(msg.type, JSON.stringify(msg.data || msg));
+      log(msg.type, JSON.stringify("data" in msg ? msg.data : msg));
     }
     if (msg.type === "state") {
       state = msg.data;
@@ -367,8 +368,8 @@
       const res = await window.fetch("/api/reboot", { method: "POST" });
       const data = await res.json();
       log("ack", JSON.stringify(data));
-    } catch (e) {
-      log("error", e.message);
+    } catch (err) {
+      log("error", getErrorMessage(err));
     }
   }
   async function loadProgramSelect() {
@@ -385,8 +386,8 @@
         opt.textContent = f.name;
         select.appendChild(opt);
       });
-    } catch (e) {
-      log("error", `Failed to load programs: ${e.message}`);
+    } catch (err) {
+      log("error", `Failed to load programs: ${getErrorMessage(err)}`);
     }
   }
   async function loadProgramList() {
@@ -431,8 +432,8 @@
           `;
       }).join("");
       applyProgramLoadButtons();
-    } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="4" style="color:var(--error)">${e.message}</td></tr>`;
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="4" style="color:var(--error)">${getErrorMessage(err)}</td></tr>`;
     }
   }
   async function togglePreview(button) {
@@ -523,13 +524,14 @@
         ],
         cursor: { show: false }
       };
-      if (previewCharts.has(name)) {
-        previewCharts.get(name).destroy();
+      const existingChart = previewCharts.get(name);
+      if (existingChart) {
+        existingChart.destroy();
       }
       const chartInstance = new uPlot(opts, data, container);
       previewCharts.set(name, chartInstance);
     } catch (err) {
-      container.innerHTML = `<div class="preview-error">${err.message}</div>`;
+      container.innerHTML = `<div class="preview-error">${getErrorMessage(err)}</div>`;
     }
   }
   async function fetchProgramContent(name) {
@@ -608,8 +610,8 @@
         if (!res.ok)
           throw new Error("Failed to load");
         textarea.value = await res.text();
-      } catch (e) {
-        window.alert("Error loading program: " + e.message);
+      } catch (err) {
+        window.alert("Error loading program: " + getErrorMessage(err));
         return;
       }
     }
@@ -640,8 +642,8 @@
         throw new Error("Upload failed");
       void loadProgramSelect();
       window.location.hash = "#/programs";
-    } catch (e) {
-      window.alert("Error saving: " + e.message);
+    } catch (err) {
+      window.alert("Error saving: " + getErrorMessage(err));
     }
   }
   function cancelEdit() {
@@ -693,8 +695,8 @@
         throw new Error("Delete failed");
       void loadProgramList();
       void loadProgramSelect();
-    } catch (e) {
-      window.alert("Error: " + e.message);
+    } catch (err) {
+      window.alert("Error: " + getErrorMessage(err));
     }
   }
   async function loadLogsList() {
@@ -718,8 +720,8 @@
             </td>
           </tr>
         `).join("");
-    } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="3" style="color:var(--error)">${e.message}</td></tr>`;
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="3" style="color:var(--error)">${getErrorMessage(err)}</td></tr>`;
     }
   }
   async function viewLog(name) {
@@ -727,8 +729,8 @@
       const res = await window.fetch(`/logs/${encodeURIComponent(name)}`);
       const content = await res.text();
       window.alert(content.slice(0, 2e3) + (content.length > 2e3 ? "\n...(truncated)" : ""));
-    } catch (e) {
-      window.alert("Error: " + e.message);
+    } catch (err) {
+      window.alert("Error: " + getErrorMessage(err));
     }
   }
   function downloadLog(name) {
@@ -765,8 +767,8 @@
         html += "</div></div>";
       }
       container.innerHTML = html;
-    } catch (e) {
-      container.innerHTML = `<p style="color:var(--error)">${e.message}</p>`;
+    } catch (err) {
+      container.innerHTML = `<p style="color:var(--error)">${getErrorMessage(err)}</p>`;
     }
   }
   async function savePreferences() {
@@ -784,8 +786,8 @@
       if (!res.ok)
         throw new Error("Save failed");
       window.alert("Preferences saved!");
-    } catch (e) {
-      window.alert("Error: " + e.message);
+    } catch (err) {
+      window.alert("Error: " + getErrorMessage(err));
     }
   }
   async function loadDebugInfo() {
@@ -812,8 +814,8 @@
         }
       }
       table.innerHTML = html;
-    } catch (e) {
-      table.innerHTML = `<tr><td colspan="2" style="color:var(--error)">${e.message}</td></tr>`;
+    } catch (err) {
+      table.innerHTML = `<tr><td colspan="2" style="color:var(--error)">${getErrorMessage(err)}</td></tr>`;
     }
   }
   async function loadAboutInfo() {
@@ -970,7 +972,7 @@
       },
       hooks: {
         setScale: [
-          (u, key) => {
+          (_u, key) => {
             if (key === "x") {
               updateOverviewBar();
             }
@@ -1033,6 +1035,8 @@
         let touchStartScale = null;
         let initialPinchDistance = null;
         el.addEventListener("touchstart", (e) => {
+          if (!chart)
+            return;
           if (e.touches.length === 1) {
             autoScrollEnabled = false;
             updateAutoScrollButton();
@@ -1123,8 +1127,8 @@
           setDefaultView();
         }
       }
-    } catch (e) {
-      console.warn("Failed to load chart history:", e.message);
+    } catch (err) {
+      console.warn("Failed to load chart history:", getErrorMessage(err));
     }
   }
   function addChartPoint(kilnTemp, setTemp, envTemp, caseTemp) {
@@ -1272,8 +1276,10 @@
     }).join("");
     legendEl.querySelectorAll(".chart-legend-item").forEach((item) => {
       item.addEventListener("click", () => {
+        if (!chart)
+          return;
         const idx = parseInt(item.dataset.series || "0", 10);
-        const isVisible = chart.series[idx].show;
+        const isVisible = chart.series[idx]?.show;
         chart.setSeries(idx, { show: !isVisible });
         item.style.opacity = isVisible ? "0.4" : "1";
       });
@@ -1329,8 +1335,8 @@
       };
       console.log("Loaded program profile:", programName, "duration:", elapsed / 60, "min", "points:", times.length);
       updateChartData();
-    } catch (e) {
-      console.warn("Failed to load program profile:", e.message);
+    } catch (err) {
+      console.warn("Failed to load program profile:", getErrorMessage(err));
       programProfile = null;
     }
   }
@@ -1344,7 +1350,9 @@
     } else {
       anchorTime = Date.now() / 1e3;
     }
-    const profileTimestamps = programProfile.times.map((m) => anchorTime + m * 60);
+    const profileTimes = programProfile.times;
+    const profileTemps = programProfile.temps;
+    const profileTimestamps = profileTimes.map((m) => anchorTime + m * 60);
     const profileStart = profileTimestamps[0];
     const profileEnd = profileTimestamps[profileTimestamps.length - 1];
     return targetTimestamps.map((t) => {
@@ -1354,8 +1362,8 @@
         if (t >= profileTimestamps[i] && t <= profileTimestamps[i + 1]) {
           const t0 = profileTimestamps[i];
           const t1 = profileTimestamps[i + 1];
-          const v0 = programProfile.temps[i];
-          const v1 = programProfile.temps[i + 1];
+          const v0 = profileTemps[i];
+          const v1 = profileTemps[i + 1];
           const pct = (t - t0) / (t1 - t0);
           return v0 + (v1 - v0) * pct;
         }
@@ -1424,6 +1432,8 @@
       dragging = false;
     });
     overview.addEventListener("click", (e) => {
+      if (!chart)
+        return;
       const target = e.target;
       if (target.classList.contains("overview-viewport"))
         return;
@@ -1494,8 +1504,8 @@ The device will restart after upload.`)) {
       } else {
         throw new Error(`Upload failed: ${res.status}`);
       }
-    } catch (e) {
-      status.innerHTML = `<span style="color: var(--error)">Error: ${e.message}</span>`;
+    } catch (err) {
+      status.innerHTML = `<span style="color: var(--error)">Error: ${getErrorMessage(err)}</span>`;
     }
   }
   var wsLogEnabled = false;
@@ -1564,32 +1574,34 @@ The device will restart after upload.`)) {
       void loadChartHistory();
     }, 500);
   });
-  window.sendCommand = sendCommand;
-  window.manualConnect = manualConnect;
-  window.disconnect = disconnect;
-  window.loadProgram = loadProgram;
-  window.clearProgram = clearProgram;
-  window.setTemperature = setTemperature;
-  window.reboot = reboot;
-  window.createProgram = createProgram;
-  window.editProgram = editProgram;
-  window.saveProgram = saveProgram;
-  window.cancelEdit = cancelEdit;
-  window.deleteProgram = deleteProgram;
-  window.loadProgramList = loadProgramList;
-  window.togglePreview = togglePreview;
-  window.loadLogsList = loadLogsList;
-  window.viewLog = viewLog;
-  window.downloadLog = downloadLog;
-  window.loadPreferences = loadPreferences;
-  window.savePreferences = savePreferences;
-  window.loadDebugInfo = loadDebugInfo;
-  window.loadAboutInfo = loadAboutInfo;
-  window.resetZoom = resetZoom;
-  window.toggleAutoScroll = toggleAutoScroll;
-  window.centerOnProgram = centerOnProgram;
-  window.uploadFirmware = uploadFirmware;
-  window.toggleWsLog = toggleWsLog;
-  window.clearLog = clearLog;
+  Object.assign(window, {
+    sendCommand,
+    manualConnect,
+    disconnect,
+    loadProgram,
+    clearProgram,
+    setTemperature,
+    reboot,
+    createProgram,
+    editProgram,
+    saveProgram,
+    cancelEdit,
+    deleteProgram,
+    loadProgramList,
+    togglePreview,
+    loadLogsList,
+    viewLog,
+    downloadLog,
+    loadPreferences,
+    savePreferences,
+    loadDebugInfo,
+    loadAboutInfo,
+    resetZoom,
+    toggleAutoScroll,
+    centerOnProgram,
+    uploadFirmware,
+    toggleWsLog,
+    clearLog
+  });
 })();
 //# sourceMappingURL=app.js.map
