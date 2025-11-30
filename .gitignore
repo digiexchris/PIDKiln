@@ -7,4 +7,6 @@
 # Simulator
 simulator/node_modules/
 
+build/
+
 bak/

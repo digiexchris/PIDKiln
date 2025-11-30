@@ -1,55 +1,26 @@
 #include "CppUTest/TestHarness.h"
-#include "CppUTest/CommandLineTestRunner.h"
-#include "hello_world.h"
 #include "command_system/CommandPriority.hpp"
 #include "command_system/ProgramState.hpp"
 #include "command_system/CommandType.hpp"
 #include "command_system/CommandResult.hpp"
 #include "command_system/Program.hpp"
+#include "command_system/ICommand.hpp"
+#include "command_system/ICommandSource.hpp"
+#include "command_system/IStateMachine.hpp"
+#include "command_system/IStateObserver.hpp"
+#include "command_system/IProgramExecutor.hpp"
+#include "command_system/ITemperatureController.hpp"
+#include "command_system/IProgramStorage.hpp"
 #include "command_system/CommandBase.hpp"
-#include "command_system/TemperatureReading.hpp"
-#include <string>
+#include <memory>
 
 using namespace command_system;
 
-TEST_GROUP(HelloWorldTest)
-{
-    HelloWorld* hello;
-
-    void setup()
-    {
-        hello = new HelloWorld();
-    }
-
-    void teardown()
-    {
-        delete hello;
-    }
-};
-
-TEST(HelloWorldTest, CppUTestIsWorking)
-{
-    CHECK_TRUE(true);
-    CHECK_EQUAL(1, 1);
-}
-
-TEST(HelloWorldTest, GetMessageReturnsHelloWorld)
-{
-    std::string message = hello->GetMessage();
-    STRCMP_EQUAL("Hello, World!", message.c_str());
-}
-
-TEST(HelloWorldTest, MessageIsNotEmpty)
-{
-    std::string message = hello->GetMessage();
-    CHECK_FALSE(message.empty());
-}
-
-TEST_GROUP(CommandSystemInterfaces)
+TEST_GROUP(InterfaceDefinitions)
 {
 };
 
-TEST(CommandSystemInterfaces, CommandPriorityEnumValues)
+TEST(InterfaceDefinitions, CommandPriorityEnumValues)
 {
     CHECK_EQUAL(0, static_cast<uint8_t>(CommandPriority::Emergency));
     CHECK_EQUAL(1, static_cast<uint8_t>(CommandPriority::Critical));
@@ -58,7 +29,7 @@ TEST(CommandSystemInterfaces, CommandPriorityEnumValues)
     CHECK_EQUAL(4, static_cast<uint8_t>(CommandPriority::Low));
 }
 
-TEST(CommandSystemInterfaces, ProgramStateEnumValues)
+TEST(InterfaceDefinitions, ProgramStateEnumValues)
 {
     CHECK_EQUAL(0, static_cast<uint8_t>(ProgramState::None));
     CHECK_EQUAL(1, static_cast<uint8_t>(ProgramState::Ready));
@@ -69,7 +40,7 @@ TEST(CommandSystemInterfaces, ProgramStateEnumValues)
     CHECK_EQUAL(7, static_cast<uint8_t>(ProgramState::Finished));
 }
 
-TEST(CommandSystemInterfaces, CommandResultStructure)
+TEST(InterfaceDefinitions, CommandResultStructure)
 {
     CommandResult result{true, ""};
     CHECK_TRUE(result.success);
@@ -80,7 +51,7 @@ TEST(CommandSystemInterfaces, CommandResultStructure)
     STRCMP_EQUAL("Test error", error.errorMessage.c_str());
 }
 
-TEST(CommandSystemInterfaces, TimeStructure)
+TEST(InterfaceDefinitions, TimeStructure)
 {
     Time time{1, 30, 45};
     CHECK_EQUAL(1, time.hours);
@@ -91,7 +62,7 @@ TEST(CommandSystemInterfaces, TimeStructure)
     DOUBLES_EQUAL(90.75, minutes, 0.01);
 }
 
-TEST(CommandSystemInterfaces, SegmentStructure)
+TEST(InterfaceDefinitions, SegmentStructure)
 {
     Segment segment;
     segment.target = 500.0f;
@@ -103,7 +74,7 @@ TEST(CommandSystemInterfaces, SegmentStructure)
     CHECK_EQUAL(30, segment.dwellTime.minutes);
 }
 
-TEST(CommandSystemInterfaces, ProgramStructure)
+TEST(InterfaceDefinitions, ProgramStructure)
 {
     Program program;
     program.name = "test_program";
@@ -116,27 +87,23 @@ TEST(CommandSystemInterfaces, ProgramStructure)
     DOUBLES_EQUAL(500.0, program.segments[0].target, 0.1);
 }
 
-TEST(CommandSystemInterfaces, TemperatureReadingStructure)
+TEST(InterfaceDefinitions, CommandBaseClasses)
 {
-    TemperatureReading reading{500.0f, 45.0f, 25.0f};
-    DOUBLES_EQUAL(500.0, reading.chamber, 0.1);
-    DOUBLES_EQUAL(45.0, reading.caseTemp, 0.1);
-    DOUBLES_EQUAL(25.0, reading.environment, 0.1);
+    EmergencyCommand emergency;
+    CHECK_EQUAL(CommandPriority::Emergency, emergency.GetPriority());
+
+    CriticalCommand critical;
+    CHECK_EQUAL(CommandPriority::Critical, critical.GetPriority());
+
+    HighPriorityCommand high;
+    CHECK_EQUAL(CommandPriority::High, high.GetPriority());
+
+    NormalPriorityCommand normal;
+    CHECK_EQUAL(CommandPriority::Normal, normal.GetPriority());
 }
 
-TEST(CommandSystemInterfaces, InterfacesCompile)
+TEST(InterfaceDefinitions, InterfacesCompile)
 {
     CHECK_TRUE(true);
-}
-
-extern "C" void app_main()
-{
-    // Run CppUTest tests
-    const char* argv[] = {"test_runner"};
-    int argc = 1;
-    int exitCode = CommandLineTestRunner::RunAllTests(argc, const_cast<char**>(argv));
-    
-    // Exit with test result code
-    exit(exitCode);
 }
 

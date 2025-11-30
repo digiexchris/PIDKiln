@@ -9,8 +9,9 @@ firmware/
 ├── CMakeLists.txt              # Root CMakeLists with preset support
 ├── CMakePresets.json           # CMake presets for esp32 and test-app
 ├── components/                  # Shared components
-│   ├── hello_world/            # New hello world component
-│   └── esp-max318-thermocouple/
+│   ├── hello_world/            # Hello world component
+│   ├── command_system/         # Command pattern + state machine
+│   └── flatbuffers_handler/    # Web handler for FlatBuffers messages
 ├── esp32/                      # Main ESP32 application
 │   ├── CMakeLists.txt
 │   └── main/
@@ -98,25 +99,60 @@ firmware/
 - Test should verify hello_world component behavior
 - **Status:** Completed - All 3 tests passing
 
-### 11. Design FlatBuffers Processing Component
+### 11. Design Command System and State Machine Component
+- Design a C++ OOP component implementing the command pattern with a central state machine
+- Component must be hardware-agnostic and shareable between test-app and esp32 firmware
+- Place in `firmware/components/command_system/` directory
+- Review ARCHITECTURE.md, API.md, and simulator/SPECIFICATION.md for state machine requirements
+- Component should handle:
+  - Command pattern implementation with priority queue
+  - State machine managing program execution states (NONE, READY, RUNNING, PAUSED, STOPPED, ERROR, WAITING_THRESHOLD, FINISHED)
+  - State transition rules and validation per SPECIFICATION.md
+  - Priority-based command processing (Emergency, Critical, High, Normal, Low)
+  - Multiple command sources:
+    - Hardware UI (physical buttons) - via ICommandSource interface
+    - Internal hardware monitoring threads (thermocouple, safety checks) - via ICommandSource interface
+    - Web frontend (via FlatBuffers handler component) - via ICommandSource interface
+  - Command cancellation when state becomes incompatible
+  - State change notifications/observers for components that need to react to state changes
+  - Thread-safe command queue for multi-threaded command sources
+- Follow C++23 standards and coding conventions from `.cursor/rules/cpp.mdc`
+- Design for testability with CppUTest
+- Use dependency injection for hardware-specific operations (allows mocking in tests)
+- Design ICommandSource interface to allow multiple input channels
+- **Status:** Pending
+
+### 12. Design Program Executor Component
+- Design a C++ OOP component for executing furnace programs
+- Component manages segment timing, temperature ramping, and step tracking
+- Component subscribes to state changes from Command System
+- Component controls temperature via ITemperatureController interface
+- Component runs program execution logic when state is RUNNING
+- Component detects program completion and triggers state transitions
+- Place in `firmware/components/` directory (exact location TBD)
+- **Status:** Pending (Future step - after command system)
+
+### 13. Design FlatBuffers Web Handler Component
 - Design a C++ OOP component for processing FlatBuffers messages from `proto/furnace.fbs`
 - Component must be hardware-agnostic and shareable between test-app and esp32 firmware
-- Place in `firmware/components/` directory
+- Place in `firmware/components/flatbuffers_handler/` directory
 - Review ARCHITECTURE.md and API.md for message flow and protocol requirements
 - Component serves as the web handler for communication with the frontend
 - Component should handle:
   - Encoding/decoding ClientEnvelope and ServerEnvelope messages
   - Processing all routes/message types defined in the schema (commands, requests, responses)
+  - Converting FlatBuffers commands to Command System commands (inserts into command queue)
   - Routing incoming messages to appropriate handlers
   - Type-safe access to FlatBuffers data structures
   - Error handling for malformed messages
   - Request/response matching via request_id
   - Zero-copy reads where possible (FlatBuffers advantage)
   - WebSocket message framing and protocol management
+  - Integration with Command System component (acts as ICommandSource)
 - Follow C++23 standards and coding conventions from `.cursor/rules/cpp.mdc`
 - Design for testability with CppUTest
 - Consider integration with FlatBuffers code generation (C++ bindings from schema)
-- Design with dependency injection for hardware-specific handlers (allows mocking in tests)
+- Design with dependency injection for Command System integration (allows mocking in tests)
 - **Status:** Pending
 
 ## Technical Details
