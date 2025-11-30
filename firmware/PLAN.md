@@ -25,69 +25,99 @@ firmware/
 
 ## Implementation Steps
 
-### 1. Rename unity-app to test-app
+### 1. Rename unity-app to test-app ✅
 - Rename `firmware/unity-app/` directory to `firmware/test-app/`
 - Update any references in existing files
+- **Status:** Completed
 
-### 2. Create Root CMakeLists.txt
+### 2. Create Root CMakeLists.txt ✅
 - Create `firmware/CMakeLists.txt` that uses CMake presets to select source directory
 - Configure to work with ESP-IDF project structure
 - Use `CMAKE_SOURCE_DIR` from preset to point to either `esp32/` or `test-app/`
 - For Option B: Root CMakeLists.txt acts as a dispatcher that includes the appropriate subdirectory's CMakeLists.txt based on preset
+- **Status:** Completed
 
-### 3. Create CMakePresets.json
+### 3. Create CMakePresets.json ✅
 - Create `firmware/CMakePresets.json` with two presets:
   - `esp32`: Points to `esp32/` directory, uses ESP-IDF toolchain
-  - `test-app`: Points to `test-app/` directory, uses host toolchain for native testing
+  - `test-app`: Points to `test-app/` directory, uses ESP-IDF Linux target for host-based testing
 - Configure build directories appropriately (separate build dirs for each preset)
+- **Status:** Completed
 
-### 4. Create ESP32 App CMakeLists.txt
+### 4. Create ESP32 App CMakeLists.txt ✅
 - Create `firmware/esp32/CMakeLists.txt`
 - Configure as standard ESP-IDF project
-- Set `EXTRA_COMPONENT_DIRS` to `../components`
+- Set `EXTRA_COMPONENT_DIRS` to `../components` and `components` (shared + ESP32-specific)
 - Project name: `esp32_app`
 - Follow ESP-IDF v5.5.1 conventions
+- **Status:** Completed
 
-### 5. Configure Test App with CppUTest
+### 5. Configure Test App with CppUTest ✅
 - Update `firmware/test-app/CMakeLists.txt`
 - Remove Unity framework references
 - Add CMake `FetchContent` to download CppUTest
 - Configure CppUTest to only be available for test-app (not esp32)
-- Set up host-based testing (native build, not ESP-IDF project)
+- Set up host-based testing using ESP-IDF Linux target (`idf.py --preview set-target linux`)
 - Include shared components from `../components`
-- Use standard CMake (not ESP-IDF project.cmake) for test-app
+- Use ESP-IDF project.cmake for test-app (Linux target)
+- **Status:** Completed
 
-### 6. Update Test App Main
+### 6. Update Test App Main ✅
 - Convert `firmware/test-app/main/test_app_main.c` to C++ (`test_main.cpp`)
 - Replace Unity includes with CppUTest includes
 - Replace Unity test macros with CppUTest test macros
-- Create basic test runner using CppUTest
+- Create basic test runner using CppUTest with `app_main()` entry point
+- **Status:** Completed
 
-### 7. Move Development Container Configuration
-- Move `.devcontainer/` from project root to `firmware/` directory (if it exists at root)
-- Move `.vscode/` from `unity-app/` to `firmware/` directory (if it exists)
+### 7. Move Development Container Configuration ✅
+- Move `.devcontainer/` from project root to `firmware/` directory
 - Update paths in configuration files to work from new location
 - Ensure ESP-IDF extension settings point to correct paths
+- **Status:** Completed
 
-### 8. Create Hello World Component
+### 8. Create Hello World Component ✅
 - Create `firmware/components/hello_world/` directory
 - Create `hello_world.h` with C++ interface (following coding standards)
 - Create `hello_world.cpp` with implementation
 - Create `CMakeLists.txt` for the component
 - Component should return a string or print "Hello, World!"
 - Follow C++23 standards and naming conventions from `.cursor/rules/cpp.mdc`
+- **Status:** Completed
 
-### 9. Create ESP32 Hello World App
+### 9. Create ESP32 Hello World App ✅
 - Create `firmware/esp32/main/main.cpp`
 - Include hello_world component
 - Implement `app_main()` to use hello_world component
 - Create `firmware/esp32/main/CMakeLists.txt` to register main component
+- **Status:** Completed
 
-### 10. Create Basic CppUTest Test
+### 10. Create Basic CppUTest Test ✅
 - Update or create test in `firmware/test-app/main/test_main.cpp`
 - Test the hello_world component functionality
 - Ensure CppUTest framework is working correctly
 - Test should verify hello_world component behavior
+- **Status:** Completed - All 3 tests passing
+
+### 11. Design FlatBuffers Processing Component
+- Design a C++ OOP component for processing FlatBuffers messages from `proto/furnace.fbs`
+- Component must be hardware-agnostic and shareable between test-app and esp32 firmware
+- Place in `firmware/components/` directory
+- Review ARCHITECTURE.md and API.md for message flow and protocol requirements
+- Component serves as the web handler for communication with the frontend
+- Component should handle:
+  - Encoding/decoding ClientEnvelope and ServerEnvelope messages
+  - Processing all routes/message types defined in the schema (commands, requests, responses)
+  - Routing incoming messages to appropriate handlers
+  - Type-safe access to FlatBuffers data structures
+  - Error handling for malformed messages
+  - Request/response matching via request_id
+  - Zero-copy reads where possible (FlatBuffers advantage)
+  - WebSocket message framing and protocol management
+- Follow C++23 standards and coding conventions from `.cursor/rules/cpp.mdc`
+- Design for testability with CppUTest
+- Consider integration with FlatBuffers code generation (C++ bindings from schema)
+- Design with dependency injection for hardware-specific handlers (allows mocking in tests)
+- **Status:** Pending
 
 ## Technical Details
 
@@ -98,9 +128,10 @@ firmware/
 - Configure for C++23 standard
 
 ### Host-Based Testing
-- Test app should build as native executable (not ESP-IDF project)
-- Use standard CMake for test-app, not ESP-IDF project.cmake
-- Components should be included via `add_subdirectory` or `target_include_directories`
+- Test app uses ESP-IDF Linux target (`idf.py --preview set-target linux`)
+- Uses ESP-IDF project.cmake for consistency with esp32 app
+- Components are included via `EXTRA_COMPONENT_DIRS` pointing to `../components`
+- Requires `libbsd-dev` system package for Linux target
 
 ### CMake Presets Structure (Option B - Separate Projects)
 - Each app (`esp32/` and `test-app/`) is a separate ESP-IDF/CMake project
