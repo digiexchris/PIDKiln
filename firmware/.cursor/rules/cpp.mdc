@@ -1,0 +1,47 @@
+---
+description: C++ coding standards for ESP32 unit test project
+globs: **/*.cpp, **/*.h, **/*.hpp, **/*.cxx, **/*.hxx
+alwaysApply: true
+---
+# C++ Coding Standards
+
+## Language Version & Preferences
+
+- Prefer C++23 standard
+- Prefer C++ style casts and features over C features when possible
+- Prefer object-oriented design common with C++23 projects
+
+## Code Style & Formatting
+
+- A brace related to a block should be on its own line
+
+## Naming Conventions
+
+### Classes
+- Class names start with a capital letter, and are CamelCase
+- Example: `class MyClass { };`
+
+### Methods
+- Class method names start with a capital letter, and are CamelCase
+- Private and protected class methods follow the same standard, but are prefixed with the word "Priv"
+- Example: `void PublicMethod();` or `void PrivPrivateMethod();`
+
+### Member Variables
+- Class member variables are camelCase but start with a lower case letter, and are prefixed with the word "my"
+- Example: `int myClassMember;`
+
+### Local Variables
+- Function or block local variables are camelCase and start with a lowercase letter, and do not need to be prefixed with "my"
+- Local variables do not start with a countable noun unless required for clarity
+- Example: `int localVariable;`
+
+### Parameters
+- Function and method parameter names are camelCase, and start with a countable noun, such as "a", "an", "some", "any"
+- Example: `void ProcessData(int aParameterName);`
+
+## Design Principles
+
+- Design code to be maintainable, reusable, and extendable
+- Organize class member variables in order of best memory packing
+- Consider ESP32 performance when designing systems and implementing code, but prefer memory safety and type safety over performance if both cannot be achieved at the same time
+- Design for testability in mind. Suggest designs that are easier to unit test, and write tests for any code you write where possible. Notify the user when it is not possible to write tests.

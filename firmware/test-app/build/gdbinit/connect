@@ -1,0 +1,3 @@
+# Run the application and stop on app_main()
+break app_main
+run

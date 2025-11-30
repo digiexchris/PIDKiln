@@ -1,0 +1,16 @@
+---
+description: ESP32 framework
+globs: **/*.cpp, **/*.h, **/*.hpp, **/*.cxx, **/*.hxx
+alwaysApply: true
+---
+
+# ESP32 Framework usage
+
+Use esp-idf v5.5.1 for any code generated. Ensure it conforms to the v5.5.x api.
+
+The esp tooling is installed in:
+/home/chris/esp/v5.5.1/esp-idf
+/home/chris/.espressif/
+
+The api documentation for this version is available at:
+https://docs.espressif.com/projects/esp-idf/en/v5.5.1/esp32/api-guides/index.html

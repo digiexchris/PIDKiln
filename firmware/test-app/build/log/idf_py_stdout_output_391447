@@ -1,0 +1,115 @@
+Command: cmake -G Ninja -DPYTHON_DEPS_CHECKED=1 -DPYTHON=/home/chris/.espressif/python_env/idf5.5_py3.13_env/bin/python -DESP_PLATFORM=1 -DCCACHE_ENABLE=0 /home/chris/repos/PIDKiln/firmware/test-app
+-- The C compiler identification is GNU 14.2.0
+-- The CXX compiler identification is GNU 14.2.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Looking for fork
+-- Looking for fork - found
+-- Looking for gettimeofday
+-- Looking for gettimeofday - found
+-- Looking for pthread_mutex_lock
+-- Looking for pthread_mutex_lock - found
+-- Looking for strdup
+-- Looking for strdup - found
+-- Could NOT find PkgConfig (missing: PKG_CONFIG_EXECUTABLE) 
+-- Performing Test WARNING_C_FLAG_Weverything
+-- Performing Test WARNING_C_FLAG_Weverything - Failed
+-- Performing Test WARNING_C_FLAG_Wall
+-- Performing Test WARNING_C_FLAG_Wall - Success
+-- Performing Test WARNING_C_FLAG_Wextra
+-- Performing Test WARNING_C_FLAG_Wextra - Success
+-- Performing Test WARNING_C_FLAG_pedantic
+-- Performing Test WARNING_C_FLAG_pedantic - Success
+-- Performing Test WARNING_C_FLAG_Wshadow
+-- Performing Test WARNING_C_FLAG_Wshadow - Success
+-- Performing Test WARNING_C_FLAG_Wswitch-default
+-- Performing Test WARNING_C_FLAG_Wswitch-default - Success
+-- Performing Test WARNING_C_FLAG_Wswitch-enum
+-- Performing Test WARNING_C_FLAG_Wswitch-enum - Success
+-- Performing Test WARNING_C_FLAG_Wconversion
+-- Performing Test WARNING_C_FLAG_Wconversion - Success
+-- Performing Test WARNING_C_FLAG_Wsign-conversion
+-- Performing Test WARNING_C_FLAG_Wsign-conversion - Success
+-- Performing Test WARNING_C_FLAG_Wno-padded
+-- Performing Test WARNING_C_FLAG_Wno-padded - Success
+-- Performing Test WARNING_C_FLAG_Wno-disabled-macro-expansion
+-- Performing Test WARNING_C_FLAG_Wno-disabled-macro-expansion - Failed
+-- Performing Test WARNING_C_FLAG_Wno-reserved-id-macro
+-- Performing Test WARNING_C_FLAG_Wno-reserved-id-macro - Failed
+-- Performing Test WARNING_C_FLAG_Wno-keyword-macro
+-- Performing Test WARNING_C_FLAG_Wno-keyword-macro - Failed
+-- Performing Test WARNING_C_FLAG_Wno-long-long
+-- Performing Test WARNING_C_FLAG_Wno-long-long - Success
+-- Performing Test WARNING_C_FLAG_Wstrict-prototypes
+-- Performing Test WARNING_C_FLAG_Wstrict-prototypes - Success
+-- Performing Test WARNING_CXX_FLAG_Weverything
+-- Performing Test WARNING_CXX_FLAG_Weverything - Failed
+-- Performing Test WARNING_CXX_FLAG_Wall
+-- Performing Test WARNING_CXX_FLAG_Wall - Success
+-- Performing Test WARNING_CXX_FLAG_Wextra
+-- Performing Test WARNING_CXX_FLAG_Wextra - Success
+-- Performing Test WARNING_CXX_FLAG_pedantic
+-- Performing Test WARNING_CXX_FLAG_pedantic - Success
+-- Performing Test WARNING_CXX_FLAG_Wshadow
+-- Performing Test WARNING_CXX_FLAG_Wshadow - Success
+-- Performing Test WARNING_CXX_FLAG_Wswitch-default
+-- Performing Test WARNING_CXX_FLAG_Wswitch-default - Success
+-- Performing Test WARNING_CXX_FLAG_Wswitch-enum
+-- Performing Test WARNING_CXX_FLAG_Wswitch-enum - Success
+-- Performing Test WARNING_CXX_FLAG_Wconversion
+-- Performing Test WARNING_CXX_FLAG_Wconversion - Success
+-- Performing Test WARNING_CXX_FLAG_Wsign-conversion
+-- Performing Test WARNING_CXX_FLAG_Wsign-conversion - Success
+-- Performing Test WARNING_CXX_FLAG_Wno-padded
+-- Performing Test WARNING_CXX_FLAG_Wno-padded - Success
+-- Performing Test WARNING_CXX_FLAG_Wno-disabled-macro-expansion
+-- Performing Test WARNING_CXX_FLAG_Wno-disabled-macro-expansion - Failed
+-- Performing Test WARNING_CXX_FLAG_Wno-reserved-id-macro
+-- Performing Test WARNING_CXX_FLAG_Wno-reserved-id-macro - Failed
+-- Performing Test WARNING_CXX_FLAG_Wno-keyword-macro
+-- Performing Test WARNING_CXX_FLAG_Wno-keyword-macro - Failed
+-- Performing Test WARNING_CXX_FLAG_Wno-long-long
+-- Performing Test WARNING_CXX_FLAG_Wno-long-long - Success
+-- Performing Test WARNING_CXX_FLAG_Woverloaded-virtual
+-- Performing Test WARNING_CXX_FLAG_Woverloaded-virtual - Success
+-- Performing Test WARNING_CXX_FLAG_Wno-global-constructors
+-- Performing Test WARNING_CXX_FLAG_Wno-global-constructors - Failed
+-- Performing Test WARNING_CXX_FLAG_Wno-exit-time-destructors
+-- Performing Test WARNING_CXX_FLAG_Wno-exit-time-destructors - Failed
+-- Performing Test WARNING_CXX_FLAG_Wno-weak-vtables
+-- Performing Test WARNING_CXX_FLAG_Wno-weak-vtables - Failed
+-- Performing Test WARNING_CXX_FLAG_Wno-old-style-cast
+-- Performing Test WARNING_CXX_FLAG_Wno-old-style-cast - Success
+-- IDF_TARGET is not set, guessed 'linux' from sdkconfig '/home/chris/repos/PIDKiln/firmware/test-app/sdkconfig'
+-- Found Git: /usr/bin/git (found version "2.47.3")
+-- Minimal build - OFF
+-- The ASM compiler identification is GNU
+-- Found assembler: /usr/bin/cc
+-- Performing Test ver_gnu17_supported
+-- Performing Test ver_gnu17_supported - Success
+-- Performing Test ver_gnu++2b_supported
+-- Performing Test ver_gnu++2b_supported - Success
+-- Building ESP-IDF components for target linux
+-- Project sdkconfig file /home/chris/repos/PIDKiln/firmware/test-app/sdkconfig
+Loading defaults file /home/chris/repos/PIDKiln/firmware/test-app/sdkconfig.defaults...
+/home/chris/repos/PIDKiln/firmware/test-app/sdkconfig.defaults:6 CONFIG_ESP_TASK_WDT was replaced with CONFIG_ESP_TASK_WDT_INIT 
+-- Efuse virtual mode is enabled. If Secure boot or Flash encryption is on it does not provide any security. FOR TESTING ONLY!
+-- Found Python3: /home/chris/.espressif/python_env/idf5.5_py3.13_env/bin/python (found version "3.13.5") found components: Interpreter
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Performing Test C_COMPILER_SUPPORTS_WFORMAT_SIGNEDNESS
+-- Performing Test C_COMPILER_SUPPORTS_WFORMAT_SIGNEDNESS - Success
+-- USING O3
+-- App "test_app" version: dffd3da-dirty
+-- Components: cmock console efuse esp-tls esp_app_format esp_common esp_driver_ana_cmpr esp_driver_cam esp_driver_gpio esp_driver_i2c esp_driver_isp esp_driver_jpeg esp_driver_ledc esp_driver_mcpwm esp_driver_parlio esp_driver_pcnt esp_driver_ppa esp_driver_rmt esp_driver_sdio esp_driver_sdm esp_driver_sdmmc esp_driver_sdspi esp_driver_tsens esp_driver_uart esp_driver_usb_serial_jtag esp_event esp_http_client esp_http_server esp_https_server esp_hw_support esp_netif esp_netif_stack esp_partition esp_ringbuf esp_rom esp_system esp_timer fatfs freertos hal heap hello_world http_parser json linux log lwip main mbedtls mqtt nvs_flash partition_table protobuf-c pthread rt soc spi_flash spiffs tcp_transport unity vfs wear_levelling
+-- Component paths: /home/chris/esp/v5.5.1/esp-idf/components/cmock /home/chris/esp/v5.5.1/esp-idf/components/console /home/chris/esp/v5.5.1/esp-idf/components/efuse /home/chris/esp/v5.5.1/esp-idf/components/esp-tls /home/chris/esp/v5.5.1/esp-idf/components/esp_app_format /home/chris/esp/v5.5.1/esp-idf/components/esp_common /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_ana_cmpr /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_cam /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_gpio /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_i2c /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_isp /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_jpeg /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_ledc /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_mcpwm /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_parlio /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_pcnt /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_ppa /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_rmt /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_sdio /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_sdm /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_sdmmc /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_sdspi /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_tsens /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_uart /home/chris/esp/v5.5.1/esp-idf/components/esp_driver_usb_serial_jtag /home/chris/esp/v5.5.1/esp-idf/components/esp_event /home/chris/esp/v5.5.1/esp-idf/components/esp_http_client /home/chris/esp/v5.5.1/esp-idf/components/esp_http_server /home/chris/esp/v5.5.1/esp-idf/components/esp_https_server /home/chris/esp/v5.5.1/esp-idf/components/esp_hw_support /home/chris/esp/v5.5.1/esp-idf/components/esp_netif /home/chris/esp/v5.5.1/esp-idf/components/esp_netif_stack /home/chris/esp/v5.5.1/esp-idf/components/esp_partition /home/chris/esp/v5.5.1/esp-idf/components/esp_ringbuf /home/chris/esp/v5.5.1/esp-idf/components/esp_rom /home/chris/esp/v5.5.1/esp-idf/components/esp_system /home/chris/esp/v5.5.1/esp-idf/components/esp_timer /home/chris/esp/v5.5.1/esp-idf/components/fatfs /home/chris/esp/v5.5.1/esp-idf/components/freertos /home/chris/esp/v5.5.1/esp-idf/components/hal /home/chris/esp/v5.5.1/esp-idf/components/heap /home/chris/repos/PIDKiln/firmware/components/hello_world /home/chris/esp/v5.5.1/esp-idf/components/http_parser /home/chris/esp/v5.5.1/esp-idf/components/json /home/chris/esp/v5.5.1/esp-idf/components/linux /home/chris/esp/v5.5.1/esp-idf/components/log /home/chris/esp/v5.5.1/esp-idf/components/lwip /home/chris/repos/PIDKiln/firmware/test-app/main /home/chris/esp/v5.5.1/esp-idf/components/mbedtls /home/chris/esp/v5.5.1/esp-idf/components/mqtt /home/chris/esp/v5.5.1/esp-idf/components/nvs_flash /home/chris/esp/v5.5.1/esp-idf/components/partition_table /home/chris/esp/v5.5.1/esp-idf/components/protobuf-c /home/chris/esp/v5.5.1/esp-idf/components/pthread /home/chris/esp/v5.5.1/esp-idf/components/rt /home/chris/esp/v5.5.1/esp-idf/components/soc /home/chris/esp/v5.5.1/esp-idf/components/spi_flash /home/chris/esp/v5.5.1/esp-idf/components/spiffs /home/chris/esp/v5.5.1/esp-idf/components/tcp_transport /home/chris/esp/v5.5.1/esp-idf/components/unity /home/chris/esp/v5.5.1/esp-idf/components/vfs /home/chris/esp/v5.5.1/esp-idf/components/wear_levelling
+-- Configuring incomplete, errors occurred!
