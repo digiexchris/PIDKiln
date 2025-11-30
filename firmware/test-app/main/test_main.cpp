@@ -8,6 +8,7 @@
 #include "command_system/Program.hpp"
 #include "command_system/CommandBase.hpp"
 #include "command_system/TemperatureReading.hpp"
+#include "command_system/StateMachine.hpp"
 #include <string>
 
 using namespace command_system;
@@ -129,11 +130,15 @@ TEST(CommandSystemInterfaces, InterfacesCompile)
     CHECK_TRUE(true);
 }
 
-extern "C" void app_main()
+IMPORT_TEST_GROUP(StateMachineTest);
+IMPORT_TEST_GROUP(InterfaceDefinitions);
+IMPORT_TEST_GROUP(PriorityCommandQueueTest);
+
+extern "C" void app_main(int ac, char** av)
 {
     // Run CppUTest tests
-    const char* argv[] = {"test_runner"};
-    int argc = 1;
+    const char* argv[] = {"test_runner", "-v"};
+    int argc = 2; // test_runner and -lc
     int exitCode = CommandLineTestRunner::RunAllTests(argc, const_cast<char**>(argv));
     
     // Exit with test result code

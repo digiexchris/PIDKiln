@@ -3,7 +3,7 @@
 namespace command_system
 {
 
-enum class CommandPriority : uint8_t
+enum class CommandPriority
 {
     Emergency = 0,
     Critical = 1,

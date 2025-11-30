@@ -7,7 +7,7 @@ namespace command_system
 
 class EmergencyCommand : public ICommand
 {
-protected:
+    public:
     CommandPriority GetPriority() const override
     {
         return CommandPriority::Emergency;
@@ -16,7 +16,7 @@ protected:
 
 class CriticalCommand : public ICommand
 {
-protected:
+public:
     CommandPriority GetPriority() const override
     {
         return CommandPriority::Critical;
@@ -25,7 +25,7 @@ protected:
 
 class HighPriorityCommand : public ICommand
 {
-protected:
+    public:
     CommandPriority GetPriority() const override
     {
         return CommandPriority::High;
@@ -34,7 +34,7 @@ protected:
 
 class NormalPriorityCommand : public ICommand
 {
-protected:
+    public:
     CommandPriority GetPriority() const override
     {
         return CommandPriority::Normal;

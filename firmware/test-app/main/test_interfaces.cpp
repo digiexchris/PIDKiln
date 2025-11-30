@@ -87,23 +87,3 @@ TEST(InterfaceDefinitions, ProgramStructure)
     DOUBLES_EQUAL(500.0, program.segments[0].target, 0.1);
 }
 
-TEST(InterfaceDefinitions, CommandBaseClasses)
-{
-    EmergencyCommand emergency;
-    CHECK_EQUAL(CommandPriority::Emergency, emergency.GetPriority());
-
-    CriticalCommand critical;
-    CHECK_EQUAL(CommandPriority::Critical, critical.GetPriority());
-
-    HighPriorityCommand high;
-    CHECK_EQUAL(CommandPriority::High, high.GetPriority());
-
-    NormalPriorityCommand normal;
-    CHECK_EQUAL(CommandPriority::Normal, normal.GetPriority());
-}
-
-TEST(InterfaceDefinitions, InterfacesCompile)
-{
-    CHECK_TRUE(true);
-}
-

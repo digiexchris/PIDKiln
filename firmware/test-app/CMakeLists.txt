@@ -18,11 +18,4 @@ FetchContent_MakeAvailable(CppUTest)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(test_app)
 
-if(TARGET CppUTest::CppUTest AND TARGET __idf_main)
-    target_link_libraries(__idf_main PRIVATE
-        CppUTest::CppUTest
-        CppUTest::CppUTestExt
-    )
-else()
-    message(WARNING "Could not link CppUTest - targets may not be available")
-endif()
+

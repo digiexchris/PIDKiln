@@ -1,8 +1,11 @@
 {
 	"folders": [
 		{
+			"path": "firmware/test-app"
+		},
+		{
 			"path": "."
-		}
+		}		
 	],
 	"settings": {
 		"files.associations": {

@@ -58,5 +58,6 @@
     },
     "idf.espIdfPath": "/home/chris/esp/v5.5.1/esp-idf",
     "idf.toolsPath": "/home/chris/.espressif",
-    "idf.pythonInstallPath": "/usr/bin/python3"
+    "idf.pythonInstallPath": "/usr/bin/python3",
+    "cmake.sourceDirectory": "/home/chris/repos/PIDKiln/firmware"
 }
