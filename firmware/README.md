@@ -13,7 +13,7 @@ For other systems, install ESP-IDF following the [official guide](https://docs.e
 Install required system packages:
 
 ```bash
-sudo apt-get install libbsd-dev
+sudo apt-get install libbsd-dev cmake ninja-build
 ```
 
 ## Project Structure

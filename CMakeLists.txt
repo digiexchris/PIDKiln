@@ -4,6 +4,12 @@
 
 cmake_minimum_required(VERSION 3.16)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/firmware/lib)
+
+if (NOT DEFINED ENV{IDF_PATH})
+project(test_app)
+add_subdirectory(firmware/test-app)
+endif()
 # CMake presets will set CMAKE_SOURCE_DIR to point to either esp32/ or test-app/
 # This root file acts as a dispatcher - the actual project configuration
 # is in the subdirectory's CMakeLists.txt

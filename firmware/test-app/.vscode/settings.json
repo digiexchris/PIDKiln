@@ -2,5 +2,11 @@
   "C_Cpp.intelliSenseEngine": "default",
   "idf.espIdfPath": "/home/chris/esp/v5.5.1/esp-idf",
   "idf.toolsPath": "/home/chris/.espressif",
-  "idf.pythonInstallPath": "/usr/bin/python3"
+  "idf.pythonInstallPath": "/usr/bin/python3",
+  "clangd.path": "/home/chris/.espressif/tools/esp-clang/esp-19.1.2_20250312/esp-clang/bin/clangd",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=/home/chris/.espressif/tools/riscv32-esp-elf/esp-14.2.0_20241119/riscv32-esp-elf/bin/riscv32-esp-elf-gcc",
+    "--compile-commands-dir=/home/chris/repos/PIDKiln/firmware/test-app/build"
+  ]
 }
